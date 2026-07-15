@@ -16,7 +16,6 @@ import { SetupBanner } from "@/components/SetupBanner";
 import { isPreviewOpenAtom } from "@/atoms/viewAtoms";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useStreamChat } from "@/hooks/useStreamChat";
-import { HomeChatInput } from "@/components/chat/HomeChatInput";
 import { usePostHog } from "posthog-js/react";
 import { PrivacyBanner } from "@/components/TelemetryBanner";
 import { INSPIRATION_PROMPTS } from "@/prompts/inspiration_prompts";
@@ -27,7 +26,7 @@ import { invalidateAppQuery } from "@/hooks/useLoadApp";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { useSelectChat } from "@/hooks/useSelectChat";
-import { FeaturedAppShowcase } from "@/components/FeaturedAppShowcase";
+import "./caide-home.css";
 
 import type { FileAttachment } from "@/ipc/types";
 import type { ListedApp } from "@/ipc/types/app";
@@ -53,12 +52,74 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { RefreshCw, Zap } from "lucide-react";
+import {
+  Box,
+  Bot,
+  Check,
+  ChevronDown,
+  Code2,
+  Database,
+  Figma,
+  Github,
+  Home,
+  Layers,
+  MousePointer2,
+  Palette,
+  Play,
+  RefreshCw,
+  Rocket,
+  Search,
+  Settings,
+  Share2,
+  SlidersHorizontal,
+  Smartphone,
+  Sparkles,
+  Square,
+  TestTube2,
+  Upload,
+  Zap,
+} from "lucide-react";
 
 // Adding an export for attachments
 export interface HomeSubmitOptions {
   attachments?: FileAttachment[];
   selectedApp?: ListedApp;
+}
+
+const caideScreens = [
+  "Supermarket",
+  "Pharmacy",
+  "Grills",
+  "Iuo Cafe",
+  "Chat Box",
+  "Logo",
+  "Welcome 1",
+  "Login",
+  "Sign Up",
+  "Verification",
+  "Stores",
+  "Restaurants",
+  "Profile",
+];
+
+const caideNavItems = [
+  { label: "Builder", icon: MousePointer2, active: true },
+  { label: "Preview", icon: Smartphone },
+  { label: "Data", icon: Database },
+  { label: "Components", icon: Box },
+  { label: "Code", icon: Code2 },
+  { label: "Settings", icon: Settings },
+];
+
+const caidePromptPresets = [
+  "Delivery marketplace with stores, courier tracking, wallet, and admin screens",
+  "Healthcare booking app with patient profiles, appointments, and offline records",
+  "School portal with attendance, parent chat, billing, and release-ready QA",
+];
+
+function getRandomPrompts() {
+  const shuffled = [...INSPIRATION_PROMPTS].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, 3);
 }
 
 export default function HomePage() {
@@ -124,20 +185,7 @@ export default function HomePage() {
   const appId = search.appId ? Number(search.appId) : null;
 
   // State for random prompts
-  const [randomPrompts, setRandomPrompts] = useState<
-    typeof INSPIRATION_PROMPTS
-  >([]);
-
-  // Function to get random prompts
-  const getRandomPrompts = useCallback(() => {
-    const shuffled = [...INSPIRATION_PROMPTS].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 3);
-  }, []);
-
-  // Initialize random prompts
-  useEffect(() => {
-    setRandomPrompts(getRandomPrompts());
-  }, [getRandomPrompts]);
+  const [randomPrompts, setRandomPrompts] = useState(getRandomPrompts);
 
   // Redirect to app details page if appId is present. Use `replace` so the
   // intermediate `/?appId=…` entry doesn't sit in history and trap the back
@@ -442,79 +490,311 @@ export default function HomePage() {
     );
   }
 
+  const createFromPrompt = () => {
+    void handleSubmit();
+  };
+
   // Main Home Page Content
   return (
-    <div className="flex min-h-full w-full flex-col pb-28">
-      <div className="flex flex-col items-center justify-center max-w-3xl w-full m-auto p-8 relative">
-        <div className="w-full">
-          <div className="mb-6 text-center">
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground">
-              What do you want to build?
-            </h1>
-            <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
-              Describe your idea. Dyad will turn it into a working app.
-            </p>
-            <div className="mt-4 flex justify-center">
-              <ImportAppButton
-                className="px-0 pb-0"
-                variant="outline"
-                size="sm"
-              />
-            </div>
-          </div>
-          <HomeChatInput onSubmit={handleSubmit} />
+    <div className="caide-shell">
+      <aside className="caide-rail" aria-label="Primary">
+        <div className="caide-brand-mark">
+          <span />
+        </div>
+        {caideNavItems.map((item) => (
+          <button
+            type="button"
+            key={item.label}
+            className={item.active ? "active" : undefined}
+            aria-label={item.label}
+            title={item.label}
+          >
+            <item.icon size={18} />
+          </button>
+        ))}
+      </aside>
 
-          {!isSettingsLoading &&
-            !isLoadingLanguageModelProviders &&
-            !hasDyadProApiKey && (
-              <div className="-mt-2 flex justify-end px-4">
+      <aside className="caide-map">
+        <div className="caide-map-brand">
+          <strong>CAIDE</strong>
+          <span>Mobile Builder</span>
+        </div>
+        <button
+          type="button"
+          className="caide-project-button"
+          onClick={() => setInputValue(caidePromptPresets[0])}
+        >
+          Delivery
+          <ChevronDown size={14} />
+        </button>
+        <div className="caide-saved">
+          <span />
+          Saved locally
+        </div>
+        <div className="caide-map-head">
+          <span>APP MAP</span>
+          <strong>{caideScreens.length} screens</strong>
+          <button type="button" aria-label="Add screen">
+            +
+          </button>
+        </div>
+        <div className="caide-search">
+          <Search size={14} />
+          <span>Screens</span>
+        </div>
+        <div className="caide-screen-list">
+          {caideScreens.map((screen, index) => (
+            <button
+              type="button"
+              key={screen}
+              className={index === 0 ? "active" : undefined}
+            >
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <Layers size={14} />
+              <strong>{screen}</strong>
+              <Check size={13} />
+            </button>
+          ))}
+        </div>
+        <div className="caide-activity">
+          <Sparkles size={13} />
+          Activity
+        </div>
+      </aside>
+
+      <main className="caide-stage">
+        <header className="caide-topbar">
+          <div className="caide-topbar-left">
+            <button type="button" className="caide-mode active">
+              <MousePointer2 size={14} />
+              Pan
+            </button>
+            <button type="button" className="caide-mode">
+              <Palette size={14} />
+              Edit
+            </button>
+            <button type="button" className="caide-mode">
+              <Play size={14} />
+              Flow test
+            </button>
+          </div>
+          <div className="caide-topbar-center">
+            <button type="button">100%</button>
+            <button type="button">iPhone 14</button>
+            <button type="button">Default state</button>
+          </div>
+          <div className="caide-topbar-right">
+            <button type="button" className="caide-dark-button">
+              <TestTube2 size={14} />
+              Run tests
+            </button>
+            <ImportAppButton
+              className="caide-import"
+              variant="outline"
+              size="sm"
+            />
+            <button type="button" className="caide-dark-button">
+              <Share2 size={14} />
+              Share
+            </button>
+            <button
+              type="button"
+              className="caide-ship"
+              onClick={createFromPrompt}
+            >
+              <Rocket size={14} />
+              Ship
+            </button>
+          </div>
+        </header>
+
+        <section className="caide-canvas">
+          <div className="caide-canvas-label">
+            <span>LIVE PREVIEW</span>
+            <strong>Supermarket</strong>
+            <em>Drag canvas</em>
+          </div>
+          <div className="caide-prompt-panel">
+            <div className="caide-prompt-head">
+              <Bot size={17} />
+              <div>
+                <span>Dyad Engine</span>
+                <strong>Mobile app brief</strong>
+              </div>
+            </div>
+            <textarea
+              value={inputValue}
+              onChange={(event) => setInputValue(event.target.value)}
+              onKeyDown={(event) => {
+                if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                  event.preventDefault();
+                  createFromPrompt();
+                }
+              }}
+              placeholder="Describe the mobile app to generate..."
+            />
+            <div className="caide-prompt-actions">
+              <button
+                type="button"
+                onClick={() => setInputValue(caidePromptPresets[1])}
+              >
+                <Figma size={13} />
+                Figma brief
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputValue(caidePromptPresets[2])}
+              >
+                <Github size={13} />
+                Production flow
+              </button>
+              <button
+                type="button"
+                className="primary"
+                onClick={createFromPrompt}
+              >
+                <Sparkles size={13} />
+                Build
+              </button>
+            </div>
+            {!isSettingsLoading &&
+              !isLoadingLanguageModelProviders &&
+              !hasDyadProApiKey && (
                 <button
                   type="button"
                   onClick={() => {
                     posthog.capture("home:setup-pill:click");
                     openAiSetupDialog();
                   }}
-                  className={
-                    hasConfiguredAiProvider
-                      ? "flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground hover:underline"
-                      : "flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 hover:underline"
-                  }
+                  className="caide-ai-setup"
                 >
                   <Zap aria-hidden="true" className="size-3.5" />
                   {hasConfiguredAiProvider
                     ? "Manage AI setup"
                     : "Connect AI to build — takes a minute"}
                 </button>
-              </div>
-            )}
-
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
+              )}
+          </div>
+          <div className="caide-phone">
+            <div className="caide-phone-speaker" />
+            <div className="caide-phone-status">9:41</div>
+            <div className="caide-appbar">
+              <span>D</span>
+              <strong>Supermarket</strong>
+              <Home size={17} />
+            </div>
+            <div className="caide-selection">Status Bar - iPhone</div>
+            <div className="caide-mobile-content">
+              {[
+                "Battery",
+                "Border",
+                "Wifi",
+                "Cellular Connection",
+                "Dynamic Island spacer",
+                "Capacity",
+              ].map((label, index) => (
+                <div className="caide-mobile-row" key={label}>
+                  <span>{label}</span>
+                  <div className={index === 0 ? "light" : undefined}>
+                    <Square size={19} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <nav className="caide-mobile-tabs">
+              {["Supermarket", "Pharmacy", "Grills", "Iuo", "Iuo"].map(
+                (label) => (
+                  <span key={label}>{label}</span>
+                ),
+              )}
+            </nav>
+          </div>
+          <div className="caide-idea-strip">
             {randomPrompts.map((item) => (
               <button
                 type="button"
                 key={item.label}
                 onClick={() => setInputValue(item.prompt)}
-                className="flex cursor-pointer items-center gap-2 rounded-full border border-border bg-background px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/30 hover:bg-accent hover:text-foreground"
               >
-                <span aria-hidden="true" className="[&_svg]:size-4">
-                  {item.icon}
-                </span>
+                <span aria-hidden="true">{item.icon}</span>
                 {item.label}
               </button>
             ))}
             <button
               type="button"
               onClick={() => setRandomPrompts(getRandomPrompts())}
-              className="group flex cursor-pointer items-center gap-2 rounded-full border border-border bg-background px-3.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/30 hover:bg-accent hover:text-foreground"
             >
-              <RefreshCw className="size-4 transition-transform duration-200 group-hover:rotate-[-25deg]" />
+              <RefreshCw size={14} />
               {t("moreIdeas")}
             </button>
           </div>
-        </div>
+        </section>
+
         <PrivacyBanner />
-      </div>
-      <FeaturedAppShowcase />
+      </main>
+
+      <aside className="caide-inspector">
+        <div className="caide-inspector-title">
+          <MousePointer2 size={19} />
+          <span>Visual Editor</span>
+          <strong>Selected element</strong>
+        </div>
+        <div className="caide-breadcrumb">Screen → Supermarket</div>
+        <label>
+          Screen background
+          <input value="#ffffff" readOnly />
+        </label>
+        <div className="caide-inspector-actions">
+          <button type="button">
+            <Upload size={14} />
+            Duplicate
+          </button>
+          <button type="button">Delete</button>
+        </div>
+        <label>
+          Content
+          <input value="Status Bar - iPhone" readOnly />
+        </label>
+        <label>
+          Size
+          <select value="medium" onChange={() => undefined}>
+            <option value="medium">Medium</option>
+          </select>
+        </label>
+        <div className="caide-field-grid">
+          <label>
+            X position
+            <input value="0" readOnly />
+          </label>
+          <label>
+            Y position
+            <input value="0" readOnly />
+          </label>
+        </div>
+        <div className="caide-field-grid">
+          <label>
+            Width
+            <input value="288" readOnly />
+          </label>
+          <label>
+            Height
+            <input value="Auto" readOnly />
+          </label>
+        </div>
+        <label>
+          Corner radius
+          <input type="range" min="0" max="40" value="12" readOnly />
+        </label>
+        <div className="caide-swatches">
+          <span />
+          <span />
+          <span />
+        </div>
+        <div className="caide-inspector-foot">
+          <SlidersHorizontal size={14} />7 tasks complete
+        </div>
+      </aside>
+
       <Dialog
         open={isAiSetupDialogOpen}
         onOpenChange={handleAiSetupDialogOpenChange}

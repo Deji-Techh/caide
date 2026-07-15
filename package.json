@@ -1,7 +1,7 @@
 {
-  "name": "dyad",
-  "version": "1.7.0-beta.1",
-  "description": "Free, local, open-source AI app builder",
+  "name": "dyad-x-caide",
+  "version": "0.1.0",
+  "description": "CAIDE mobile app builder powered by Dyad's local AI infrastructure",
   "keywords": [],
   "license": "MIT",
   "author": {
@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/dyad-sh/dyad.git"
+    "url": "https://github.com/Deji-Tech/dyad-x-caide.git"
   },
   "main": ".vite/build/main.js",
   "scripts": {
@@ -210,5 +210,5 @@
   "engines": {
     "node": ">=24 <26"
   },
-  "productName": "dyad"
+  "productName": "CAIDE Mobile Builder"
 }

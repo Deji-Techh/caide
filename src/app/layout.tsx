@@ -4,7 +4,7 @@ import { ThemeProvider } from "../contexts/ThemeContext";
 import { DeepLinkProvider } from "../contexts/DeepLinkContext";
 import { Toaster } from "sonner";
 import { TitleBar } from "./TitleBar";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { useRunApp, useAppOutputSubscription } from "@/hooks/useRunApp";
 import { useAtomValue, useSetAtom } from "jotai";
 import { previewModeAtom, selectedAppIdAtom } from "@/atoms/appAtoms";
@@ -24,8 +24,12 @@ import { useShortcut } from "@/hooks/useShortcut";
 import { useIsMac } from "@/hooks/useChatModeToggle";
 import { ReleaseNotesDialog } from "@/components/ReleaseNotesDialog";
 import { ForceCloseDialog } from "@/components/ForceCloseDialog";
+import { useRouterState } from "@tanstack/react-router";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const isCaideHome = useRouterState({
+    select: (state) => state.location.pathname === "/",
+  });
   const { refreshAppIframe } = useRunApp();
   // Subscribe to app output events once at the root level to avoid duplicates
   useAppOutputSubscription();
@@ -49,12 +53,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   // Reopen closed tab shortcut (Ctrl/Cmd + Shift + T)
   const { reopenClosedTab } = useReopenClosedTab();
   const isMac = useIsMac();
-  useShortcut(
-    "t",
-    { ctrl: !isMac, meta: isMac, shift: true },
-    reopenClosedTab,
-    true,
+  const reopenShortcutModifiers = useMemo(
+    () => ({ ctrl: !isMac, meta: isMac, shift: true }),
+    [isMac],
   );
+  useShortcut("t", reopenShortcutModifiers, reopenClosedTab, true);
 
   // Process queued messages globally (even when not on chat page)
   useQueueProcessor();
@@ -128,11 +131,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <ThemeProvider>
         <DeepLinkProvider>
           <SidebarProvider defaultOpen={false}>
-            <TitleBar />
-            <AppSidebar />
+            <TitleBar caide={isCaideHome} />
+            {!isCaideHome && <AppSidebar />}
             <div
               id="layout-main-content-container"
-              className="flex h-screenish w-full overflow-x-hidden mt-[var(--layout-title-bar-offset)] border-l border-border bg-background"
+              className={`flex h-screenish w-full overflow-x-hidden mt-[var(--layout-title-bar-offset)] bg-background ${isCaideHome ? "border-l-0" : "border-l border-border"}`}
             >
               {children}
             </div>

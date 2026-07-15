@@ -155,7 +155,7 @@ const config: ForgeConfig = {
     ],
     protocols: [
       {
-        name: "Dyad",
+        name: "CAIDE Mobile Builder",
         schemes: ["dyad"],
       },
     ],
@@ -201,12 +201,12 @@ const config: ForgeConfig = {
         ? {
             windowsSign,
             iconUrl:
-              "https://raw.githubusercontent.com/dyad-sh/dyad/main/assets/icon/logo.ico",
+              "https://raw.githubusercontent.com/Deji-Tech/dyad-x-caide/main/assets/icon/logo.ico",
             setupIcon: "./assets/icon/logo.ico",
           }
         : {
             iconUrl:
-              "https://raw.githubusercontent.com/dyad-sh/dyad/main/assets/icon/logo.ico",
+              "https://raw.githubusercontent.com/Deji-Tech/dyad-x-caide/main/assets/icon/logo.ico",
             setupIcon: "./assets/icon/logo.ico",
           },
     ),
@@ -232,8 +232,8 @@ const config: ForgeConfig = {
       name: "@electron-forge/publisher-github",
       config: {
         repository: {
-          owner: "dyad-sh",
-          name: "dyad",
+          owner: "Deji-Tech",
+          name: "dyad-x-caide",
         },
         draft: true,
         force: true,

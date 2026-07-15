@@ -1,34 +1,41 @@
-# Dyad
+# CAIDE Mobile Builder
 
-Dyad is a local, open-source AI app builder. It's fast, private, and fully under your control — like Lovable, v0, or Bolt, but running right on your machine.
+CAIDE Mobile Builder combines CAIDE's mobile-first visual workspace with Dyad's local Electron, AI, database, Git, preview, provider, and packaging infrastructure.
 
-[![Image](https://github.com/user-attachments/assets/f6c83dfc-6ffd-4d32-93dd-4b9c46d17790)](https://dyad.sh/)
+## Architecture
 
-More info at: [https://dyad.sh/](https://dyad.sh/)
+- **Frontend:** CAIDE's dense mobile-builder workspace and visual editor interaction model.
+- **Backend and desktop runtime:** Dyad's Electron main process, IPC handlers, SQLite/Drizzle data layer, workers, provider integrations, Git tooling, preview runtime, and release makers.
+- **Generation flow:** CAIDE's prompt controls call Dyad's existing app creation and chat streaming pipeline.
 
-## 🚀 Features
+The original CAIDE backend is intentionally not included.
 
-- ⚡️ **Local**: Fast, private and no lock-in.
-- 🛠 **Bring your own keys**: Use your own AI API keys — no vendor lock-in.
-- 🖥️ **Cross-platform**: Easy to run on Mac or Windows.
+## Development
 
-## 📦 Download
+Requires Node.js 24.
 
-No sign-up required. Just download and go.
+```bash
+npm ci
+npm run dev
+```
 
-### [👉 Download for your platform](https://www.dyad.sh/#download)
+## Verification
 
-## 🤝 Community
+```bash
+npm run ts:workers
+npm run test
+npm run make
+```
 
-Join our growing community of AI app builders on **Reddit**: [r/dyadbuilders](https://www.reddit.com/r/dyadbuilders/) - share your projects and get help from the community!
+## Desktop artifacts
 
-## 🛠️ Contributing
+The `Build desktop artifacts` GitHub Actions workflow builds:
 
-**Dyad** is open-source (see License info below).
+- Linux x64 AppImage
+- Windows x64 Squirrel installer (`.exe`)
 
-If you're interested in contributing to dyad, please read our [contributing](./CONTRIBUTING.md) doc.
+Tagged builds (`v*`) are attached to a GitHub Release.
 
 ## License
 
-- All the code in this repo outside of `src/pro` is open-source and licensed under Apache 2.0 - see [LICENSE](./LICENSE).
-- All the code in this repo within `src/pro` is fair-source and licensed under [Functional Source License 1.1 Apache 2.0](https://fsl.software/) - see [LICENSE](./src/pro/LICENSE).
+The Dyad-derived source retains its upstream licenses. See [LICENSE](./LICENSE), [NOTICE](./NOTICE), and [src/pro/LICENSE](./src/pro/LICENSE).

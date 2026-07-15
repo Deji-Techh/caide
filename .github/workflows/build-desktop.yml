@@ -1,0 +1,103 @@
+name: Build desktop artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux AppImage
+            os: ubuntu-22.04
+            artifact: caide-linux-appimage
+            path: out/make/**/*.AppImage
+          - name: Windows EXE
+            os: windows-2022
+            artifact: caide-windows-exe
+            path: out/make/**/*.exe
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24.13.1
+          cache: npm
+
+      - name: Install npm 11
+        run: npm install --global npm@11.8.0
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes squashfs-tools rpm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps=false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify workers
+        run: npm run ts:workers
+
+      - name: Build desktop package
+        run: npm run make
+        env:
+          DYAD_SKIP_NATIVE_REBUILD: "false"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Verify requested artifact exists
+        shell: bash
+        run: |
+          shopt -s globstar nullglob
+          files=(${{ matrix.path }})
+          if (( ${#files[@]} == 0 )); then
+            echo "No artifact matched: ${{ matrix.path }}" >&2
+            find out/make -type f -maxdepth 6 -print || true
+            exit 1
+          fi
+          printf '%s\n' "${files[@]}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.path }}
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/*
+          generate_release_notes: true

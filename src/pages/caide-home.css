@@ -1,0 +1,784 @@
+.caide-shell {
+  --caide-bg: #0a0a0b;
+  --caide-panel: #101012;
+  --caide-panel-2: #151518;
+  --caide-line: #29292d;
+  --caide-line-strong: #3b3b42;
+  --caide-text: #f5f5f6;
+  --caide-dim: #8c8c95;
+  --caide-faint: #595961;
+  --caide-green: #22c55e;
+  display: grid;
+  grid-template-columns: 46px 230px minmax(560px, 1fr) 340px;
+  width: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  background: var(--caide-bg);
+  color: var(--caide-text);
+  font-family: "Geist", sans-serif;
+}
+
+.caide-shell button,
+.caide-shell textarea,
+.caide-shell input,
+.caide-shell select {
+  font: inherit;
+}
+
+.caide-rail {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 12px 7px;
+  border-right: 1px solid var(--caide-line);
+  background: #09090a;
+}
+
+.caide-brand-mark {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  margin: 1px auto 12px;
+  border: 1px solid #f4f4f5;
+  border-radius: 7px;
+  transform: rotate(45deg);
+}
+
+.caide-brand-mark span {
+  width: 8px;
+  height: 8px;
+  border: 1px solid #f4f4f5;
+}
+
+.caide-rail button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: #9ca3af;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.caide-rail button:hover,
+.caide-rail button.active {
+  color: white;
+  border-color: var(--caide-line-strong);
+  background: #1b1b1f;
+}
+
+.caide-map,
+.caide-inspector {
+  min-width: 0;
+  border-right: 1px solid var(--caide-line);
+  background: #0e0e10;
+}
+
+.caide-map-brand {
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--caide-line);
+}
+
+.caide-map-brand strong {
+  font:
+    700 14px "Geist Mono",
+    monospace;
+  letter-spacing: 0.22em;
+}
+
+.caide-map-brand span,
+.caide-saved,
+.caide-map-head span,
+.caide-search,
+.caide-activity {
+  color: var(--caide-faint);
+  font:
+    600 9px "Geist Mono",
+    monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.caide-project-button {
+  width: calc(100% - 28px);
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 13px 14px 8px;
+  padding: 0 10px;
+  color: #f4f4f5;
+  border: 1px solid var(--caide-line);
+  border-radius: 6px;
+  background: #151518;
+  cursor: pointer;
+}
+
+.caide-saved {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px 16px;
+  color: #71717a;
+  text-transform: none;
+}
+
+.caide-saved span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--caide-green);
+  box-shadow: 0 0 0 3px #22c55e1c;
+}
+
+.caide-map-head {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-top: 1px solid var(--caide-line);
+}
+
+.caide-map-head strong {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.caide-map-head button {
+  position: absolute;
+  top: 15px;
+  right: 14px;
+  color: var(--caide-dim);
+  border: 0;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.caide-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-top: 1px solid var(--caide-line);
+  border-bottom: 1px solid var(--caide-line);
+}
+
+.caide-screen-list {
+  display: grid;
+  gap: 4px;
+  padding: 10px 8px;
+  max-height: calc(100vh - 310px);
+  overflow: auto;
+}
+
+.caide-screen-list button {
+  height: 40px;
+  display: grid;
+  grid-template-columns: 22px 16px minmax(0, 1fr) 16px;
+  gap: 8px;
+  align-items: center;
+  padding: 0 8px;
+  color: #8e8e98;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.caide-screen-list button.active,
+.caide-screen-list button:hover {
+  color: white;
+  border-color: #2f2f35;
+  background: #1a1a1e;
+}
+
+.caide-screen-list button span {
+  color: #51515a;
+  font:
+    600 8px "Geist Mono",
+    monospace;
+}
+
+.caide-screen-list strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.caide-activity {
+  margin-top: auto;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border-top: 1px solid var(--caide-line);
+}
+
+.caide-stage {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 58px minmax(0, 1fr);
+  overflow: hidden;
+  background:
+    linear-gradient(#ffffff08 1px, transparent 1px),
+    linear-gradient(90deg, #ffffff08 1px, transparent 1px), #101012;
+  background-size: 24px 24px;
+}
+
+.caide-topbar {
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--caide-line);
+  background: #0d0d0f;
+}
+
+.caide-topbar-left,
+.caide-topbar-center,
+.caide-topbar-right,
+.caide-prompt-actions,
+.caide-inspector-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.caide-topbar-right {
+  justify-content: flex-end;
+}
+
+.caide-mode,
+.caide-topbar-center button,
+.caide-dark-button,
+.caide-import,
+.caide-ship {
+  min-height: 33px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px;
+  color: #a1a1aa;
+  border: 1px solid #303036;
+  border-radius: 6px;
+  background: #141417;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.caide-mode.active,
+.caide-topbar-center button:first-child {
+  color: white;
+  border-color: #f4f4f5;
+}
+
+.caide-ship {
+  color: #111113;
+  border-color: white;
+  background: #f5f5f5;
+  font-weight: 700;
+}
+
+.caide-canvas {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.caide-canvas-label {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  color: #777780;
+  font:
+    600 9px "Geist Mono",
+    monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.caide-canvas-label strong {
+  color: #b4b4bc;
+  font-size: 10px;
+  text-transform: none;
+}
+
+.caide-canvas-label em {
+  color: #565660;
+  font-style: normal;
+}
+
+.caide-prompt-panel {
+  position: absolute;
+  top: 52px;
+  left: 24px;
+  width: min(390px, calc(50% - 36px));
+  border: 1px solid #36363d;
+  border-radius: 8px;
+  background: #0b0b0dd9;
+  box-shadow: 0 30px 80px #0009;
+  backdrop-filter: blur(10px);
+  z-index: 1;
+}
+
+.caide-prompt-head {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--caide-line);
+}
+
+.caide-prompt-head svg {
+  color: #e5e5e7;
+}
+
+.caide-prompt-head span {
+  display: block;
+  color: #777780;
+  font:
+    600 9px "Geist Mono",
+    monospace;
+  text-transform: uppercase;
+}
+
+.caide-prompt-head strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.caide-prompt-panel textarea {
+  width: 100%;
+  min-height: 142px;
+  resize: vertical;
+  padding: 15px;
+  color: white;
+  border: 0;
+  border-bottom: 1px solid var(--caide-line);
+  outline: 0;
+  background: #111114;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.caide-prompt-panel textarea::placeholder {
+  color: #5f5f67;
+}
+
+.caide-prompt-actions {
+  padding: 10px;
+  flex-wrap: wrap;
+}
+
+.caide-prompt-actions button,
+.caide-ai-setup {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  color: #b6b6bd;
+  border: 1px solid #2d2d33;
+  border-radius: 6px;
+  background: #151519;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.caide-prompt-actions button.primary {
+  margin-left: auto;
+  color: #111113;
+  border-color: #f3f3f4;
+  background: #f3f3f4;
+  font-weight: 700;
+}
+
+.caide-ai-setup {
+  width: calc(100% - 20px);
+  justify-content: center;
+  margin: 0 10px 10px;
+  color: #f6d083;
+  border-color: #5a4521;
+  background: #1c160d;
+}
+
+.caide-phone {
+  position: absolute;
+  top: 103px;
+  left: 64%;
+  width: 335px;
+  height: 666px;
+  max-height: calc(100vh - 190px);
+  transform: translateX(-50%);
+  overflow: hidden;
+  border: 9px solid #050505;
+  border-radius: 38px;
+  background: #f9f9f8;
+  color: #111113;
+  box-shadow:
+    0 0 0 1px #55555b,
+    0 30px 90px #000c;
+}
+
+.caide-phone-speaker {
+  position: absolute;
+  top: 9px;
+  left: 50%;
+  width: 64px;
+  height: 18px;
+  z-index: 3;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #0a0a0b;
+}
+
+.caide-phone-status {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding-left: 18px;
+  font:
+    700 10px "Geist Mono",
+    monospace;
+}
+
+.caide-appbar {
+  height: 46px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 0 15px;
+  border-bottom: 1px solid #e5e5e7;
+}
+
+.caide-appbar span {
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  color: white;
+  border-radius: 6px;
+  background: #18181b;
+  font:
+    700 10px "Geist Mono",
+    monospace;
+}
+
+.caide-appbar strong {
+  font-size: 12px;
+}
+
+.caide-selection {
+  margin: 20px 12px 16px;
+  padding: 5px 6px;
+  color: #4f46e5;
+  border: 1px dashed #4f46e5;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.caide-mobile-content {
+  height: calc(100% - 158px);
+  overflow: auto;
+  padding: 0 22px 18px;
+}
+
+.caide-mobile-row {
+  display: grid;
+  grid-template-columns: 1fr 64px;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+  color: #6b6b73;
+  font-size: 10px;
+}
+
+.caide-mobile-row div {
+  width: 57px;
+  height: 57px;
+  display: grid;
+  place-items: center;
+  color: white;
+  border-radius: 7px;
+  background: #050505;
+}
+
+.caide-mobile-row div.light {
+  color: #7a7a82;
+  background: #dededa;
+}
+
+.caide-mobile-tabs {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  border-top: 1px solid #e1e1e3;
+  background: white;
+}
+
+.caide-mobile-tabs span {
+  text-align: center;
+  font:
+    700 7px "Geist Mono",
+    monospace;
+}
+
+.caide-idea-strip {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 18px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.caide-idea-strip button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  color: #9797a0;
+  border: 1px solid #303036;
+  border-radius: 999px;
+  background: #111114e6;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.caide-idea-strip button:hover {
+  color: white;
+  border-color: #55555d;
+}
+
+.caide-inspector {
+  border-right: 0;
+  border-left: 1px solid var(--caide-line);
+  padding: 17px 14px;
+}
+
+.caide-inspector-title {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.caide-inspector-title svg {
+  grid-row: span 2;
+  color: #9ca3af;
+}
+
+.caide-inspector-title span {
+  color: var(--caide-faint);
+  font:
+    700 9px "Geist Mono",
+    monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.caide-inspector-title strong {
+  font-size: 18px;
+}
+
+.caide-breadcrumb {
+  padding: 13px 0 16px;
+  color: #777780;
+  border-top: 1px solid var(--caide-line);
+  border-bottom: 1px solid var(--caide-line);
+  font-size: 11px;
+}
+
+.caide-inspector label {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  color: #777780;
+  font:
+    700 9px "Geist Mono",
+    monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.caide-inspector input,
+.caide-inspector select {
+  width: 100%;
+  height: 42px;
+  padding: 0 11px;
+  color: #f4f4f5;
+  border: 1px solid #303036;
+  border-radius: 6px;
+  outline: 0;
+  background: #111114;
+  font:
+    500 14px "Geist",
+    sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.caide-inspector input[type="range"] {
+  padding: 0;
+  accent-color: #f4f4f5;
+}
+
+.caide-inspector-actions {
+  margin-top: 15px;
+}
+
+.caide-inspector-actions button {
+  flex: 1;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #a1a1aa;
+  border: 1px solid #303036;
+  border-radius: 6px;
+  background: #141417;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.caide-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.caide-swatches {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 19px;
+}
+
+.caide-swatches span {
+  height: 40px;
+  border: 1px solid #303036;
+  border-radius: 6px;
+  background: white;
+}
+
+.caide-swatches span:nth-child(2) {
+  background: #101012;
+}
+
+.caide-swatches span:nth-child(3) {
+  background: #d8d6cc;
+}
+
+.caide-inspector-foot {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #777780;
+  font:
+    600 9px "Geist Mono",
+    monospace;
+}
+
+@media (max-width: 1180px) {
+  .caide-shell {
+    grid-template-columns: 46px 210px minmax(0, 1fr);
+  }
+
+  .caide-inspector {
+    display: none;
+  }
+
+  .caide-prompt-panel {
+    width: min(350px, calc(50% - 28px));
+  }
+}
+
+@media (max-width: 860px) {
+  .caide-shell {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+
+  .caide-rail,
+  .caide-map,
+  .caide-topbar-center,
+  .caide-topbar-left {
+    display: none;
+  }
+
+  .caide-stage {
+    min-height: calc(100vh - var(--layout-title-bar-offset));
+  }
+
+  .caide-topbar {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 58px;
+    padding: 10px;
+  }
+
+  .caide-topbar-right {
+    justify-content: stretch;
+    overflow-x: auto;
+  }
+
+  .caide-prompt-panel {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: calc(100% - 24px);
+    margin: 48px 12px 18px;
+  }
+
+  .caide-phone {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: min(335px, calc(100% - 32px));
+    height: 610px;
+    margin: 0 auto 76px;
+    transform: none;
+  }
+
+  .caide-idea-strip {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    padding: 0 12px 18px;
+  }
+}

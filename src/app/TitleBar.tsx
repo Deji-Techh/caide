@@ -26,7 +26,7 @@ import { pendingFirstPromptAtom, selectedChatIdAtom } from "@/atoms/chatAtoms";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 
-export const TitleBar = () => {
+export const TitleBar = ({ caide = false }: { caide?: boolean }) => {
   const [selectedAppId] = useAtom(selectedAppIdAtom);
   const selectedChatId = useAtomValue(selectedChatIdAtom);
   const shouldResumeFirstPrompt = useAtomValue(pendingFirstPromptAtom);
@@ -77,7 +77,14 @@ export const TitleBar = () => {
 
   return (
     <>
-      <div className="@container z-11 w-full h-[calc(var(--layout-title-bar-offset)+1px)] pt-1 bg-(--sidebar) absolute top-0 left-0 app-region-drag flex items-center">
+      <div
+        className={cn(
+          "@container z-11 w-full h-[calc(var(--layout-title-bar-offset)+1px)] pt-1 absolute top-0 left-0 app-region-drag flex items-center",
+          caide
+            ? "bg-[#0d0d0f] text-zinc-100 border-b border-zinc-800"
+            : "bg-(--sidebar)",
+        )}
+      >
         {/*
          * Left region matches the sidebar's expanded width so chat tabs always
          * start past the sidebar panel's right edge. Without this, an active
@@ -112,7 +119,11 @@ export const TitleBar = () => {
                 />
               }
             >
-              <img src={logo} alt="Dyad" className="w-5 h-5 shrink-0" />
+              <img
+                src={logo}
+                alt="CAIDE Mobile Builder"
+                className="w-5 h-5 shrink-0"
+              />
               <span className="hidden @2xl:inline max-w-40 truncate">
                 Manage app
               </span>
@@ -140,21 +151,10 @@ export const TitleBar = () => {
 function WindowsControls() {
   const { isDarkMode } = useTheme();
 
-  const minimizeWindow = () => {
-    ipc.system.minimizeWindow();
-  };
-
-  const maximizeWindow = () => {
-    ipc.system.maximizeWindow();
-  };
-
-  const closeWindow = () => {
-    ipc.system.closeWindow();
-  };
-
   return (
     <div className="ml-auto flex no-app-region-drag -mt-1 h-[var(--layout-title-bar-offset)] self-start">
       <button
+        type="button"
         className="w-12 h-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         onClick={minimizeWindow}
         aria-label="Minimize"
@@ -174,6 +174,7 @@ function WindowsControls() {
         </svg>
       </button>
       <button
+        type="button"
         className="w-12 h-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         onClick={maximizeWindow}
         aria-label="Maximize"
@@ -195,6 +196,7 @@ function WindowsControls() {
         </svg>
       </button>
       <button
+        type="button"
         className="w-12 h-full flex items-center justify-center hover:bg-red-500 transition-colors"
         onClick={closeWindow}
         aria-label="Close"
@@ -215,6 +217,18 @@ function WindowsControls() {
       </button>
     </div>
   );
+}
+
+function minimizeWindow() {
+  ipc.system.minimizeWindow();
+}
+
+function maximizeWindow() {
+  ipc.system.maximizeWindow();
+}
+
+function closeWindow() {
+  ipc.system.closeWindow();
 }
 
 export function DyadProButton({
