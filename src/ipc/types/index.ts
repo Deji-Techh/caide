@@ -59,7 +59,28 @@ export { appBlueprintContracts, appBlueprintEvents } from "./app_blueprint";
 export { appCollectionContracts } from "./app_collections";
 export { terminalContracts } from "./terminal";
 export { testsContracts, testsEvents } from "./tests";
-export { releaseContracts } from "./release";
+export { chatgptContracts } from "./chatgpt";
+
+// =============================================================================
+// Notch Exports
+// =============================================================================
+
+export {
+  notchContracts,
+  notchEvents,
+  notchClient,
+  notchEventClient,
+} from "./notch";
+
+export type {
+  NotchStreamProgress,
+  NotchAppChange,
+  NotchNotification,
+  NotchChatComplete,
+  StreamStatus,
+  ChangeType,
+  NotifType,
+} from "./notch";
 
 // =============================================================================
 // Client Exports
@@ -98,6 +119,7 @@ export { appBlueprintClient, appBlueprintEventClient } from "./app_blueprint";
 export { appCollectionClient } from "./app_collections";
 export { terminalClient } from "./terminal";
 export { testsClient, testsEventClient } from "./tests";
+export { chatgptClient } from "./chatgpt";
 export { releaseClient } from "./release";
 
 // =============================================================================
@@ -270,6 +292,8 @@ export type {
   CreateCustomLanguageModelParams,
 } from "./language-model";
 
+export type { ChatGPTStatus } from "./chatgpt";
+
 // Prompt types
 export type {
   PromptDto,
@@ -423,6 +447,7 @@ import { migrationClient } from "./migration";
 import { systemClient, systemEventClient } from "./system";
 import { versionClient } from "./version";
 import { languageModelClient } from "./language-model";
+import { chatgptClient } from "./chatgpt";
 import { promptClient } from "./prompts";
 import { templateClient } from "./templates";
 import { proposalClient } from "./proposals";
@@ -444,7 +469,6 @@ import { appCollectionClient } from "./app_collections";
 import { terminalClient } from "./terminal";
 import { testsClient, testsEventClient } from "./tests";
 import { releaseClient } from "./release";
-
 /**
  * Unified IPC client with all domains organized by namespace.
  *
@@ -488,6 +512,7 @@ export const ipc = {
   system: systemClient,
   version: versionClient,
   languageModel: languageModelClient,
+  chatgpt: chatgptClient,
   prompt: promptClient,
   template: templateClient,
   proposal: proposalClient,
@@ -508,7 +533,6 @@ export const ipc = {
   appCollection: appCollectionClient,
   terminal: terminalClient,
   tests: testsClient,
-  release: releaseClient,
 
   // Event clients for main->renderer pub/sub
   events: {
@@ -520,4 +544,4 @@ export const ipc = {
     appBlueprint: appBlueprintEventClient,
     tests: testsEventClient,
   },
-} as const;
+};

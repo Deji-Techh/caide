@@ -7,6 +7,7 @@ import {
   protocol,
   net,
   crashReporter,
+  screen,
 } from "electron";
 import * as path from "node:path";
 import { execFile } from "node:child_process";
@@ -39,7 +40,7 @@ import {
 import { recordUpdaterError } from "./main/updater_state";
 import { sendTelemetryEvent } from "./ipc/utils/telemetry";
 import { handleSupabaseOAuthReturn } from "./supabase_admin/supabase_return_handler";
-import { handleBundledGatewayReturn } from "./main/pro";
+import { handleDyadProReturn } from "./main/pro";
 import { IS_TEST_BUILD } from "./ipc/utils/test_utils";
 import { BackupManager } from "./backup_manager";
 import { getDatabasePath, initializeDatabase } from "./db";
@@ -85,6 +86,11 @@ import {
   getDyadAppPath,
   getUserDataPath,
 } from "./paths/paths";
+import {
+  createNotchWindow,
+  setMainWindow as setNotchMainWindow,
+} from "./notch/notch";
+import { setMainWindow as setServiceMainWindow } from "./ipc/services/notch_service";
 import { createDeepLinkQueue } from "./main/deep_link_queue";
 import { registerDyadProtocolLinux } from "./main/linux_protocol_registration";
 import {
@@ -257,9 +263,6 @@ const deepLinkQueue = createDeepLinkQueue(handleDeepLinkReturn);
 // Load environment variables from .env file
 dotenv.config();
 
-// Register IPC handlers before app is ready
-registerIpcHandlers();
-
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
@@ -318,11 +321,15 @@ export async function onReady() {
     const message = error instanceof Error ? error.message : String(error);
     dialog.showErrorBox(
       "Database Migration Failed",
-      `Dyad could not initialize its local database. ${message}`,
+      `CAIDE could not initialize its local database. ${message}`,
     );
     app.quit();
     return;
   }
+
+  // Some handlers immediately reconcile persisted runtime state. Register them
+  // only after Electron and the database are ready, before creating the window.
+  registerIpcHandlers();
 
   // Reconcile any Neon test branches / Supabase test users leaked by a previous
   // session that crashed mid test-run. Fire-and-forget: best-effort cleanup
@@ -480,6 +487,9 @@ export async function onReady() {
   await onFirstRunMaybe(settings);
   createWindow();
   createApplicationMenu();
+  createNotchWindow();
+  setNotchMainWindow(mainWindow!);
+  setServiceMainWindow(mainWindow!);
 
   sendTelemetryEvent("runtime_source", {
     runtime_source: settings.customNodePath
@@ -586,11 +596,14 @@ let isAppQuitting = false;
 let safeStorageKeychainUnlockRetryScheduled = false;
 
 const createWindow = () => {
+  const workArea = screen.getPrimaryDisplay().workAreaSize;
+  const initialWidth = Math.min(1440, Math.max(960, workArea.width - 40));
+  const initialHeight = Math.min(920, Math.max(700, workArea.height - 40));
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: process.env.NODE_ENV === "development" ? 1280 : 960,
+    width: initialWidth,
     minWidth: 800,
-    height: 700,
+    height: initialHeight,
     minHeight: 500,
     titleBarStyle: "hidden",
     titleBarOverlay: false,
@@ -1050,19 +1063,19 @@ async function handleDeepLinkReturn(url: string) {
     });
     return;
   }
-  // caide://bundled-gateway-return?key=123
-  if (parsed.hostname === "bundled-gateway-return") {
+  // dyad://dyad-pro-return?key=123&budget_reset_at=2025-05-26T16:31:13.492000Z&max_budget=100
+  if (parsed.hostname === "dyad-pro-return") {
     const apiKey = parsed.searchParams.get("key");
     if (!apiKey) {
       dialog.showErrorBox("Invalid URL", "Expected key");
       return;
     }
     try {
-      handleBundledGatewayReturn({
+      handleDyadProReturn({
         apiKey,
       });
     } catch (error) {
-      showDeepLinkSettingsError("save Bundled Gateway settings", error);
+      showDeepLinkSettingsError("save CAIDE Gateway settings", error);
       return;
     }
     // Send message to renderer to trigger re-render
@@ -1071,7 +1084,7 @@ async function handleDeepLinkReturn(url: string) {
     });
     return;
   }
-  // Fired by the OAuth callback page to hand focus back to CAIDE
+  // Fired by the OAuth callback page to hand focus back to Dyad
   // after consent. Tokens land via the loopback listener; focusing
   // the window is the only side-effect needed here.
   if (parsed.hostname === "mcp-oauth-return") {
@@ -1081,7 +1094,7 @@ async function handleDeepLinkReturn(url: string) {
     }
     return;
   }
-  // caide://add-mcp-server?name=Chrome%20DevTools&config=eyJjb21tYW5kIjpudWxsLCJ0eXBlIjoic3RkaW8ifQ%3D%3D
+  // dyad://add-mcp-server?name=Chrome%20DevTools&config=eyJjb21tYW5kIjpudWxsLCJ0eXBlIjoic3RkaW8ifQ%3D%3D
   if (parsed.hostname === "add-mcp-server") {
     const name = parsed.searchParams.get("name");
     const config = parsed.searchParams.get("config");

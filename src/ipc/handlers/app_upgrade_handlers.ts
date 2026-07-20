@@ -33,7 +33,7 @@ function getAvailableUpgrades(): Omit<AppUpgrade, "isNeeded">[] {
       title: "Enable select component to edit",
       description:
         "Installs the CAIDE component tagger Vite plugin and its dependencies.",
-      manualUpgradeUrl: "https://caide.app/docs/upgrades/select-component",
+      manualUpgradeUrl: "https://dyad.sh/docs/upgrades/select-component",
     },
     {
       id: "capacitor",
@@ -41,16 +41,16 @@ function getAvailableUpgrades(): Omit<AppUpgrade, "isNeeded">[] {
       description:
         "Adds Capacitor to your app lets it run on iOS and Android in addition to the web.",
       manualUpgradeUrl:
-        "https://caide.app/docs/guides/mobile-app#upgrade-your-app",
+        "https://dyad.sh/docs/guides/mobile-app#upgrade-your-app",
     },
     {
       id: "pnpm-version-migration",
       title: `Migrate to pnpm ${managedPnpmMajor}`,
       description:
-        `This app has legacy pnpm metadata. CAIDE already runs pnpm ${managedPnpmMajor}, ` +
+        `This app has legacy pnpm metadata. Dyad already runs pnpm ${managedPnpmMajor}, ` +
         "which writes a lockfile format older pnpm versions can't read. This updates the " +
         `packageManager pin and the lockfile together so everything matches pnpm ${managedPnpmMajor}.`,
-      manualUpgradeUrl: "https://caide.app/docs/upgrades/pnpm-migration",
+      manualUpgradeUrl: "https://dyad.sh/docs/upgrades/pnpm-migration",
     },
   ];
 }

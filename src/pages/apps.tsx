@@ -43,6 +43,7 @@ import { CollectionDetailView } from "@/components/CollectionDetailView";
 import { AddOrEditCollectionDialog } from "@/components/AddOrEditCollectionDialog";
 import { AssignAppsToCollectionDialog } from "@/components/AssignAppsToCollectionDialog";
 import { DeleteCollectionDialog } from "@/components/DeleteCollectionDialog";
+import "./caide-home.css";
 
 export default function AppsPage() {
   const navigate = useNavigate();

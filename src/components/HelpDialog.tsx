@@ -79,7 +79,7 @@ function formatSettingsLines(settings: UserSettings | null): string {
     `- Selected Model: ${settings.selectedModel?.provider}:${settings.selectedModel?.name}`,
     `- Chat Mode: ${settings.selectedChatMode ?? "default"}`,
     `- Auto Approve Changes: ${settings.autoApproveChanges ?? "n/a"}`,
-    `- Bundled Gateway: ${settings.enableDyadPro ? "Enabled" : "Disabled"}`,
+    `- Bundled Gateway Enabled: ${settings.enableDyadPro ?? "n/a"}`,
     `- Thinking Budget: ${settings.thinkingBudget ?? "n/a"}`,
     `- Runtime Mode: ${settings.runtimeMode2 ?? "n/a"}`,
     `- Release Channel: ${settings.releaseChannel ?? "n/a"}`,
@@ -120,10 +120,10 @@ function openGitHubIssue(params: {
   title: string;
   labels: string[];
   body: string;
-  isBundledGatewayUser: unknown;
+  isDyadProUser: unknown;
 }) {
   const labels = [...params.labels];
-  if (params.isBundledGatewayUser) labels.push("bundled-gateway");
+  if (params.isDyadProUser) labels.push("pro");
   const qs = new URLSearchParams({
     title: params.title,
     labels: labels.join(","),
@@ -267,7 +267,7 @@ export function HelpDialog() {
   const preloadedChatId = useRef<number | null>(null);
   const selectedChatId = useAtomValue(selectedChatIdAtom);
   const { settings } = useSettings();
-  const isBundledGatewayUser = false;
+  const isDyadProUser = false;
 
   // ---------------------------------------------------------------------------
   // Navigation
@@ -367,7 +367,7 @@ ${formatLogsSection(debugInfo)}
         title: "[bug] <WRITE TITLE HERE>",
         labels: ["bug"],
         body,
-        isBundledGatewayUser,
+        isDyadProUser,
       });
     } catch (error) {
       console.error("Failed to prepare bug report:", error);
@@ -466,7 +466,7 @@ ${formatLogsSection(debugInfo)}
         title: "[session report] <add title>",
         labels: ["support"],
         body,
-        isBundledGatewayUser,
+        isDyadProUser,
       });
     } catch (error) {
       console.error("Failed to prepare session report:", error);
@@ -474,7 +474,7 @@ ${formatLogsSection(debugInfo)}
         title: "[session report] <add title>",
         labels: ["support"],
         body: `Session ID: ${sessionId}\nSession Schema: v2.0`,
-        isBundledGatewayUser,
+        isDyadProUser,
       });
     }
     handleClose();
@@ -498,7 +498,7 @@ ${formatLogsSection(debugInfo)}
       </DialogDescription>
       <div className="flex flex-col w-full mt-4 space-y-5">
         {/* Self-service help */}
-        {isBundledGatewayUser ? (
+        {isDyadProUser ? (
           <Button
             variant="default"
             onClick={() => setIsHelpBotOpen(true)}
@@ -511,7 +511,7 @@ ${formatLogsSection(debugInfo)}
           <Button
             variant="outline"
             onClick={() =>
-              ipc.system.openExternalUrl("https://caide.app/docs")
+              ipc.system.openExternalUrl("https://www.dyad.sh/docs")
             }
             className="w-full py-6 bg-(--background-lightest)"
           >

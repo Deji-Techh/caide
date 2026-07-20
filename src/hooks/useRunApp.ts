@@ -149,11 +149,11 @@ export function useAppOutputSubscription() {
   const processProxyServerOutput = useCallback(
     (output: AppOutput) => {
       const matchesProxyServerStart = output.message.includes(
-        "[caide-proxy]started=[",
+        "[dyad-proxy-server]started=[",
       );
       if (matchesProxyServerStart) {
         const proxyUrlMatch = output.message.match(
-          /\[caide-proxy\]started=\[(.*?)\]/,
+          /\[dyad-proxy-server\]started=\[(.*?)\]/,
         );
         const originalUrlMatch = output.message.match(/original=\[(.*?)\]/);
         const modeMatch = output.message.match(/mode=\[(.*?)\]/);

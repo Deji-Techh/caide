@@ -14,7 +14,6 @@ import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
 import { readFileSync } from "fs";
-import { execSync } from "child_process";
 import { createRequire } from "module";
 
 console.log("AZURE_CODE_SIGNING_DLIB", process.env.AZURE_CODE_SIGNING_DLIB);
@@ -132,6 +131,7 @@ if (isWindowsSigningEnabled && !process.env.AZURE_CODE_SIGNING_DLIB) {
 
 const config: ForgeConfig = {
   packagerConfig: {
+    electronZipDir: process.env.ELECTRON_ZIP_DIR,
     // E2E test builds install local file: dependencies as links on Windows.
     // Dereference them so packaging does not require symlink privileges in the temp app.
     // Local file: native packages install as symlinks; dereference them so the
@@ -212,41 +212,21 @@ const config: ForgeConfig = {
           },
     ),
     new MakerZIP({}, ["darwin"]),
-    ...(process.platform === "linux"
-      ? (() => {
-          const makers: Array<
-            MakerRpm | MakerDeb | MakerAppImage
-          > = [];
-          try {
-            execSync("which rpmbuild", { stdio: "ignore" });
-            makers.push(
-              new MakerRpm({
-                options: {
-                  mimeType: ["x-scheme-handler/dyad"],
-                  icon: "./assets/icon/logo.png",
-                },
-              }),
-            );
-          } catch {}
-          try {
-            execSync("which dpkg-deb", { stdio: "ignore" });
-            makers.push(
-              new MakerDeb({
-                options: {
-                  mimeType: ["x-scheme-handler/dyad"],
-                  icon: "./assets/icon/logo.png",
-                },
-              }),
-            );
-          } catch {}
-          makers.push(
-            new MakerAppImage({
-              icon: "./assets/icon/logo.png",
-            }),
-          );
-          return makers;
-        })()
-      : []),
+    new MakerRpm({
+      options: {
+        mimeType: ["x-scheme-handler/dyad"],
+        icon: "./assets/icon/logo.png",
+      },
+    }),
+    new MakerDeb({
+      options: {
+        mimeType: ["x-scheme-handler/dyad"],
+        icon: "./assets/icon/logo.png",
+      },
+    }),
+    new MakerAppImage({
+      icon: "./assets/icon/logo.png",
+    }),
   ],
   publishers: [
     {
@@ -294,11 +274,25 @@ const config: ForgeConfig = {
           config: "vite.sandbox-worker.config.mts",
           target: "main",
         },
+        {
+          entry: "src/notch/notch.ts",
+          config: "vite.notch.config.mts",
+          target: "main",
+        },
+        {
+          entry: "src/notch/preload.ts",
+          config: "vite.notch-preload.config.mts",
+          target: "preload",
+        },
       ],
       renderer: [
         {
           name: "main_window",
           config: "vite.renderer.config.mts",
+        },
+        {
+          name: "notch_window",
+          config: "vite.notch-renderer.config.mts",
         },
       ],
     }),

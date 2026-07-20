@@ -342,7 +342,7 @@ export function emitProxyServerStarted({
 }) {
   safeSend(event.sender, "app:output", {
     type: "stdout",
-    message: `[caide-proxy]started=[${proxyUrl}] original=[${originalUrl}] mode=[${mode}]`,
+    message: `[dyad-proxy-server]started=[${proxyUrl}] original=[${originalUrl}] mode=[${mode}]`,
     appId,
   });
 }
@@ -422,7 +422,7 @@ export async function ensureProxyForRunningApp({
       logger.error(`Failed to start proxy for app ${appId}:`, error);
       safeSend(event.sender, "app:output", {
         type: "stderr",
-        message: `[caide-proxy] ${error.message}`,
+        message: `[dyad-proxy-server] ${error.message}`,
         appId,
       });
     },

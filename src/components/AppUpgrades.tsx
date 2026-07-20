@@ -132,7 +132,7 @@ export function AppUpgrades({ appId }: { appId: number | null }) {
                         onClick={(e) => {
                           e.stopPropagation();
                           ipc.system.openExternalUrl(
-                            upgrade.manualUpgradeUrl ?? "https://caide.app/docs",
+                            upgrade.manualUpgradeUrl ?? "https://dyad.sh/docs",
                           );
                         }}
                         className="underline font-medium hover:dark:text-red-200"

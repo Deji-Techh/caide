@@ -52,6 +52,7 @@ import { showError } from "@/lib/toast";
 import { generateCuteAppName } from "@/lib/utils";
 import { NEON_TEMPLATE_IDS } from "@/shared/templates";
 import { neonTemplateHook } from "@/client_logic/template_hook";
+import "./caide-home.css";
 
 export interface HomeSubmitOptions {
   attachments?: FileAttachment[];
@@ -528,7 +529,7 @@ export default function HomePage() {
 
         <footer className="caide-overview-footer">
           <span>CAIDE MOBILE BUILDER</span>
-          <span>LOCAL-FIRST · MOBILE-FIRST</span>
+          <span>LOCAL-FIRST · MOBILE-FIRST · NO SUBSCRIPTION</span>
         </footer>
       </section>
 

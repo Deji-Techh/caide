@@ -87,7 +87,7 @@ function PackageManagerWarningBannerContent({
   const handleOpenDocs = () => {
     void ipc.system.openExternalUrl(
       isPnpmMigrationWarning
-        ? "https://caide.app/docs/upgrades/pnpm-migration"
+        ? "https://dyad.sh/docs/upgrades/pnpm-migration"
         : "https://pnpm.io/installation",
     );
   };

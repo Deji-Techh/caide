@@ -148,27 +148,6 @@ try {
     root,
     { env: { DYAD_SKIP_NATIVE_REBUILD: "true" } },
   );
-
-  // Remove non-Windows node-pty build artifacts (bin/ contains platform-specific binaries
-  // but node-pty resolves via prebuilds/ at runtime, so Linux/Mac ones are dead weight
-  // and fail the Windows PE validation).
-  const nodePtyBinDir = path.join(
-    packagedApp,
-    "resources",
-    "app.asar.unpacked",
-    "node_modules",
-    "node-pty",
-    "bin",
-  );
-  if (fs.existsSync(nodePtyBinDir)) {
-    for (const entry of fs.readdirSync(nodePtyBinDir)) {
-      const entryPath = path.join(nodePtyBinDir, entry);
-      if (entry !== "win32-x64" && entry !== "win32-arm64") {
-        fs.rmSync(entryPath, { recursive: true, force: true });
-      }
-    }
-  }
-
   validateWindowsPackage();
 } finally {
   if (fs.existsSync(betterSqliteBackup)) {

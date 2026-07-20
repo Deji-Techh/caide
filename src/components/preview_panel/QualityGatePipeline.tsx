@@ -9,7 +9,7 @@ import {
   Play,
 } from "lucide-react";
 
-import { ipc } from "@/ipc/types";
+import { releaseClient } from "@/ipc/types";
 import { showSuccess, showError } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -78,7 +78,7 @@ export function QualityGatePipeline({
 
   const runMutation = useMutation({
     mutationFn: async () => {
-      const result = await ipc.release.runQualityGate({ appId });
+      const result = await releaseClient.runQualityGate({ appId });
       return result;
     },
     onSuccess: (result) => {

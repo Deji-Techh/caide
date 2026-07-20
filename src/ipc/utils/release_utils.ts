@@ -267,6 +267,78 @@ export async function detectPwaCapability(appPath: string): Promise<boolean> {
   }
 }
 
+export async function buildAndroidApkRelease(
+  appPath: string,
+): Promise<BuildResult> {
+  const logs: BuildLog[] = [];
+  const androidDir = capacitorDir(appPath);
+
+  logs.push(makeLog("apk-signed", "running", "Building signed release APK..."));
+
+  try {
+    await simpleSpawn({
+      command: "./gradlew assembleRelease",
+      cwd: androidDir,
+      successMessage: "Release APK build complete",
+      errorPrefix: "Release APK build failed",
+    });
+    const apkPath = path.join(
+      androidDir,
+      "app",
+      "build",
+      "outputs",
+      "apk",
+      "release",
+    );
+    logs.push(
+      makeLog("apk-signed", "success", `Signed APK built at ${apkPath}`),
+    );
+    return { success: true, logs, outputPath: apkPath };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logs.push(
+      makeLog("apk-signed", "failed", "Signed APK build failed", message),
+    );
+    return { success: false, logs };
+  }
+}
+
+export async function buildAndroidAabRelease(
+  appPath: string,
+): Promise<BuildResult> {
+  const logs: BuildLog[] = [];
+  const androidDir = capacitorDir(appPath);
+
+  logs.push(makeLog("aab-signed", "running", "Building signed AAB..."));
+
+  try {
+    await simpleSpawn({
+      command: "./gradlew bundleRelease",
+      cwd: androidDir,
+      successMessage: "AAB build complete",
+      errorPrefix: "AAB build failed",
+    });
+    const aabPath = path.join(
+      androidDir,
+      "app",
+      "build",
+      "outputs",
+      "bundle",
+      "release",
+    );
+    logs.push(
+      makeLog("aab-signed", "success", `Signed AAB built at ${aabPath}`),
+    );
+    return { success: true, logs, outputPath: aabPath };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logs.push(
+      makeLog("aab-signed", "failed", "Signed AAB build failed", message),
+    );
+    return { success: false, logs };
+  }
+}
+
 export async function getAppName(appPath: string): Promise<string> {
   try {
     const pkg = JSON.parse(

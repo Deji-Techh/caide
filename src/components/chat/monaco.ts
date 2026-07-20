@@ -154,8 +154,8 @@ const IS_VITEST =
 
 if (!IS_VITEST) {
   loader.init().then((monaco) => {
-    monaco.editor.defineTheme("caide-light", customLight);
-    monaco.editor.defineTheme("caide-dark", customDark);
+    monaco.editor.defineTheme("dyad-light", customLight);
+    monaco.editor.defineTheme("dyad-dark", customDark);
 
     monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
       jsx: monaco.languages.typescript.JsxEmit.React, // Enable JSX

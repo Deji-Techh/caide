@@ -52,6 +52,8 @@ import {
 import { appCollectionContracts } from "../types/app_collections";
 import { terminalContracts } from "../types/terminal";
 import { testsContracts, testsEvents } from "../types/tests";
+import { chatgptContracts } from "../types/chatgpt";
+import { notchContracts, notchEvents } from "../types/notch";
 
 // =============================================================================
 // Invoke Channels (derived from all contracts)
@@ -117,6 +119,10 @@ export const VALID_INVOKE_CHANNELS = [
   ...getInvokeChannels(appCollectionContracts),
   ...getInvokeChannels(terminalContracts),
   ...getInvokeChannels(testsContracts),
+  ...getInvokeChannels(chatgptContracts),
+
+  // Notch
+  ...getInvokeChannels(notchContracts),
 
   // Test-only channels
   ...TEST_INVOKE_CHANNELS,
@@ -145,6 +151,7 @@ export const VALID_RECEIVE_CHANNELS = [
   ...getReceiveChannels(integrationEvents),
   ...getReceiveChannels(appBlueprintEvents),
   ...getReceiveChannels(testsEvents),
+  ...getReceiveChannels(notchEvents),
 ] as const;
 
 // =============================================================================

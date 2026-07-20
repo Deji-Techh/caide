@@ -628,7 +628,7 @@ export const CLOUD_PROVIDERS: Record<
   },
   auto: {
     displayName: "CAIDE Engine",
-    websiteUrl: "https://caide.app",
+    websiteUrl: "https://academy.dyad.sh/subscription",
     gatewayPrefix: "dyad/",
   },
   azure: {

@@ -10,6 +10,8 @@ import {
   buildWebApp,
   syncCapacitor,
   buildAndroidApkDebug,
+  buildAndroidApkRelease,
+  buildAndroidAabRelease,
   checkDependencies,
   verifyApp,
   keystoreDir,
@@ -81,6 +83,8 @@ export function registerReleaseHandlers() {
         const syncResult = await syncCapacitor(appPath);
         if (!syncResult.success) return syncResult;
         if (params.target === "android-project") return syncResult;
+        if (params.target === "apk-signed") return buildAndroidApkRelease(appPath);
+        if (params.target === "aab-signed") return buildAndroidAabRelease(appPath);
         return buildAndroidApkDebug(appPath);
       }
       case "ios-project": {

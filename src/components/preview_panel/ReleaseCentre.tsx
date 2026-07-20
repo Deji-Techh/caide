@@ -16,14 +16,20 @@ import {
   ChevronRight,
   Package,
   Download,
+  Image,
+  FileImage,
+  Link,
+  Lock,
+  FileText,
 } from "lucide-react";
 
-import { ipc } from "@/ipc/types";
+import { releaseClient } from "@/ipc/types";
 import { queryKeys } from "@/lib/queryKeys";
 import { showSuccess, showError } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -43,6 +49,7 @@ import type {
   BuildLog,
   BuildResult,
   VerificationIssue,
+  StoreConfig,
 } from "@/ipc/types/release";
 
 interface ReleaseCentreProps {
@@ -77,20 +84,38 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
   const [packageId, setPackageId] = useState("");
   const [versionName, setVersionName] = useState("1.0.0");
   const [versionCode, setVersionCode] = useState(1);
+  const [iconPath, setIconPath] = useState("");
+  const [splashPath, setSplashPath] = useState("");
+  const [screenshots, setScreenshots] = useState<string[]>([""]);
+  const [privacyUrl, setPrivacyUrl] = useState("");
+  const [permissions, setPermissions] = useState("");
+  const [storeDescription, setStoreDescription] = useState("");
+
+  const storeConfig: StoreConfig = {
+    appName: storeName,
+    versionName,
+    versionCode,
+    packageId,
+    iconPath: iconPath || undefined,
+    splashScreenPath: splashPath || undefined,
+    privacyPolicyUrl: privacyUrl || undefined,
+    permissionsExplanation: permissions || undefined,
+    playStoreDescription: storeDescription || undefined,
+  };
 
   const depsQuery = useQuery({
     queryKey: queryKeys.release.deps({ appId }),
-    queryFn: () => ipc.release.checkDependencies({ appId }),
+    queryFn: () => releaseClient.checkDependencies({ appId }),
   });
 
   const storeConfigQuery = useQuery({
     queryKey: queryKeys.release.storeConfig({ appId }),
-    queryFn: () => ipc.release.getStoreConfig({ appId }),
+    queryFn: () => releaseClient.getStoreConfig({ appId }),
   });
 
   const buildMutation = useMutation({
     mutationFn: (target: BuildTarget) =>
-      ipc.release.buildApp({ appId, target }),
+      releaseClient.buildApp({ appId, target }),
     onSuccess: (result: BuildResult) => {
       setBuildLogs((prev) => [...prev, ...result.logs]);
       if (result.success) {
@@ -103,7 +128,7 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
   });
 
   const buildAllMutation = useMutation({
-    mutationFn: () => ipc.release.buildAll({ appId }),
+    mutationFn: () => releaseClient.buildAll({ appId }),
     onSuccess: (result: BuildResult) => {
       setBuildLogs((prev) => [...prev, ...result.logs]);
       result.success ? showSuccess("All builds completed") : showError("Build failed");
@@ -112,7 +137,7 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
   });
 
   const verifyMutation = useMutation({
-    mutationFn: () => ipc.release.runVerification({ appId }),
+    mutationFn: () => releaseClient.runVerification({ appId }),
     onSuccess: (result) => {
       setIssues(result.issues);
       result.passed
@@ -123,7 +148,7 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
   });
 
   const qualityGateMutation = useMutation({
-    mutationFn: () => ipc.release.runQualityGate({ appId }),
+    mutationFn: () => releaseClient.runQualityGate({ appId }),
     onSuccess: (result) => {
       setBuildLogs((prev) => [...prev, ...result.logs]);
       setIssues((prev) => [...prev, ...result.issues]);
@@ -160,7 +185,10 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
               render={
                 <button
                   type="button"
-                  onClick={() => qualityGateMutation.mutate()}
+                  onClick={() => {
+                    setActiveStep("build");
+                    qualityGateMutation.mutate();
+                  }}
                   disabled={qualityGateMutation.isPending}
                   className={cn(
                     "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
@@ -173,7 +201,7 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
               {qualityGateMutation.isPending ? "Running..." : "Ship"}
             </TooltipTrigger>
             <TooltipContent>
-              Run quality gate and build pipeline
+              Run quality gate and prepare for release
             </TooltipContent>
           </Tooltip>
         </div>
@@ -251,7 +279,7 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
             </button>
             <button
               type="button"
-              onClick={() => ipc.release.checkDependencies({ appId }).then((d) => {})}
+              onClick={() => releaseClient.checkDependencies({ appId }).then(() => {})}
               className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 underline"
             >
               Dependency diagnostics
@@ -326,10 +354,10 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  ipc.release
+                  releaseClient
                     .generateKeystore({ appId, config: {} })
                     .then(() => showSuccess("Keystore generated"))
-                    .catch((e) => showError("Keystore failed", e));
+                    .catch(() => showError("Keystore failed"));
                 }}
               >
                 Generate keystore
@@ -389,23 +417,121 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
                   />
                 </div>
               </div>
+
+              <hr className="border-gray-200 dark:border-gray-700" />
+
+              <div>
+                <Label className="text-xs flex items-center gap-1">
+                  <Image size={12} /> Icon path
+                </Label>
+                <Input
+                  value={iconPath}
+                  onChange={(e) => setIconPath(e.target.value)}
+                  className="h-8 text-xs mt-1 font-mono"
+                  placeholder="assets/icon.png"
+                />
+              </div>
+              <div>
+                <Label className="text-xs flex items-center gap-1">
+                  <FileImage size={12} /> Splash screen path
+                </Label>
+                <Input
+                  value={splashPath}
+                  onChange={(e) => setSplashPath(e.target.value)}
+                  className="h-8 text-xs mt-1 font-mono"
+                  placeholder="assets/splash.png"
+                />
+              </div>
+              <div>
+                <Label className="text-xs flex items-center gap-1">
+                  <FileImage size={12} /> Screenshots
+                </Label>
+                {screenshots.map((url, i) => (
+                  <div key={i} className="flex items-center gap-1 mt-1">
+                    <Input
+                      value={url}
+                      onChange={(e) => {
+                        const next = [...screenshots];
+                        next[i] = e.target.value;
+                        setScreenshots(next);
+                      }}
+                      className="h-8 text-xs font-mono flex-1"
+                      placeholder="screenshots/screen1.png"
+                    />
+                    {i === screenshots.length - 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setScreenshots([...screenshots, ""])}
+                        className="text-xs text-blue-500 hover:text-blue-700 px-1"
+                      >
+                        +
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setScreenshots(screenshots.filter((_, j) => j !== i))
+                        }
+                        className="text-xs text-red-500 hover:text-red-700 px-1"
+                      >
+                        x
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <hr className="border-gray-200 dark:border-gray-700" />
+
+              <div>
+                <Label className="text-xs flex items-center gap-1">
+                  <Link size={12} /> Privacy policy URL
+                </Label>
+                <Input
+                  value={privacyUrl}
+                  onChange={(e) => setPrivacyUrl(e.target.value)}
+                  className="h-8 text-xs mt-1"
+                  placeholder="https://example.com/privacy"
+                />
+              </div>
+              <div>
+                <Label className="text-xs flex items-center gap-1">
+                  <Lock size={12} /> Permissions explanation
+                </Label>
+                <Textarea
+                  value={permissions}
+                  onChange={(e) => setPermissions(e.target.value)}
+                  className="text-xs mt-1 min-h-[60px]"
+                  placeholder="Explain why each permission is needed..."
+                />
+              </div>
+              <div>
+                <Label className="text-xs flex items-center gap-1">
+                  <FileText size={12} /> Play Store description
+                </Label>
+                <Textarea
+                  value={storeDescription}
+                  onChange={(e) => setStoreDescription(e.target.value)}
+                  className="text-xs mt-1 min-h-[80px]"
+                  placeholder="Short description for the store listing..."
+                />
+              </div>
+
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  ipc.release
+                  releaseClient
                     .saveStoreConfig({
                       appId,
                       config: {
-                        appName: storeName,
-                        versionName,
-                        versionCode,
-                        packageId,
+                        ...storeConfig,
+                        screenshots: screenshots.filter(Boolean),
                       },
                     })
                     .then(() => showSuccess("Store config saved"))
-                    .catch((e) => showError("Save failed", e));
+                    .catch(() => showError("Save failed"));
                 }}
               >
                 Save config

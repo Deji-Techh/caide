@@ -1880,6 +1880,14 @@ export const PreviewIframe = ({
                     onNetworkLatencyChange={(v) =>
                       setDeviceLab((prev) => ({ ...prev, networkLatencyMs: v }))
                     }
+                    customWidth={deviceLab.customWidth}
+                    customHeight={deviceLab.customHeight}
+                    onCustomWidthChange={(v) =>
+                      setDeviceLab((prev) => ({ ...prev, customWidth: v }))
+                    }
+                    onCustomHeightChange={(v) =>
+                      setDeviceLab((prev) => ({ ...prev, customHeight: v }))
+                    }
                   />
                 )}
               </PopoverContent>

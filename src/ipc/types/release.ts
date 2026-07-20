@@ -61,6 +61,7 @@ export const StoreConfigSchema = z.object({
   packageId: z.string(),
   iconPath: z.string().optional(),
   splashScreenPath: z.string().optional(),
+  screenshots: z.array(z.string()).optional(),
   privacyPolicyUrl: z.string().optional(),
   permissionsExplanation: z.string().optional(),
   playStoreDescription: z.string().optional(),

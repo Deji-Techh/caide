@@ -1,0 +1,4 @@
+export const NOTCH_COLLAPSED_WIDTH = 180;
+export const NOTCH_COLLAPSED_HEIGHT = 36;
+export const NOTCH_EXPANDED_WIDTH = 420;
+export const NOTCH_EXPANDED_HEIGHT = 260;

@@ -22,6 +22,7 @@ import { useShortcut } from "@/hooks/useShortcut";
 import { useIsMac } from "@/hooks/useChatModeToggle";
 import { ForceCloseDialog } from "@/components/ForceCloseDialog";
 import { HelpDialog } from "@/components/HelpDialog";
+import "@/pages/caide-home.css";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const { refreshAppIframe } = useRunApp();

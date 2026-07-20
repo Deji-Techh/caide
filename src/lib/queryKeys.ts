@@ -394,17 +394,17 @@ export const queryKeys = {
   },
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Release / Build
+  // Release
   // ─────────────────────────────────────────────────────────────────────────────
   release: {
     deps: ({ appId }: { appId: number | null }) =>
       ["release", "deps", appId] as const,
     storeConfig: ({ appId }: { appId: number | null }) =>
-      ["release", "store-config", appId] as const,
+      ["release", "storeConfig", appId] as const,
     logs: ({ appId }: { appId: number | null }) =>
       ["release", "logs", appId] as const,
     qualityGate: ({ appId }: { appId: number | null }) =>
-      ["release", "quality-gate", appId] as const,
+      ["release", "qualityGate", appId] as const,
   },
 } as const;
 

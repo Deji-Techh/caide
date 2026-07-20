@@ -25,10 +25,6 @@ import {
 } from "./lib/posthogTelemetry";
 import { registerRendererIpcListeners } from "./app_wiring/registerRendererIpcListeners";
 
-// CSS entry — imported here so Vite bundles them into the main renderer chunk
-import "./styles/globals.css";
-import "./pages/caide-home.css";
-
 // @ts-ignore
 console.log("Running in mode:", import.meta.env.MODE);
 

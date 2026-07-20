@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { useAtom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import {
@@ -8,7 +8,6 @@ import {
   RotateCw,
   Sun,
   Moon,
-  Wifi,
   WifiOff,
   Gauge,
   Type,
@@ -18,12 +17,13 @@ import {
 } from "lucide-react";
 
 import {
-  DEVICE_PRESETS_ARRAY,
+  getDevicePreset,
   getDeviceOrientationDimensions,
   type DevicePreset,
   type SimulationOverlay,
   type DeviceLabState,
 } from "@/lib/devicePresets";
+import { DEFAULT_DEVICE_PRESET } from "@/lib/devicePresets";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,11 +32,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { deviceFamilies } from "@/lib/devicePresets";
+import { devicePresets as presetsMap } from "@/lib/devicePresets";
 
 const deviceLabStateAtom = atomWithStorage<DeviceLabState>(
   "caide-device-lab-state",
   {
-    selectedPreset: "standard-android",
+    selectedPreset: DEFAULT_DEVICE_PRESET,
     orientation: "portrait",
     customWidth: 400,
     customHeight: 800,
@@ -191,6 +193,10 @@ interface DeviceLabProps {
   onTextScaleChange: (v: number) => void;
   networkLatencyMs: number;
   onNetworkLatencyChange: (v: number) => void;
+  customWidth: number;
+  customHeight: number;
+  onCustomWidthChange: (v: number) => void;
+  onCustomHeightChange: (v: number) => void;
 }
 
 export function DeviceLab({
@@ -204,13 +210,24 @@ export function DeviceLab({
   onTextScaleChange,
   networkLatencyMs,
   onNetworkLatencyChange,
+  customWidth,
+  customHeight,
+  onCustomWidthChange,
+  onCustomHeightChange,
 }: DeviceLabProps) {
   const categories = useMemo(() => {
     const cats = new Map<string, DevicePreset[]>();
-    for (const p of DEVICE_PRESETS_ARRAY) {
+    const catOrder = ["phone", "foldable", "tablet", "desktop", "custom"];
+    for (const cat of catOrder) cats.set(cat, []);
+    for (const [id, entry] of Object.entries(presetsMap)) {
+      const p = getDevicePreset(id);
+      if (!p) continue;
       const list = cats.get(p.category) ?? [];
       list.push(p);
       cats.set(p.category, list);
+    }
+    for (const [, list] of cats) {
+      list.sort((a, b) => a.width - b.width);
     }
     return cats;
   }, []);
@@ -285,29 +302,19 @@ export function DeviceLab({
         {[...categories.entries()].map(([cat, presets]) => (
           <div key={cat} className="flex flex-wrap gap-1">
             {presets.map((preset) => (
-              <Tooltip key={preset.id}>
-                <TooltipTrigger
-                  render={
-                    <ToggleGroupItem
-                      value={preset.id}
-                      aria-label={preset.label}
-                      className="text-[11px] px-2 py-1 h-auto"
-                    />
-                  }
-                >
-                  {preset.category === "tablet" ? (
-                    <Tablet size={13} className="mr-1" />
-                  ) : preset.category === "foldable" ? (
-                    <Smartphone size={13} className="mr-1" />
-                  ) : (
-                    <Smartphone size={13} className="mr-1" />
-                  )}
-                  <span className="hidden sm:inline">{preset.label}</span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {preset.label}: {preset.width}x{preset.height}
-                </TooltipContent>
-              </Tooltip>
+              <ToggleGroupItem
+                key={preset.id}
+                value={preset.id}
+                aria-label={preset.label}
+                className="text-[11px] px-2 py-1 h-auto"
+              >
+                {preset.category === "tablet" ? (
+                  <Tablet size={13} className="mr-1" />
+                ) : (
+                  <Smartphone size={13} className="mr-1" />
+                )}
+                <span className="hidden sm:inline">{preset.label}</span>
+              </ToggleGroupItem>
             ))}
           </div>
         ))}
@@ -371,7 +378,8 @@ export function DeviceLab({
           <Input
             type="number"
             placeholder="W"
-            value={390}
+            value={customWidth}
+            onChange={(e) => onCustomWidthChange(Number(e.target.value))}
             className="h-7 w-16 text-xs"
             aria-label="Custom width"
           />
@@ -379,7 +387,8 @@ export function DeviceLab({
           <Input
             type="number"
             placeholder="H"
-            value={844}
+            value={customHeight}
+            onChange={(e) => onCustomHeightChange(Number(e.target.value))}
             className="h-7 w-16 text-xs"
             aria-label="Custom height"
           />

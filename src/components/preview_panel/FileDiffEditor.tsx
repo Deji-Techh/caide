@@ -19,7 +19,7 @@ export function FileDiffEditor({
   newContent,
 }: FileDiffEditorProps) {
   const { isDarkMode } = useTheme();
-  const editorTheme = isDarkMode ? "caide-dark" : "caide-light";
+  const editorTheme = isDarkMode ? "dyad-dark" : "dyad-light";
 
   return (
     <div className="h-full w-full" data-testid="version-diff-editor">
