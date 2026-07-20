@@ -278,7 +278,7 @@ describe("useAppOutputSubscription", () => {
           type: "stdout",
           appId: 1,
           message:
-            "[dyad-proxy-server]started=[http://localhost:42101] original=[http://localhost:32101] mode=[host]",
+            "[caide-proxy]started=[http://localhost:42101] original=[http://localhost:32101] mode=[host]",
         });
       }
     });

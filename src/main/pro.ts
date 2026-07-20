@@ -1,6 +1,6 @@
 import { readSettings, writeSettings } from "./settings";
 
-export function handleDyadProReturn({ apiKey }: { apiKey: string }) {
+export function handleBundledGatewayReturn({ apiKey }: { apiKey: string }) {
   const settings = readSettings();
   writeSettings({
     providerSettings: {

@@ -50,6 +50,7 @@ import { registerAppBlueprintHandlers } from "./handlers/app_blueprint_handlers"
 import { registerAppCollectionHandlers } from "./handlers/app_collection_handlers";
 import { registerTerminalHandlers } from "./handlers/terminal_handlers";
 import { registerTestsHandlers } from "./handlers/tests_handlers";
+import { registerReleaseHandlers } from "./handlers/release_handlers";
 
 export function registerIpcHandlers() {
   // Register all IPC handlers by category
@@ -105,4 +106,5 @@ export function registerIpcHandlers() {
   registerTerminalHandlers();
   registerTestsHandlers();
   registerNetworkHandlers();
+  registerReleaseHandlers();
 }

@@ -39,7 +39,7 @@ export function showChatModeFallbackToast({
   toastId?: string;
 }) {
   const modeName = getChatModeDisplayName(effectiveMode, isPro);
-  const message = `Quota exhausted. Using ${modeName} mode.`;
+  const message = `Using ${modeName} mode.`;
 
   toast.warning(message, {
     id: toastId,

@@ -59,6 +59,7 @@ export { appBlueprintContracts, appBlueprintEvents } from "./app_blueprint";
 export { appCollectionContracts } from "./app_collections";
 export { terminalContracts } from "./terminal";
 export { testsContracts, testsEvents } from "./tests";
+export { releaseContracts } from "./release";
 
 // =============================================================================
 // Client Exports
@@ -97,6 +98,7 @@ export { appBlueprintClient, appBlueprintEventClient } from "./app_blueprint";
 export { appCollectionClient } from "./app_collections";
 export { terminalClient } from "./terminal";
 export { testsClient, testsEventClient } from "./tests";
+export { releaseClient } from "./release";
 
 // =============================================================================
 // Type Exports
@@ -441,6 +443,7 @@ import { appBlueprintClient, appBlueprintEventClient } from "./app_blueprint";
 import { appCollectionClient } from "./app_collections";
 import { terminalClient } from "./terminal";
 import { testsClient, testsEventClient } from "./tests";
+import { releaseClient } from "./release";
 
 /**
  * Unified IPC client with all domains organized by namespace.
@@ -505,6 +508,7 @@ export const ipc = {
   appCollection: appCollectionClient,
   terminal: terminalClient,
   tests: testsClient,
+  release: releaseClient,
 
   // Event clients for main->renderer pub/sub
   events: {

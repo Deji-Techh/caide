@@ -210,7 +210,7 @@ function SecurityHeader({
                 className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                 onClick={() =>
                   ipc.system.openExternalUrl(
-                    "https://www.dyad.sh/docs/guides/security-review",
+                    "https://caide.app/docs/guides/security-review",
                   )
                 }
               >

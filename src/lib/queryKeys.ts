@@ -392,6 +392,20 @@ export const queryKeys = {
   media: {
     all: ["media"] as const,
   },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Release / Build
+  // ─────────────────────────────────────────────────────────────────────────────
+  release: {
+    deps: ({ appId }: { appId: number | null }) =>
+      ["release", "deps", appId] as const,
+    storeConfig: ({ appId }: { appId: number | null }) =>
+      ["release", "store-config", appId] as const,
+    logs: ({ appId }: { appId: number | null }) =>
+      ["release", "logs", appId] as const,
+    qualityGate: ({ appId }: { appId: number | null }) =>
+      ["release", "quality-gate", appId] as const,
+  },
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -464,4 +478,5 @@ export type AppQueryKey =
   | QueryKeyOf<(typeof queryKeys.migration)[keyof typeof queryKeys.migration]>
   | QueryKeyOf<(typeof queryKeys.neon)[keyof typeof queryKeys.neon]>
   | QueryKeyOf<(typeof queryKeys.appEnvVars)[keyof typeof queryKeys.appEnvVars]>
-  | QueryKeyOf<(typeof queryKeys.media)[keyof typeof queryKeys.media]>;
+  | QueryKeyOf<(typeof queryKeys.media)[keyof typeof queryKeys.media]>
+  | QueryKeyOf<(typeof queryKeys.release)[keyof typeof queryKeys.release]>;

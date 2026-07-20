@@ -1,225 +1,212 @@
 export type DeviceFamily = "iOS" | "Android" | "Tablet" | "Desktop";
-export type PreviewOrientation = "portrait" | "landscape";
 
-export const deviceFamilies = ["iOS", "Android", "Tablet", "Desktop"] as const;
+export interface DevicePreset {
+  id: string;
+  label: string;
+  width: number;
+  height: number;
+  family: DeviceFamily;
+  safeAreaTop: number;
+  safeAreaBottom: number;
+  statusBarHeight: number;
+  hasNotch: boolean;
+  platform: "android" | "ios" | "desktop";
+  category: "phone" | "tablet" | "foldable" | "desktop" | "custom";
+  scale?: number;
+}
 
-export const devicePresets = {
-  "iphone-se": {
-    label: "iPhone SE",
-    width: 375,
-    height: 667,
-    native: "750 x 1334",
-    family: "iOS",
-  },
-  "iphone-13-mini": {
-    label: "iPhone 13 mini",
-    width: 375,
-    height: 812,
-    native: "1080 x 2340",
-    family: "iOS",
-  },
-  "iphone-14-pro-max": {
-    label: "iPhone 14 Pro Max",
-    width: 430,
-    height: 932,
-    native: "1290 x 2796",
-    family: "iOS",
-  },
-  "iphone-15": {
-    label: "iPhone 15",
-    width: 393,
-    height: 852,
-    native: "1179 x 2556",
-    family: "iOS",
-  },
-  "iphone-15-pro": {
-    label: "iPhone 15 Pro",
-    width: 393,
-    height: 852,
-    native: "1179 x 2556",
-    family: "iOS",
-  },
-  "iphone-16e": {
-    label: "iPhone 16e",
-    width: 390,
-    height: 844,
-    native: "1170 x 2532",
-    family: "iOS",
-  },
-  "iphone-16-pro": {
-    label: "iPhone 16 Pro",
-    width: 402,
-    height: 874,
-    native: "1206 x 2622",
-    family: "iOS",
-  },
-  "iphone-16-pro-max": {
-    label: "iPhone 16 Pro Max",
-    width: 440,
-    height: 956,
-    native: "1320 x 2868",
-    family: "iOS",
-  },
-  "pixel-8": {
-    label: "Google Pixel 8",
-    width: 412,
-    height: 915,
-    native: "1080 x 2400",
+export type DevicePresetId = string;
+
+export const devicePresets: Record<DevicePresetId, DevicePreset> = {
+  "compact-android": {
+    id: "compact-android",
+    label: "Compact Android",
+    width: 360,
+    height: 740,
     family: "Android",
+    safeAreaTop: 24,
+    safeAreaBottom: 16,
+    statusBarHeight: 24,
+    hasNotch: false,
+    platform: "android",
+    category: "phone",
   },
   "pixel-7": {
-    label: "Google Pixel 7",
+    id: "pixel-7",
+    label: "Pixel 7",
     width: 412,
-    height: 915,
-    native: "1080 x 2400",
+    height: 892,
     family: "Android",
+    safeAreaTop: 28,
+    safeAreaBottom: 16,
+    statusBarHeight: 28,
+    hasNotch: true,
+    platform: "android",
+    category: "phone",
   },
-  "pixel-9-pro": {
-    label: "Google Pixel 9 Pro",
+  "samsung-s24": {
+    id: "samsung-s24",
+    label: "Galaxy S24",
+    width: 393,
+    height: 851,
+    family: "Android",
+    safeAreaTop: 28,
+    safeAreaBottom: 16,
+    statusBarHeight: 28,
+    hasNotch: true,
+    platform: "android",
+    category: "phone",
+  },
+  "samsung-s24-ultra": {
+    id: "samsung-s24-ultra",
+    label: "Galaxy S24 Ultra",
+    width: 430,
+    height: 932,
+    family: "Android",
+    safeAreaTop: 32,
+    safeAreaBottom: 16,
+    statusBarHeight: 32,
+    hasNotch: true,
+    platform: "android",
+    category: "phone",
+  },
+  "iphone-16-pro": {
+    id: "iphone-16-pro",
+    label: "iPhone 16 Pro",
+    width: 390,
+    height: 844,
+    family: "iOS",
+    safeAreaTop: 47,
+    safeAreaBottom: 34,
+    statusBarHeight: 47,
+    hasNotch: true,
+    platform: "ios",
+    category: "phone",
+  },
+  "iphone-16-pro-max": {
+    id: "iphone-16-pro-max",
+    label: "iPhone 16 Pro Max",
+    width: 430,
+    height: 932,
+    family: "iOS",
+    safeAreaTop: 47,
+    safeAreaBottom: 34,
+    statusBarHeight: 47,
+    hasNotch: true,
+    platform: "ios",
+    category: "phone",
+  },
+  "foldable": {
+    id: "foldable",
+    label: "Foldable",
     width: 412,
-    height: 923,
-    native: "1280 x 2856",
+    height: 914,
     family: "Android",
+    safeAreaTop: 24,
+    safeAreaBottom: 16,
+    statusBarHeight: 24,
+    hasNotch: false,
+    platform: "android",
+    category: "foldable",
   },
-  "pixel-9-pro-xl": {
-    label: "Google Pixel 9 Pro XL",
-    width: 448,
-    height: 998,
-    native: "1344 x 2992",
-    family: "Android",
-  },
-  "pixel-fold": {
-    label: "Google Pixel Fold",
-    width: 736,
-    height: 920,
-    native: "2208 x 1840",
-    family: "Android",
-  },
-  "galaxy-s23": {
-    label: "Samsung Galaxy S23",
-    width: 360,
-    height: 780,
-    native: "1080 x 2340",
-    family: "Android",
-  },
-  "galaxy-s24": {
-    label: "Samsung Galaxy S24",
-    width: 360,
-    height: 780,
-    native: "1080 x 2340",
-    family: "Android",
-  },
-  "galaxy-s24-ultra": {
-    label: "Samsung S24 Ultra",
-    width: 384,
-    height: 832,
-    native: "1440 x 3120",
-    family: "Android",
-  },
-  "galaxy-a55": {
-    label: "Samsung Galaxy A55",
-    width: 480,
-    height: 1040,
-    native: "1080 x 2340",
-    family: "Android",
-  },
-  "galaxy-z-flip6": {
-    label: "Galaxy Z Flip6",
-    width: 412,
-    height: 1004,
-    native: "1080 x 2640",
-    family: "Android",
-  },
-  "galaxy-z-fold5": {
-    label: "Galaxy Z Fold5",
-    width: 904,
-    height: 1086,
-    native: "1812 x 2176",
-    family: "Android",
-  },
-  "ipad-mini": {
-    label: "iPad mini",
-    width: 744,
-    height: 1133,
-    native: "1488 x 2266",
+  "ipad-pro": {
+    id: "ipad-pro",
+    label: "iPad Pro 13\"",
+    width: 768,
+    height: 1024,
     family: "Tablet",
+    safeAreaTop: 24,
+    safeAreaBottom: 20,
+    statusBarHeight: 24,
+    hasNotch: false,
+    platform: "ios",
+    category: "tablet",
   },
-  "ipad-pro-11": {
-    label: "iPad Pro 11",
-    width: 834,
-    height: 1194,
-    native: "1668 x 2388",
-    family: "Tablet",
-  },
-  "ipad-pro-13": {
-    label: "iPad Pro 13",
-    width: 1032,
-    height: 1376,
-    native: "2064 x 2752",
-    family: "Tablet",
-  },
-  "ipad-11": {
-    label: "iPad (11th generation)",
+  "pixel-tablet": {
+    id: "pixel-tablet",
+    label: "Pixel Tablet",
     width: 820,
     height: 1180,
-    native: "1640 x 2360",
     family: "Tablet",
+    safeAreaTop: 24,
+    safeAreaBottom: 16,
+    statusBarHeight: 24,
+    hasNotch: false,
+    platform: "android",
+    category: "tablet",
   },
-  "galaxy-tab-s9": {
-    label: "Galaxy Tab S9",
-    width: 800,
-    height: 1280,
-    native: "1600 x 2560",
-    family: "Tablet",
-  },
-  "surface-pro-9": {
-    label: "Surface Pro 9",
-    width: 960,
-    height: 1440,
-    native: "1920 x 2880",
-    family: "Tablet",
-  },
-  "desktop-1024": {
-    label: "Compact desktop",
-    width: 1024,
-    height: 768,
-    native: "1024 x 768",
-    family: "Desktop",
-  },
-  desktop: {
-    label: "Responsive",
+  "desktop-1280": {
+    id: "desktop-1280",
+    label: "Desktop 1280",
     width: 1280,
     height: 800,
-    native: "1440 x 900",
     family: "Desktop",
+    safeAreaTop: 0,
+    safeAreaBottom: 0,
+    statusBarHeight: 0,
+    hasNotch: false,
+    platform: "desktop",
+    category: "desktop",
   },
   "desktop-1440": {
+    id: "desktop-1440",
     label: "Desktop 1440",
     width: 1440,
     height: 900,
-    native: "1440 x 900",
     family: "Desktop",
+    safeAreaTop: 0,
+    safeAreaBottom: 0,
+    statusBarHeight: 0,
+    hasNotch: false,
+    platform: "desktop",
+    category: "desktop",
   },
-  "desktop-1920": {
-    label: "Desktop 1920",
-    width: 1920,
-    height: 1080,
-    native: "1920 x 1080",
-    family: "Desktop",
-  },
-} as const satisfies Record<
-  string,
-  {
-    label: string;
-    width: number;
-    height: number;
-    native: string;
-    family: DeviceFamily;
-  }
->;
+};
 
-export type DevicePresetId = keyof typeof devicePresets;
+export const deviceFamilies: DeviceFamily[] = ["iOS", "Android", "Tablet", "Desktop"];
 
-export function isDevicePresetId(value: unknown): value is DevicePresetId {
-  return typeof value === "string" && value in devicePresets;
+export type PreviewOrientation = "portrait" | "landscape";
+
+export function isDevicePresetId(id: string | null | undefined): id is DevicePresetId {
+  if (!id || typeof id !== "string") return false;
+  return id in devicePresets;
 }
+
+export function getDevicePreset(id: string): DevicePreset | undefined {
+  return devicePresets[id];
+}
+
+export function getDeviceOrientationDimensions(
+  preset: DevicePreset,
+  orientation: PreviewOrientation,
+): { width: number; height: number } {
+  if (orientation === "landscape") {
+    return { width: preset.height, height: preset.width };
+  }
+  return { width: preset.width, height: preset.height };
+}
+
+export type SimulationOverlay =
+  | "safe-area"
+  | "keyboard-open"
+  | "dark-mode"
+  | "slow-network"
+  | "offline"
+  | "reduced-motion"
+  | "text-scaling"
+  | "touch-targets"
+  | "overflow";
+
+export interface DeviceLabState {
+  selectedPreset: string;
+  orientation: PreviewOrientation;
+  customWidth: number;
+  customHeight: number;
+  activeOverlays: SimulationOverlay[];
+  textScaleFactor: number;
+  networkLatencyMs: number;
+}
+
+export const DEFAULT_DEVICE_PRESET: DevicePresetId = "iphone-16-pro";
+
+export const DEVICE_PRESETS_ARRAY: DevicePreset[] = Object.values(devicePresets);

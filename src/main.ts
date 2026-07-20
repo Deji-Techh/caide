@@ -39,7 +39,7 @@ import {
 import { recordUpdaterError } from "./main/updater_state";
 import { sendTelemetryEvent } from "./ipc/utils/telemetry";
 import { handleSupabaseOAuthReturn } from "./supabase_admin/supabase_return_handler";
-import { handleDyadProReturn } from "./main/pro";
+import { handleBundledGatewayReturn } from "./main/pro";
 import { IS_TEST_BUILD } from "./ipc/utils/test_utils";
 import { BackupManager } from "./backup_manager";
 import { getDatabasePath, initializeDatabase } from "./db";
@@ -1050,19 +1050,19 @@ async function handleDeepLinkReturn(url: string) {
     });
     return;
   }
-  // dyad://dyad-pro-return?key=123&budget_reset_at=2025-05-26T16:31:13.492000Z&max_budget=100
-  if (parsed.hostname === "dyad-pro-return") {
+  // caide://bundled-gateway-return?key=123
+  if (parsed.hostname === "bundled-gateway-return") {
     const apiKey = parsed.searchParams.get("key");
     if (!apiKey) {
       dialog.showErrorBox("Invalid URL", "Expected key");
       return;
     }
     try {
-      handleDyadProReturn({
+      handleBundledGatewayReturn({
         apiKey,
       });
     } catch (error) {
-      showDeepLinkSettingsError("save Dyad Pro settings", error);
+      showDeepLinkSettingsError("save Bundled Gateway settings", error);
       return;
     }
     // Send message to renderer to trigger re-render
@@ -1071,7 +1071,7 @@ async function handleDeepLinkReturn(url: string) {
     });
     return;
   }
-  // Fired by the OAuth callback page to hand focus back to Dyad
+  // Fired by the OAuth callback page to hand focus back to CAIDE
   // after consent. Tokens land via the loopback listener; focusing
   // the window is the only side-effect needed here.
   if (parsed.hostname === "mcp-oauth-return") {
@@ -1081,7 +1081,7 @@ async function handleDeepLinkReturn(url: string) {
     }
     return;
   }
-  // dyad://add-mcp-server?name=Chrome%20DevTools&config=eyJjb21tYW5kIjpudWxsLCJ0eXBlIjoic3RkaW8ifQ%3D%3D
+  // caide://add-mcp-server?name=Chrome%20DevTools&config=eyJjb21tYW5kIjpudWxsLCJ0eXBlIjoic3RkaW8ifQ%3D%3D
   if (parsed.hostname === "add-mcp-server") {
     const name = parsed.searchParams.get("name");
     const config = parsed.searchParams.get("config");

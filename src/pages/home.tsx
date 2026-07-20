@@ -528,7 +528,7 @@ export default function HomePage() {
 
         <footer className="caide-overview-footer">
           <span>CAIDE MOBILE BUILDER</span>
-          <span>LOCAL-FIRST · MOBILE-FIRST · NO SUBSCRIPTION</span>
+          <span>LOCAL-FIRST · MOBILE-FIRST</span>
         </footer>
       </section>
 

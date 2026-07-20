@@ -71,6 +71,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  DeviceLab,
+  deviceLabStateAtom,
+} from "@/components/preview_panel/DeviceLab";
 
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
@@ -536,6 +540,7 @@ export const PreviewIframe = ({
     ? (settings?.previewDeviceMode ?? "desktop")
     : "desktop";
   const [isDevicePopoverOpen, setIsDevicePopoverOpen] = useState(false);
+  const [deviceLab, setDeviceLab] = useAtom(deviceLabStateAtom);
   const {
     mutateAsync: createCloudSandboxShareLink,
     isPending: isCreatingCloudSandboxShareLink,
@@ -1791,61 +1796,92 @@ export const PreviewIframe = ({
                 </TooltipTrigger>
                 <TooltipContent>Device Mode</TooltipContent>
               </Tooltip>
-              <PopoverContent className="w-auto p-2">
-                <ToggleGroup
-                  value={[deviceMode]}
-                  onValueChange={(value) => {
-                    if (value && value.length > 0) {
-                      updateSettings({
-                        previewDeviceMode: value[
-                          value.length - 1
-                        ] as DeviceMode,
-                      });
-                      setIsDevicePopoverOpen(false);
+              <PopoverContent className="w-[340px] p-0" align="start">
+                <div className="p-2 border-b border-gray-100 dark:border-gray-800">
+                  <ToggleGroup
+                    value={[deviceMode]}
+                    onValueChange={(value) => {
+                      if (value && value.length > 0) {
+                        updateSettings({
+                          previewDeviceMode: value[
+                            value.length - 1
+                          ] as DeviceMode,
+                        });
+                        setIsDevicePopoverOpen(false);
+                      }
+                    }}
+                    variant="outline"
+                  >
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <ToggleGroupItem
+                            value="desktop"
+                            aria-label="Desktop view"
+                          />
+                        }
+                      >
+                        <Monitor size={16} />
+                      </TooltipTrigger>
+                      <TooltipContent>Desktop</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <ToggleGroupItem
+                            value="tablet"
+                            aria-label="Tablet view"
+                          />
+                        }
+                      >
+                        <Tablet size={16} className="scale-x-130" />
+                      </TooltipTrigger>
+                      <TooltipContent>Tablet</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <ToggleGroupItem
+                            value="mobile"
+                            aria-label="Mobile view"
+                          />
+                        }
+                      >
+                        <Smartphone size={16} />
+                      </TooltipTrigger>
+                      <TooltipContent>Mobile</TooltipContent>
+                    </Tooltip>
+                  </ToggleGroup>
+                </div>
+                {deviceMode !== "desktop" && (
+                  <DeviceLab
+                    selectedPreset={deviceLab.selectedPreset}
+                    onPresetChange={(preset) =>
+                      setDeviceLab((prev) => ({ ...prev, selectedPreset: preset }))
                     }
-                  }}
-                  variant="outline"
-                >
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <ToggleGroupItem
-                          value="desktop"
-                          aria-label="Desktop view"
-                        />
-                      }
-                    >
-                      <Monitor size={16} />
-                    </TooltipTrigger>
-                    <TooltipContent>Desktop</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <ToggleGroupItem
-                          value="tablet"
-                          aria-label="Tablet view"
-                        />
-                      }
-                    >
-                      <Tablet size={16} className="scale-x-130" />
-                    </TooltipTrigger>
-                    <TooltipContent>Tablet</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <ToggleGroupItem
-                          value="mobile"
-                          aria-label="Mobile view"
-                        />
-                      }
-                    >
-                      <Smartphone size={16} />
-                    </TooltipTrigger>
-                    <TooltipContent>Mobile</TooltipContent>
-                  </Tooltip>
-                </ToggleGroup>
+                    orientation={deviceLab.orientation}
+                    onOrientationChange={(o) =>
+                      setDeviceLab((prev) => ({ ...prev, orientation: o }))
+                    }
+                    activeOverlays={deviceLab.activeOverlays}
+                    onOverlayToggle={(overlay) =>
+                      setDeviceLab((prev) => ({
+                        ...prev,
+                        activeOverlays: prev.activeOverlays.includes(overlay)
+                          ? prev.activeOverlays.filter((o) => o !== overlay)
+                          : [...prev.activeOverlays, overlay],
+                      }))
+                    }
+                    textScaleFactor={deviceLab.textScaleFactor}
+                    onTextScaleChange={(v) =>
+                      setDeviceLab((prev) => ({ ...prev, textScaleFactor: v }))
+                    }
+                    networkLatencyMs={deviceLab.networkLatencyMs}
+                    onNetworkLatencyChange={(v) =>
+                      setDeviceLab((prev) => ({ ...prev, networkLatencyMs: v }))
+                    }
+                  />
+                )}
               </PopoverContent>
             </Popover>
             <div className="flex min-w-[2rem] flex-1 items-center">

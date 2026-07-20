@@ -41,7 +41,7 @@ export const PortalMigrate = ({ appId }: PortalMigrateProps) => {
 
   const openDocs = () => {
     ipc.system.openExternalUrl(
-      "https://www.dyad.sh/docs/templates/portal#create-a-database-migration",
+      "https://caide.app/docs/templates/portal#create-a-database-migration",
     );
   };
 

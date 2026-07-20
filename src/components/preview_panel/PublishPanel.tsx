@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAtomValue } from "jotai";
 import { selectedAppIdAtom } from "@/atoms/appAtoms";
 import { useLoadApp } from "@/hooks/useLoadApp";
@@ -9,10 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GithubCollaboratorManager } from "@/components/GithubCollaboratorManager";
 import { DatabaseSection } from "@/components/preview_panel/DatabaseSection";
 import { CapacitorControls } from "@/components/CapacitorControls";
+import { ReleaseCentre } from "@/components/preview_panel/ReleaseCentre";
+import { QualityGatePipeline } from "@/components/preview_panel/QualityGatePipeline";
 
 export const PublishPanel = () => {
   const selectedAppId = useAtomValue(selectedAppIdAtom);
   const { app, loading } = useLoadApp(selectedAppId);
+  const [showQualityGate, setShowQualityGate] = useState(false);
 
   if (loading) {
     return (
@@ -83,6 +87,21 @@ export const PublishPanel = () => {
             Create native projects, sync source control, and deploy services.
           </p>
         </header>
+
+        <ReleaseCentre appId={selectedAppId} />
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Quality Gate
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <QualityGatePipeline appId={selectedAppId} />
+          </CardContent>
+        </Card>
 
         <CapacitorControls appId={selectedAppId} />
 
