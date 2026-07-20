@@ -39,6 +39,7 @@ import {
 } from "@/lib/providerApiKey";
 import { FREE_PRO_MODEL_NAME, isFreeProModel } from "@/lib/freeProModel";
 import { getOpenRouterAppAttributionHeaders } from "./openrouter_attribution";
+import { createChatGPTModel } from "@/main/chatgpt_auth";
 
 // The test-only fetch seam lives in ./test_fetch_override (dependency-free,
 // so secondary factories can use it without import cycles). Re-exported here
@@ -82,7 +83,7 @@ export async function getModelClient(
   const dyadApiKey = settings.enableDyadPro
     ? getProviderApiKeyForRequest(
         settings.providerSettings?.auto?.apiKey?.value,
-        "Dyad",
+        "CAIDE Engine",
       )
     : undefined;
   const isDyadProEnabledForRequest = Boolean(
@@ -101,15 +102,15 @@ export async function getModelClient(
 
   if (isFreeProModel(model) && (!settings.enableDyadPro || !dyadApiKey)) {
     throw new DyadError(
-      "Dyad Free requires an active Dyad Pro API key. Switch to another model or enable Dyad Pro.",
+      "CAIDE Free requires a connected CAIDE Gateway. Connect the gateway in Settings or switch to another model.",
       DyadErrorKind.Auth,
     );
   }
 
-  // Handle Dyad Pro override
+  // Handle CAIDE Gateway override
   if (isDyadProEnabledForRequest) {
     const dyadEngineUrl = process.env.DYAD_ENGINE_URL;
-    // Check if the selected provider supports Dyad Pro (has a gateway prefix) OR
+    // Check if the selected provider supports CAIDE Gateway (has a gateway prefix) OR
     // we're using local engine.
     // IMPORTANT: some providers like OpenAI have an empty string gateway prefix,
     // so we do a nullish and not a truthy check here.
@@ -132,11 +133,11 @@ export async function getModelClient(
       });
 
       logger.debug(
-        `\x1b[1;97;44m Using Dyad Pro API key for model: ${model.name} \x1b[0m`,
+        `\x1b[1;97;44m Using CAIDE Gateway for model: ${model.name} \x1b[0m`,
       );
 
       logger.debug(
-        `\x1b[1;30;42m Using Dyad Pro engine: ${dyadEngineUrl ?? "<prod>"} \x1b[0m`,
+        `\x1b[1;30;42m Using CAIDE Engine: ${dyadEngineUrl ?? "<prod>"} \x1b[0m`,
       );
 
       // Do not use free variant (for openrouter).
@@ -155,7 +156,7 @@ export async function getModelClient(
       };
     } else {
       logger.warn(
-        `Dyad Pro enabled, but provider ${model.provider} does not have a gateway prefix defined. Falling back to direct provider connection.`,
+        `CAIDE Gateway is connected, but provider ${model.provider} does not have a gateway route. Falling back to the direct provider connection.`,
       );
       // Fall through to regular provider logic if gateway prefix is missing
     }
@@ -383,7 +384,7 @@ function getRegularModelClient(
   // Get API key for the specific provider. Azure is handled in its own branch
   // because it has additional config and test-mode bypass behavior.
   const apiKey =
-    providerId === "azure"
+    providerId === "azure" || providerId === "chatgpt"
       ? undefined
       : getProviderApiKeyForRequest(
           settings.providerSettings?.[model.provider]?.apiKey?.value ||
@@ -394,6 +395,29 @@ function getRegularModelClient(
         );
   // Create client based on provider ID or type
   switch (providerId) {
+    case "chatgpt":
+      return {
+        modelClient: {
+          model: createChatGPTModel(model.name),
+          builtinProviderId: providerId,
+        },
+        backupModelClients: [],
+      };
+    case "deepseek": {
+      const provider = createOpenAICompatible({
+        name: "deepseek",
+        baseURL: "https://api.deepseek.com",
+        apiKey,
+        ...getModelClientFetchOption(),
+      });
+      return {
+        modelClient: {
+          model: provider(model.name),
+          builtinProviderId: providerId,
+        },
+        backupModelClients: [],
+      };
+    }
     case "openai": {
       const provider = createOpenAI({
         apiKey,

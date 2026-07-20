@@ -159,6 +159,7 @@ async function pruneNodePty(
     await rmIfExists(path.join(nodePtyPath, "third_party", "conpty"));
   } else {
     await removeRelativePaths(nodePtyPath, [
+      "build",
       "deps/winpty/misc/ConinMode.ps1",
       "deps/winpty/misc/IdentifyConsoleWindow.ps1",
     ]);
@@ -188,6 +189,43 @@ async function pruneNodePty(
     prebuilds
       .filter((entry) => entry.isDirectory() && entry.name !== keepPrebuild)
       .map((entry) => rmIfExists(path.join(prebuildsPath, entry.name))),
+  );
+}
+
+async function pruneMustardBindings(
+  nodeModulesPath: string,
+  platform: PackagerPlatform,
+  arch: PackagerArch,
+): Promise<void> {
+  const bindingsPath = path.join(nodeModulesPath, "@mustardscript");
+  const keepBinding =
+    platform === "win32" && arch === "x64"
+      ? "binding-win32-x64-msvc"
+      : platform === "linux" && arch === "x64"
+        ? "binding-linux-x64-gnu"
+        : platform === "darwin" && arch === "x64"
+          ? "binding-darwin-x64"
+          : platform === "darwin" && arch === "arm64"
+            ? "binding-darwin-arm64"
+            : undefined;
+
+  let entries: import("node:fs").Dirent[];
+  try {
+    entries = await fs.readdir(bindingsPath, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw error;
+  }
+
+  await Promise.all(
+    entries
+      .filter(
+        (entry) =>
+          entry.isDirectory() &&
+          entry.name.startsWith("binding-") &&
+          entry.name !== keepBinding,
+      )
+      .map((entry) => rmIfExists(path.join(bindingsPath, entry.name))),
   );
 }
 
@@ -231,6 +269,7 @@ export async function removeUnusedAppPackageFiles(
     pruneKeychainReader(
       path.join(appPath, "node_modules", "dyad-keychain-reader"),
     ),
+    pruneMustardBindings(path.join(appPath, "node_modules"), platform, arch),
   ]);
 }
 

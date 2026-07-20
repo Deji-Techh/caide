@@ -13,7 +13,7 @@ describe("SETTINGS_SEARCH_INDEX", () => {
       ),
     ).toEqual({
       id: SETTING_IDS.enableCloudSandbox,
-      label: "Enable Cloud Sandbox (Pro)",
+      label: "Enable Cloud Sandbox",
       description:
         "Run your app on the Cloud for a more secure runtime that uses fewer local system resources",
       keywords: [
@@ -21,7 +21,6 @@ describe("SETTINGS_SEARCH_INDEX", () => {
         "sandbox",
         "runtime",
         "experiment",
-        "pro",
         "credits",
         "secure",
       ],

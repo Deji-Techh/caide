@@ -24,6 +24,7 @@ interface MessagesListProps {
   messages: Message[];
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   onAtBottomChange?: (atBottom: boolean) => void;
+  disableVirtualization?: boolean;
 }
 
 // Memoize ChatMessage at module level to prevent recreation on every render
@@ -252,7 +253,15 @@ function FooterComponent({ context }: { context?: FooterContext }) {
 }
 
 export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
-  function MessagesList({ messages, messagesEndRef, onAtBottomChange }, ref) {
+  function MessagesList(
+    {
+      messages,
+      messagesEndRef,
+      onAtBottomChange,
+      disableVirtualization = false,
+    },
+    ref,
+  ) {
     const appId = useAtomValue(selectedAppIdAtom);
     const { versions, revertVersion } = useVersions(appId);
     const { streamMessage, isStreaming } = useStreamChat();
@@ -400,7 +409,7 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
 
     // In test mode, render all messages without virtualization
     // so E2E tests can query all messages in the DOM
-    if (isTestMode) {
+    if (isTestMode || disableVirtualization) {
       return (
         <div
           className="absolute inset-0 p-4 pb-0 pr-0 overflow-y-auto"
@@ -431,6 +440,7 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
         data-testid="messages-list"
       >
         <Virtuoso
+          key={`${selectedChatId ?? "none"}-${messages.length === 0 ? "empty" : "ready"}`}
           data={messages}
           increaseViewportBy={{ top: 1000, bottom: 500 }}
           initialTopMostItemIndex={messages.length - 1}

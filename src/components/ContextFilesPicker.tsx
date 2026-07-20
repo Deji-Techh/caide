@@ -115,8 +115,7 @@ export function ContextFilesPicker() {
     updateExcludePaths(newPaths);
   };
 
-  const isSmartContextEnabled =
-    settings?.enableDyadPro && settings?.enableProSmartFilesContextMode;
+  const isSmartContextEnabled = settings?.enableProSmartFilesContextMode;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -145,11 +144,11 @@ export function ContextFilesPicker() {
                   <TooltipContent className="max-w-[300px]">
                     {isSmartContextEnabled ? (
                       <p>
-                        With Smart Context, Dyad uses the most relevant files as
-                        context.
+                        With Smart Context, CAIDE uses the most relevant files
+                        as context.
                       </p>
                     ) : (
-                      <p>By default, Dyad uses your whole codebase.</p>
+                      <p>By default, CAIDE uses your whole codebase.</p>
                     )}
                   </TooltipContent>
                 </Tooltip>
@@ -218,8 +217,8 @@ export function ContextFilesPicker() {
               <div className="rounded-md border border-dashed p-4 text-center">
                 <p className="text-sm text-muted-foreground">
                   {isSmartContextEnabled
-                    ? "Dyad will use Smart Context to automatically find the most relevant files to use as context."
-                    : "Dyad will use the entire codebase as context."}
+                    ? "CAIDE will use Smart Context to automatically find the most relevant files to use as context."
+                    : "CAIDE will use the entire codebase as context."}
                 </p>
               </div>
             )}
@@ -228,7 +227,7 @@ export function ContextFilesPicker() {
           <div className="pt-2">
             <div>
               <h3 className="font-medium">Exclude Paths</h3>
-              <p className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   These files will be excluded from the context.{" "}
                   <TooltipProvider>
@@ -245,7 +244,7 @@ export function ContextFilesPicker() {
                     </Tooltip>
                   </TooltipProvider>
                 </span>
-              </p>
+              </div>
             </div>
 
             <div className="flex w-full max-w-sm items-center space-x-2 mt-4">
@@ -312,7 +311,7 @@ export function ContextFilesPicker() {
             <div className="pt-2">
               <div>
                 <h3 className="font-medium">Smart Context Auto-includes</h3>
-                <p className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     These files will always be included in the context.{" "}
                     <TooltipProvider>
@@ -330,7 +329,7 @@ export function ContextFilesPicker() {
                       </Tooltip>
                     </TooltipProvider>
                   </span>
-                </p>
+                </div>
               </div>
 
               <div className="flex w-full max-w-sm items-center space-x-2 mt-4">

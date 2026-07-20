@@ -63,7 +63,7 @@ export class MakerAppImage extends MakerBase<{ icon?: string }> {
 
     // Fetch AppImage runtime
     const res = await fetch(RUNTIME_URL, {
-      signal: AbortSignal.timeout(10000), // 10 second timeout
+      signal: AbortSignal.timeout(60_000),
     });
 
     if (!res.ok)

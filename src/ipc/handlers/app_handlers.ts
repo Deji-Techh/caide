@@ -2047,6 +2047,30 @@ export function registerAppHandlers() {
     );
   }
 
+  // Mobile preview toggle — restart proxy on 0.0.0.0 for LAN access
+  createTypedHandler(
+    appContracts.setAppMobilePreview,
+    async (event, { appId, enabled }) => {
+      const appInfo = runningApps.get(appId);
+      if (!appInfo) return null;
+
+      const listenHost = enabled ? "0.0.0.0" : "localhost";
+      const originalUrl = appInfo.originalUrl;
+
+      if (!originalUrl) return null;
+
+      await ensureProxyForRunningApp({
+        appId,
+        event,
+        originalUrl,
+        mode: appInfo.mode,
+        listenHost,
+      });
+
+      return appInfo.proxyUrl ?? null;
+    },
+  );
+
   // Start the garbage collection for idle apps
   startAppGarbageCollection();
 }

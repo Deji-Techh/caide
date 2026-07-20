@@ -9,7 +9,7 @@ export interface ProviderCheckOptions {
   settings: UserSettings | null;
   envVars: Record<string, string | undefined>;
   /** Provider data from the query (needed for custom providers and env var lookup) */
-  providerData?: { id: string; envVarName?: string }[];
+  providerData?: { id: string; envVarName?: string; configured?: boolean }[];
   /** If true, returns false while data is still loading */
   isLoading?: boolean;
 }
@@ -29,6 +29,12 @@ export function isProviderSetup(
   }
 
   const providerSettings = settings?.providerSettings[provider];
+
+  if (provider === "chatgpt") {
+    return (
+      providerData?.find((item) => item.id === provider)?.configured === true
+    );
+  }
 
   // Vertex uses service account credentials instead of an API key
   if (provider === "vertex") {

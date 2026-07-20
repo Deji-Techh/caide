@@ -35,14 +35,6 @@ function getExploreCodeAvailabilityForAppPath(
   reason: string | null;
   tsconfigPath: string | null;
 } {
-  if (!ctx.isDyadPro) {
-    return {
-      enabled: false,
-      reason: "dyad_pro_required",
-      tsconfigPath: null,
-    };
-  }
-
   const settings = readSettings();
   if (!settings.enableCodeExplorer) {
     return {
@@ -107,7 +99,7 @@ If confidence is low, inspect the listed read/search targets before relying on t
 Only use this for files included in the app's TypeScript config. JavaScript and JSX require TypeScript config support such as allowJs. If the project does not have TypeScript installed and configured, use grep/list_files/read_file instead.`,
   inputSchema: exploreCodeSchema,
   defaultConsent: "always",
-  usesEngineEndpoint: true,
+  usesEngineEndpoint: false,
 
   isEnabled: (ctx) => getExploreCodeAvailability(ctx).enabled,
 

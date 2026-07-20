@@ -15,7 +15,6 @@ import {
   ChevronsUpDown,
   ChevronsDownUp,
   SendHorizontalIcon,
-  Lock,
   Mic,
   MicOff,
 } from "lucide-react";
@@ -91,7 +90,6 @@ import {
 import { ImageGeneratorDialog } from "@/components/ImageGeneratorDialog";
 import { useChatModeToggle } from "@/hooks/useChatModeToggle";
 import { VisualEditingChangesDialog } from "@/components/preview_panel/VisualEditingChangesDialog";
-import { useUserBudgetInfo } from "@/hooks/useUserBudgetInfo";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import {
@@ -103,14 +101,12 @@ import {
   ContextLimitBanner,
   shouldShowContextLimitBanner,
 } from "./ContextLimitBanner";
-import { PromoMessage, usePromoMessage } from "./PromoMessage";
 import { useCountTokens } from "@/hooks/useCountTokens";
 import { useChats } from "@/hooks/useChats";
 import { useRouter } from "@tanstack/react-router";
 import { showError as showErrorToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useVoiceToText } from "@/hooks/useVoiceToText";
-import { isDyadProEnabled } from "@/lib/schemas";
 import { useChatMode } from "@/hooks/useChatMode";
 import { useInitialChatMode } from "@/hooks/useInitialChatMode";
 import { useOpenPreviewIfSetupRequired } from "@/hooks/useOpenPreviewIfSetupRequired";
@@ -314,9 +310,6 @@ export function ChatInput({ chatId }: { chatId?: number }) {
       .reverse(); // Most recent first
   }, [chatId, messagesById]);
 
-  const { userBudget } = useUserBudgetInfo();
-  const isProEnabled = settings ? isDyadProEnabled(settings) : false;
-
   const handleTranscription = useCallback(
     (text: string) => {
       setInputValue((prev: string) => (prev.trim() ? prev + " " + text : text));
@@ -325,7 +318,7 @@ export function ChatInput({ chatId }: { chatId?: number }) {
   );
 
   const { isRecording, isTranscribing, toggleRecording } = useVoiceToText({
-    enabled: isProEnabled,
+    enabled: true,
     onTranscription: handleTranscription,
     onError: (message) => showErrorToast(message),
   });
@@ -381,11 +374,6 @@ export function ChatInput({ chatId }: { chatId?: number }) {
       totalTokens: tokenCountResult.actualMaxTokens,
       contextWindow: tokenCountResult.contextWindow,
     });
-
-  // Promo cap row on the composer; never stack two caps — the context limit
-  // warning wins the slot.
-  const promo = usePromoMessage(chatId);
-  const showPromo = promo.visible && !showBanner;
 
   useEffect(() => {
     if (error) {
@@ -784,7 +772,7 @@ export function ChatInput({ chatId }: { chatId?: number }) {
         <ChatErrorBox
           onDismiss={dismissError}
           error={error}
-          isDyadProEnabled={isProEnabled}
+          isDyadProEnabled={true}
           onStartNewChat={handleNewChat}
         />
       )}
@@ -800,8 +788,6 @@ export function ChatInput({ chatId }: { chatId?: number }) {
         </div>
       )}
       <div className="p-2 pt-0" data-testid="chat-input-container">
-        {/* Promo cap row fused to the top of the composer */}
-        {showPromo && <PromoMessage seed={promo.seed} />}
         {/* Show context limit banner above chat input for visibility */}
         {showBanner && tokenCountResult && (
           <ContextLimitBanner
@@ -814,7 +800,7 @@ export function ChatInput({ chatId }: { chatId?: number }) {
             "relative flex flex-col border border-border rounded-2xl bg-(--background-lighter) transition-colors duration-200",
             "focus-within:border-primary/30 focus-within:ring-1 focus-within:ring-primary/20",
             isDraggingOver && "ring-2 ring-blue-500 border-blue-500",
-            (showBanner || showPromo) && "rounded-t-none border-t-0",
+            showBanner && "rounded-t-none border-t-0",
           )}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -889,54 +875,27 @@ export function ChatInput({ chatId }: { chatId?: number }) {
               />
             )}
 
-          {userBudget ? (
-            <VisualEditingChangesDialog
-              iframeRef={
-                previewIframeRef
-                  ? { current: previewIframeRef }
-                  : { current: null }
-              }
-              onReset={() => {
-                // Exit component selection mode and visual editing
-                setSelectedComponents([]);
-                setVisualEditingSelectedComponent(null);
-                setCurrentComponentCoordinates(null);
-                setPendingVisualChanges(new Map());
-                refreshAppIframe();
+          <VisualEditingChangesDialog
+            iframeRef={
+              previewIframeRef
+                ? { current: previewIframeRef }
+                : { current: null }
+            }
+            onReset={() => {
+              setSelectedComponents([]);
+              setVisualEditingSelectedComponent(null);
+              setCurrentComponentCoordinates(null);
+              setPendingVisualChanges(new Map());
+              refreshAppIframe();
 
-                // Deactivate component selector in iframe
-                if (previewIframeRef?.contentWindow) {
-                  previewIframeRef.contentWindow.postMessage(
-                    { type: "deactivate-dyad-component-selector" },
-                    "*",
-                  );
-                }
-              }}
-            />
-          ) : (
-            selectedComponents.length > 0 && (
-              <div className="border-b border-border p-3 bg-muted/30">
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <button
-                        onClick={() => {
-                          ipc.system.openExternalUrl("https://dyad.sh/pro");
-                        }}
-                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                      />
-                    }
-                  >
-                    <Lock size={16} />
-                    <span className="font-medium">{t("visualEditor")}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {t("visualEditorDescription")}
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            )
-          )}
+              if (previewIframeRef?.contentWindow) {
+                previewIframeRef.contentWindow.postMessage(
+                  { type: "deactivate-dyad-component-selector" },
+                  "*",
+                );
+              }
+            }}
+          />
 
           <SelectedComponentsDisplay />
 
@@ -974,66 +933,44 @@ export function ChatInput({ chatId }: { chatId?: number }) {
             />
 
             {/* Voice-to-text button */}
-            {isProEnabled ? (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <button
-                      onClick={toggleRecording}
-                      disabled={isTranscribing}
-                      aria-label={
-                        isRecording
-                          ? t("stopRecording", "Stop recording")
-                          : isTranscribing
-                            ? t("transcribing", "Transcribing...")
-                            : t("voiceToText", "Voice to text")
-                      }
-                      className={cn(
-                        "px-2 py-2 mb-0.5 text-muted-foreground rounded-lg transition-colors duration-150 cursor-pointer disabled:cursor-default disabled:opacity-30",
-                        isRecording &&
-                          "text-red-500 hover:text-red-600 animate-pulse",
-                        !isRecording && !isTranscribing && "hover:text-primary",
-                      )}
-                    />
-                  }
-                >
-                  {isTranscribing ? (
-                    <Loader2 size={20} className="animate-spin" />
-                  ) : isRecording ? (
-                    <MicOff size={20} />
-                  ) : (
-                    <Mic size={20} />
-                  )}
-                </TooltipTrigger>
-                <TooltipContent>
-                  {isRecording
-                    ? t("stopRecording", "Stop recording")
-                    : isTranscribing
-                      ? t("transcribing", "Transcribing...")
-                      : t("voiceToText", "Voice to text")}
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <button
-                      onClick={() =>
-                        ipc.system.openExternalUrl("https://dyad.sh/pro")
-                      }
-                      aria-label={t("voiceToTextPro", "Voice to text (Pro)")}
-                      className="px-2 py-2 mb-0.5 text-muted-foreground hover:text-primary rounded-lg transition-colors duration-150 cursor-pointer relative"
-                    />
-                  }
-                >
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    onClick={toggleRecording}
+                    disabled={isTranscribing}
+                    aria-label={
+                      isRecording
+                        ? t("stopRecording", "Stop recording")
+                        : isTranscribing
+                          ? t("transcribing", "Transcribing...")
+                          : t("voiceToText", "Voice to text")
+                    }
+                    className={cn(
+                      "px-2 py-2 mb-0.5 text-muted-foreground rounded-lg transition-colors duration-150 cursor-pointer disabled:cursor-default disabled:opacity-30",
+                      isRecording &&
+                        "text-red-500 hover:text-red-600 animate-pulse",
+                      !isRecording && !isTranscribing && "hover:text-primary",
+                    )}
+                  />
+                }
+              >
+                {isTranscribing ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : isRecording ? (
+                  <MicOff size={20} />
+                ) : (
                   <Mic size={20} />
-                  <Lock size={10} className="absolute -top-0.5 -right-0.5" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  {t("voiceToTextRequiresPro", "Voice to text (requires Pro)")}
-                </TooltipContent>
-              </Tooltip>
-            )}
+                )}
+              </TooltipTrigger>
+              <TooltipContent>
+                {isRecording
+                  ? t("stopRecording", "Stop recording")
+                  : isTranscribing
+                    ? t("transcribing", "Transcribing...")
+                    : t("voiceToText", "Voice to text")}
+              </TooltipContent>
+            </Tooltip>
 
             {isStreaming ? (
               <Tooltip>

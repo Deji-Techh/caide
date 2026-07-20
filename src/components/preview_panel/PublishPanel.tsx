@@ -8,6 +8,7 @@ import { ipc } from "@/ipc/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GithubCollaboratorManager } from "@/components/GithubCollaboratorManager";
 import { DatabaseSection } from "@/components/preview_panel/DatabaseSection";
+import { CapacitorControls } from "@/components/CapacitorControls";
 
 export const PublishPanel = () => {
   const selectedAppId = useAtomValue(selectedAppIdAtom);
@@ -15,7 +16,7 @@ export const PublishPanel = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+      <div className="caide-publish-state">
         <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
           <svg
             className="w-6 h-6 text-blue-600 dark:text-blue-400 animate-spin"
@@ -46,7 +47,7 @@ export const PublishPanel = () => {
 
   if (!selectedAppId || !app) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+      <div className="caide-publish-state">
         <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-900/30 flex items-center justify-center">
           <svg
             className="w-6 h-6 text-gray-600 dark:text-gray-400"
@@ -73,13 +74,17 @@ export const PublishPanel = () => {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
-      <div className="p-4 space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Publish App
-          </h1>
-        </div>
+    <div className="caide-publish-panel">
+      <div className="caide-publish-content">
+        <header className="caide-publish-heading">
+          <span>RELEASE CENTER</span>
+          <h1>Build and publish</h1>
+          <p>
+            Create native projects, sync source control, and deploy services.
+          </p>
+        </header>
+
+        <CapacitorControls appId={selectedAppId} />
 
         {/* Unified Database section - branch selection + migration + env vars when the
             app has a neon project and branch context, otherwise fall back to PortalMigrate

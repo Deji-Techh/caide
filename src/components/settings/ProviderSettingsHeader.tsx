@@ -6,7 +6,6 @@ import {
   KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/ui/back-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ipc } from "@/ipc/types";
 import {
@@ -33,11 +32,7 @@ function getKeyButtonText({
   isConfigured: boolean;
   isDyad: boolean;
 }) {
-  if (isDyad) {
-    return isConfigured
-      ? "Manage Dyad Pro Subscription"
-      : "Setup Dyad Pro Subscription";
-  }
+  void isDyad;
   return isConfigured ? "Manage API Keys" : "Setup API Key";
 }
 
@@ -61,7 +56,8 @@ export function ProviderSettingsHeader({
   const ConfigureButton = (
     <Button
       onClick={handleGetApiKeyClick}
-      className="mb-4 cursor-pointer py-5 w-full ring-4 ring-primary/60 shadow-lg shadow-primary/30 border-primary/60"
+      variant={isConfigured ? "outline" : "default"}
+      className="mb-5 h-10 w-auto cursor-pointer px-4 shadow-none"
     >
       <KeyRound className="mr-2 h-4 w-4" />
       {getKeyButtonText({ isConfigured, isDyad })}
@@ -71,25 +67,23 @@ export function ProviderSettingsHeader({
 
   return (
     <>
-      <BackButton />
-
-      <div className="mb-6">
-        <div className="flex items-center mb-1">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mr-3">
+      <div className="mb-5 border-b border-border/70 pb-5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
             Configure {providerDisplayName}
           </h1>
           {isLoading ? (
             <Skeleton className="h-6 w-6 rounded-full" />
           ) : (
             <Circle
-              className={`h-5 w-5 ${
+              className={`h-4 w-4 ${
                 isConfigured
                   ? "fill-green-500 text-green-600"
                   : "fill-yellow-400 text-yellow-500"
               }`}
             />
           )}
-          <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+          <span className="text-sm text-gray-600 dark:text-gray-400">
             {isLoading
               ? "Loading..."
               : isConfigured

@@ -21,6 +21,7 @@ import type { AppFileSearchResult } from "@/ipc/types";
 import { useSearchAppFiles } from "@/hooks/useSearchAppFiles";
 import { useTranslation } from "react-i18next";
 import { chatInputValueAtom } from "@/atoms/chatAtoms";
+import { getVisibleCaideSourceFiles } from "./file_visibility";
 
 interface FileTreeProps {
   appId: number | null;
@@ -168,16 +169,19 @@ export const FileTree = ({ appId, files }: FileTreeProps) => {
   const matchesByPath = useMemo(() => {
     const map = new Map<string, AppFileSearchResult>();
     for (const result of searchResults) {
-      map.set(result.path, result);
+      if (getVisibleCaideSourceFiles([result.path]).length > 0) {
+        map.set(result.path, result);
+      }
     }
     return map;
   }, [searchResults]);
 
   const visibleFiles = useMemo(() => {
+    const sourceFiles = getVisibleCaideSourceFiles(files);
     if (!isSearchMode) {
-      return files;
+      return sourceFiles;
     }
-    return files.filter((filePath) => matchesByPath.has(filePath));
+    return sourceFiles.filter((filePath) => matchesByPath.has(filePath));
   }, [files, isSearchMode, matchesByPath]);
 
   const treeData = useMemo(() => buildFileTree(visibleFiles), [visibleFiles]);

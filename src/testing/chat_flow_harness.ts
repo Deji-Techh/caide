@@ -280,7 +280,7 @@ export async function setupChatFlowHarness(
     if (options.useFakeCatalog !== false) {
       process.env.DYAD_LANGUAGE_MODEL_CATALOG_URL = `${fakeLlmUrl}/api/language-model-catalog`;
     }
-    // Always fake the Dyad Pro user-info endpoint: any test that configures an
+    // Always fake the CAIDE Gateway user-info endpoint: any test that configures an
     // auto API key would otherwise send get-user-budget requests to the real
     // api.dyad.sh.
     process.env.DYAD_USER_INFO_URL = `${fakeLlmUrl}/api/user/info`;

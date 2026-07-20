@@ -27,6 +27,26 @@ export const NEMOTRON_3_SUPER_FREE = "nvidia/nemotron-3-super-120b-a12b:free";
 export const GPT_5_NANO = "gpt-5-nano";
 
 export const MODEL_OPTIONS: Record<string, ModelOption[]> = {
+  deepseek: [
+    {
+      name: "deepseek-v4-pro",
+      displayName: "DeepSeek V4 Pro",
+      description: "DeepSeek's most capable agentic coding and reasoning model",
+      maxOutputTokens: 384_000,
+      contextWindow: 1_000_000,
+      temperature: 1,
+      dollarSigns: 2,
+    },
+    {
+      name: "deepseek-v4-flash",
+      displayName: "DeepSeek V4 Flash",
+      description: "Fast, efficient DeepSeek V4 model for everyday building",
+      maxOutputTokens: 384_000,
+      contextWindow: 1_000_000,
+      temperature: 1,
+      dollarSigns: 1,
+    },
+  ],
   openai: [
     {
       name: GPT_5_5_MODEL_NAME,
@@ -360,7 +380,7 @@ export const MODEL_OPTIONS: Record<string, ModelOption[]> = {
       name: "free-pro",
       displayName: "Free (Daily)",
       description:
-        "5 free messages per day for Dyad Pro users (note: your data may be used for training models)",
+        "Daily free model access through CAIDE Gateway (your data may be used for model training)",
       tag: "Free",
       tagColor: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
       maxOutputTokens: 32_000,
@@ -542,6 +562,7 @@ export const FREE_OPENROUTER_MODEL_NAMES = MODEL_OPTIONS.openrouter
   .map((model) => model.name);
 
 export const PROVIDER_TO_ENV_VAR: Record<string, string> = {
+  deepseek: "DEEPSEEK_API_KEY",
   openai: "OPENAI_API_KEY",
   anthropic: "ANTHROPIC_API_KEY",
   google: "GEMINI_API_KEY",
@@ -558,10 +579,21 @@ export const CLOUD_PROVIDERS: Record<
     displayName: string;
     hasFreeTier?: boolean;
     websiteUrl?: string;
-    gatewayPrefix: string;
+    gatewayPrefix?: string;
     secondary?: boolean;
   }
 > = {
+  chatgpt: {
+    displayName: "ChatGPT",
+    hasFreeTier: false,
+    websiteUrl: "https://chatgpt.com/",
+  },
+  deepseek: {
+    displayName: "DeepSeek",
+    hasFreeTier: false,
+    websiteUrl: "https://platform.deepseek.com/api_keys",
+    gatewayPrefix: "",
+  },
   openai: {
     displayName: "OpenAI",
     hasFreeTier: false,
@@ -584,7 +616,7 @@ export const CLOUD_PROVIDERS: Record<
     displayName: "Google Vertex AI",
     hasFreeTier: false,
     websiteUrl: "https://console.cloud.google.com/vertex-ai",
-    // Use the same gateway prefix as Google Gemini for Dyad Pro compatibility.
+    // Use the same gateway prefix as Google Gemini for CAIDE Gateway compatibility.
     gatewayPrefix: "gemini/",
     secondary: true,
   },
@@ -595,7 +627,7 @@ export const CLOUD_PROVIDERS: Record<
     gatewayPrefix: "openrouter/",
   },
   auto: {
-    displayName: "Dyad",
+    displayName: "CAIDE Engine",
     websiteUrl: "https://academy.dyad.sh/subscription",
     gatewayPrefix: "dyad/",
   },

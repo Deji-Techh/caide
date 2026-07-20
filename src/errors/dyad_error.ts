@@ -49,7 +49,7 @@ export class DyadError extends Error {
     options?: { cause?: unknown },
   ) {
     super(message);
-    this.name = "DyadError";
+    this.name = "CAIDEError";
     this.kind = kind;
     this.cause = options?.cause;
   }

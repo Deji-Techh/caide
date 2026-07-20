@@ -12,10 +12,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useSettings } from "@/hooks/useSettings";
 import { useChatMode } from "@/hooks/useChatMode";
-import { useFreeAgentQuota } from "@/hooks/useFreeAgentQuota";
 import { useMcp } from "@/hooks/useMcp";
 import type { ChatMode } from "@/lib/schemas";
-import { isDyadProEnabled } from "@/lib/schemas";
 import {
   getChatModeFallbackToastId,
   getChatModeDisplayName,
@@ -59,9 +57,6 @@ export function ChatModeSelector() {
   );
   const fallbackToastKeyRef = useRef<string | null>(null);
 
-  const isProEnabled = settings ? isDyadProEnabled(settings) : false;
-  const { messagesRemaining, messagesLimit, isQuotaExceeded } =
-    useFreeAgentQuota();
   const { servers } = useMcp();
   const enabledMcpServersCount = servers.filter((s) => s.enabled).length;
   const isDyadFreeSelected = isFreeProModel(settings?.selectedModel);
@@ -85,10 +80,10 @@ export function ChatModeSelector() {
     fallbackToastKeyRef.current = toastKey;
     showChatModeFallbackToast({
       effectiveMode,
-      isPro: isProEnabled,
+      isPro: true,
       toastId: toastKey,
     });
-  }, [chatId, effectiveMode, fallbackReason, isProEnabled, storedChatMode]);
+  }, [chatId, effectiveMode, fallbackReason, storedChatMode]);
 
   useEffect(() => {
     if (
@@ -105,7 +100,7 @@ export function ChatModeSelector() {
       settings &&
       isFreeProBuildModeCombination(settings.selectedModel, newMode)
     ) {
-      toast.error("Dyad Free is not available in Build mode.");
+      toast.error("The bundled model is not available in Build mode.");
       return;
     }
     // An explicit pick outside a chat updates settings.selectedChatMode;
@@ -144,7 +139,7 @@ export function ChatModeSelector() {
   };
 
   const getModeDisplayName = (mode: ChatMode) => {
-    return getChatModeDisplayName(mode, isProEnabled);
+    return getChatModeDisplayName(mode, true);
   };
 
   const getModeIcon = (mode: ChatMode) => {
@@ -201,19 +196,17 @@ export function ChatModeSelector() {
           </TooltipContent>
         </Tooltip>
         <SelectContent align="start">
-          {isProEnabled && (
-            <SelectItem value="local-agent">
-              <div className="flex flex-col items-start">
-                <div className="flex items-center gap-1.5">
-                  <Bot size={14} className="text-muted-foreground" />
-                  <span className="font-medium">Agent v2</span>
-                </div>
-                <span className="text-xs text-muted-foreground ml-[22px]">
-                  Better at bigger tasks and debugging
-                </span>
+          <SelectItem value="local-agent">
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-1.5">
+                <Bot size={14} className="text-muted-foreground" />
+                <span className="font-medium">Agent</span>
               </div>
-            </SelectItem>
-          )}
+              <span className="text-xs text-muted-foreground ml-[22px]">
+                Execute larger changes with project tools
+              </span>
+            </div>
+          </SelectItem>
           <SelectItem value="plan">
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-1.5">
@@ -225,24 +218,6 @@ export function ChatModeSelector() {
               </span>
             </div>
           </SelectItem>
-          {!isProEnabled && (
-            <SelectItem value="local-agent" disabled={isQuotaExceeded}>
-              <div className="flex flex-col items-start">
-                <div className="flex items-center gap-1.5">
-                  <Bot size={14} className="text-muted-foreground" />
-                  <span className="font-medium">Basic Agent</span>
-                  <span className="text-xs text-muted-foreground">
-                    {`(${isQuotaExceeded ? "0" : messagesRemaining}/${messagesLimit} remaining for today)`}
-                  </span>
-                </div>
-                <span className="text-xs text-muted-foreground ml-[22px]">
-                  {isQuotaExceeded
-                    ? "Daily limit reached"
-                    : "Try our AI agent for free"}
-                </span>
-              </div>
-            </SelectItem>
-          )}
           <SelectItem value="build" disabled={buildUnavailableForDyadFree}>
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-1.5">
@@ -251,7 +226,7 @@ export function ChatModeSelector() {
               </div>
               <span className="text-xs text-muted-foreground ml-[22px]">
                 {buildUnavailableForDyadFree
-                  ? "Use Agent, Ask, or Plan with Dyad Free"
+                  ? "Use Agent, Ask, or Plan with the bundled model"
                   : "Generate and edit code"}
               </span>
             </div>

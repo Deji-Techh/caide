@@ -1,4 +1,5 @@
 import { registerAppHandlers } from "./handlers/app_handlers";
+import { registerNetworkHandlers } from "./handlers/network_handlers";
 import { registerChatHandlers } from "./handlers/chat_handlers";
 import { registerChatStreamHandlers } from "./handlers/chat_stream_handlers";
 import { registerSettingsHandlers } from "./handlers/settings_handlers";
@@ -103,4 +104,5 @@ export function registerIpcHandlers() {
   registerAppCollectionHandlers();
   registerTerminalHandlers();
   registerTestsHandlers();
+  registerNetworkHandlers();
 }

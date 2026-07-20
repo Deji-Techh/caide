@@ -550,6 +550,15 @@ export const appContracts = {
       ),
     }),
   }),
+
+  setAppMobilePreview: defineContract({
+    channel: "app:set-mobile-preview",
+    input: z.object({
+      appId: z.number(),
+      enabled: z.boolean(),
+    }),
+    output: z.string().nullable(),
+  }),
 } as const;
 
 // =============================================================================

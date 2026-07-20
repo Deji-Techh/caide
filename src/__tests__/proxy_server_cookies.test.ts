@@ -72,6 +72,17 @@ function getSetCookie(port: number): Promise<string[]> {
   });
 }
 
+function getBody(port: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const req = http.get({ host: "localhost", port, path: "/" }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+      res.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    });
+    req.once("error", reject);
+  });
+}
+
 describe("proxy worker cookie rewriting", () => {
   const cleanup: Array<() => Promise<void>> = [];
 
@@ -213,5 +224,50 @@ describe("proxy worker cookie rewriting", () => {
     expect(cookie).toMatch(/;\s*SameSite=None/i);
     expect(cookie).not.toMatch(/Partitioned/i);
     expect(cookie).not.toMatch(/SameSite=Lax/i);
+  });
+
+  it("injects a React refresh guard before generated app modules", async () => {
+    const upstream = await startUpstream([], {
+      contentType: "text/html",
+      body: '<html><head></head><body><script type="module" src="/src/main.tsx"></script></body></html>',
+    });
+    cleanup.push(upstream.close);
+
+    const port = await findFreePort();
+    const { waitForStart } = startWorker({
+      targetOrigin: upstream.origin,
+      port,
+      fallbackPortStart: await findFreePort(),
+      maxPortAttempts: 20,
+    });
+    const body = await getBody(await waitForStart());
+
+    expect(body).toContain("data-caide-react-refresh-guard");
+    expect(body.indexOf("data-caide-react-refresh-guard")).toBeLessThan(
+      body.indexOf("/src/main.tsx"),
+    );
+  });
+
+  it("contains wide app layouts inside the mobile preview viewport", async () => {
+    const upstream = await startUpstream([], {
+      contentType: "text/html",
+      body: "<html><head></head><body><main>app</main></body></html>",
+    });
+    cleanup.push(upstream.close);
+
+    const port = await findFreePort();
+    const { waitForStart } = startWorker({
+      targetOrigin: upstream.origin,
+      port,
+      fallbackPortStart: await findFreePort(),
+      maxPortAttempts: 20,
+    });
+    const proxyPort = await waitForStart();
+    const body = await getBody(proxyPort);
+
+    expect(body).toContain("data-caide-preview-viewport");
+    expect(body).toContain("overflow-x: hidden");
+    expect(body).toContain("main, header, footer, section, nav, form");
+    expect(body).toContain('header > [class*="flex"]');
   });
 });

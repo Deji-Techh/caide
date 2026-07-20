@@ -37,9 +37,7 @@ import { useTranslation } from "react-i18next";
 import { HelpBotDialog } from "./HelpBotDialog";
 import { useSettings } from "@/hooks/useSettings";
 import { BugScreenshotDialog } from "./BugScreenshotDialog";
-import { useUserBudgetInfo } from "@/hooks/useUserBudgetInfo";
 import { type UserSettings } from "@/lib/schemas";
-import { type UserBudgetInfo } from "@/ipc/types/system";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatUpdaterLogsForIssueBody } from "@/lib/debugLogFormatting";
 
@@ -81,7 +79,7 @@ function formatSettingsLines(settings: UserSettings | null): string {
     `- Selected Model: ${settings.selectedModel?.provider}:${settings.selectedModel?.name}`,
     `- Chat Mode: ${settings.selectedChatMode ?? "default"}`,
     `- Auto Approve Changes: ${settings.autoApproveChanges ?? "n/a"}`,
-    `- Dyad Pro Enabled: ${settings.enableDyadPro ?? "n/a"}`,
+    `- Bundled Gateway Enabled: ${settings.enableDyadPro ?? "n/a"}`,
     `- Thinking Budget: ${settings.thinkingBudget ?? "n/a"}`,
     `- Runtime Mode: ${settings.runtimeMode2 ?? "n/a"}`,
     `- Release Channel: ${settings.releaseChannel ?? "n/a"}`,
@@ -90,18 +88,14 @@ function formatSettingsLines(settings: UserSettings | null): string {
   ].join("\n");
 }
 
-function formatSystemInfoSection(
-  debugInfo: SystemDebugInfo,
-  userBudget: UserBudgetInfo | undefined,
-): string {
+function formatSystemInfoSection(debugInfo: SystemDebugInfo): string {
   return `## System Information
-- Dyad Version: ${debugInfo.dyadVersion}
+- CAIDE Version: ${debugInfo.dyadVersion}
 - Platform: ${debugInfo.platform}
 - Architecture: ${debugInfo.architecture}
 - Node Version: ${debugInfo.nodeVersion || "n/a"}
 - PNPM Version: ${debugInfo.pnpmVersion || "n/a"}
 - Node Path: ${debugInfo.nodePath || "n/a"}
-- Pro User ID: ${userBudget?.redactedUserId || "n/a"}
 - Telemetry ID: ${debugInfo.telemetryId || "n/a"}
 - Model: ${debugInfo.selectedLanguageModel || "n/a"}`;
 }
@@ -273,8 +267,7 @@ export function HelpDialog() {
   const preloadedChatId = useRef<number | null>(null);
   const selectedChatId = useAtomValue(selectedChatIdAtom);
   const { settings } = useSettings();
-  const { userBudget } = useUserBudgetInfo();
-  const isDyadProUser = settings?.providerSettings?.["auto"]?.apiKey?.value;
+  const isDyadProUser = false;
 
   // ---------------------------------------------------------------------------
   // Navigation
@@ -363,7 +356,7 @@ export function HelpDialog() {
 ## Screenshot (recommended)
 <!-- Screenshot of the bug -->
 
-${formatSystemInfoSection(debugInfo, userBudget ?? undefined)}
+${formatSystemInfoSection(debugInfo)}
 
 ## Settings
 ${formatSettingsLines(settings)}
@@ -452,7 +445,6 @@ ${formatLogsSection(debugInfo)}
 
 Session ID: ${sessionId}
 Session Schema: v2.0
-Pro User ID: ${userBudget?.redactedUserId || "n/a"}
 
 ## Issue Description (required)
 <!-- Please describe the issue you're experiencing -->
@@ -463,7 +455,7 @@ Pro User ID: ${userBudget?.redactedUserId || "n/a"}
 ## Actual Behavior (required)
 <!-- What actually happened? -->
 
-${formatSystemInfoSection(debugInfo, userBudget ?? undefined)}
+${formatSystemInfoSection(debugInfo)}
 
 ## Settings
 ${formatSettingsLines(settings)}
@@ -481,7 +473,7 @@ ${formatLogsSection(debugInfo)}
       openGitHubIssue({
         title: "[session report] <add title>",
         labels: ["support"],
-        body: `Session ID: ${sessionId}\nSession Schema: v2.0\nPro User ID: ${userBudget?.redactedUserId || "n/a"}`,
+        body: `Session ID: ${sessionId}\nSession Schema: v2.0`,
         isDyadProUser,
       });
     }
@@ -499,7 +491,7 @@ ${formatLogsSection(debugInfo)}
       skipInitial={!hasNavigated.current}
     >
       <DialogHeader>
-        <DialogTitle>Need help with Dyad?</DialogTitle>
+        <DialogTitle>Need help with CAIDE?</DialogTitle>
       </DialogHeader>
       <DialogDescription>
         If you need help or want to report an issue, here are some options:
@@ -512,8 +504,8 @@ ${formatLogsSection(debugInfo)}
             onClick={() => setIsHelpBotOpen(true)}
             className="w-full py-6 border-primary/50 shadow-sm shadow-primary/10 transition-all hover:shadow-md hover:shadow-primary/15"
           >
-            <SparklesIcon className="mr-2 h-5 w-5" /> Chat with Dyad help bot
-            (Pro)
+            <SparklesIcon className="mr-2 h-5 w-5" /> Chat with the CAIDE help
+            bot
           </Button>
         ) : (
           <Button
@@ -543,7 +535,7 @@ ${formatLogsSection(debugInfo)}
             <div className="flex items-center gap-2">
               <MessageSquareIcon className="h-4 w-4 text-primary" />
               <span className="text-sm font-semibold">
-                AI / Dyad Pro issues
+                AI and provider issues
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -574,7 +566,7 @@ ${formatLogsSection(debugInfo)}
               <span className="text-sm font-semibold">Non-AI issues</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Includes error logs to troubleshoot non-AI issues with Dyad (UI
+              Includes error logs to troubleshoot non-AI issues with CAIDE (UI
               bugs, crashes, setup problems, etc.).
             </p>
             <Button
@@ -647,7 +639,7 @@ ${formatLogsSection(debugInfo)}
           )}
 
           <ReviewDetailsSection title="System Information" mono={false}>
-            <p>Dyad Version: {debugBundle.system.dyadVersion}</p>
+            <p>CAIDE Version: {debugBundle.system.dyadVersion}</p>
             <p>Platform: {debugBundle.system.platform}</p>
             <p>Architecture: {debugBundle.system.architecture}</p>
             <p>

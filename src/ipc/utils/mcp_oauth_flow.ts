@@ -279,7 +279,7 @@ async function startCallbackListener(
             kind: "error",
             title: "Authorization could not be verified",
             message:
-              "The browser's response didn't match the request Dyad started. You can close this window.",
+              "The browser's response didn't match the request CAIDE started. You can close this window.",
           }),
         );
         return;
@@ -290,7 +290,7 @@ async function startCallbackListener(
           renderCallbackPage({
             kind: "success",
             title: "Authorization successful",
-            message: "You can close this tab and return to Dyad.",
+            message: "You can close this tab and return to CAIDE.",
           }),
         );
         settle(() => resolveCode(codeParam));

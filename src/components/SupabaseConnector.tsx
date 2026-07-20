@@ -40,7 +40,6 @@ import connectSupabaseLight from "../../assets/supabase/connect-supabase-light.s
 
 import { ExternalLink, Info, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getErrorMessage } from "@/lib/errors";
 import {
   Tooltip,
   TooltipTrigger,
@@ -74,6 +73,7 @@ export function SupabaseConnector({ appId }: { appId: number }) {
     isSettingAppProject,
     refetchOrganizations,
     refetchProjects,
+    refetchBranches,
     deleteOrganization,
     setAppProject,
     unsetAppProject,
@@ -217,10 +217,21 @@ export function SupabaseConnector({ appId }: { appId: number }) {
                 {t("integrations.supabase.databaseBranch")}
               </Label>
               {branchesError ? (
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertDescription>
-                    {getErrorMessage(branchesError)}
+                <Alert className="flex items-start gap-3">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                  <AlertDescription className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3">
+                    <span>
+                      CAIDE could not refresh branch details. The connected
+                      production database remains available.
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void refetchBranches()}
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" /> Retry
+                    </Button>
                   </AlertDescription>
                 </Alert>
               ) : (

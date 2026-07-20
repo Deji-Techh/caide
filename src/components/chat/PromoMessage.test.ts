@@ -34,31 +34,15 @@ describe("pickPromoMessage", () => {
     expect(pickPromoMessage(42)).toBe(pickPromoMessage(42));
   });
 
-  it("weights Pro promos above community tips", () => {
-    const counts = new Map<string, number>();
-    for (let seed = 0; seed < 3000; seed++) {
-      const message = pickPromoMessage(seed);
-      counts.set(message.id, (counts.get(message.id) ?? 0) + 1);
-    }
-
-    let proCount = 0;
-    let communityCount = 0;
-    for (const message of PROMO_MESSAGES) {
-      const count = counts.get(message.id) ?? 0;
-      expect(count).toBeGreaterThan(0);
-      if (message.target.type === "trial-dialog") {
-        proCount += count;
-      } else {
-        communityCount += count;
-      }
-    }
-    // Pro promos carry 12 of 15 weight → ~80% of impressions.
-    expect(proCount / (proCount + communityCount)).toBeGreaterThan(0.7);
+  it("contains no paid upgrade target", () => {
+    expect(
+      PROMO_MESSAGES.every((message) => message.target.type === "url"),
+    ).toBe(true);
   });
 });
 
 describe("shouldShowPromoMessage", () => {
-  it("shows for a non-Pro user even when the Dyad Pro toggle is enabled", () => {
+  it("never shows a paid promotion", () => {
     const settings = {
       ...settingsWithAutoKey(),
       enableDyadPro: true,
@@ -71,7 +55,7 @@ describe("shouldShowPromoMessage", () => {
         userBudget: null,
         messagesLength: 2,
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("hides when the user has a Pro key or budget", () => {

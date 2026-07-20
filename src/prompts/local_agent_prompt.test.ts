@@ -7,6 +7,19 @@ describe("local_agent_prompt", () => {
     expect(prompt).toMatchSnapshot();
   });
 
+  it("always includes the CAIDE app-only mobile preview contract", () => {
+    for (const prompt of [
+      constructLocalAgentPrompt(undefined),
+      constructLocalAgentPrompt(undefined, undefined, {
+        basicAgentMode: true,
+      }),
+    ]) {
+      expect(prompt).toContain("CAIDE already renders the app inside");
+      expect(prompt).toContain("Never create a fake device");
+      expect(prompt).toContain("390x780");
+    }
+  });
+
   it("agent mode system prompt with code explorer available", () => {
     const prompt = constructLocalAgentPrompt(undefined, undefined, {
       codeExplorerAvailable: true,

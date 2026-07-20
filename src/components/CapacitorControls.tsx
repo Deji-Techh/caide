@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { ipc } from "@/ipc/types";
-import { showSuccess } from "@/lib/toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
+  CheckCircle2,
+  Copy,
+  Hammer,
+  Loader2,
   Smartphone,
   TabletSmartphone,
-  Loader2,
-  ExternalLink,
-  Copy,
 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -17,241 +18,236 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ipc } from "@/ipc/types";
 import { queryKeys } from "@/lib/queryKeys";
+import { showSuccess } from "@/lib/toast";
 
 interface CapacitorControlsProps {
   appId: number;
 }
 
-type CapacitorStatus = "idle" | "syncing" | "opening";
+type NativeAction = "sync" | "ios" | "android";
+
+const actionLabels: Record<NativeAction, string> = {
+  sync: "Building native bundle...",
+  ios: "Syncing and opening Xcode...",
+  android: "Syncing and opening Android Studio...",
+};
 
 export function CapacitorControls({ appId }: CapacitorControlsProps) {
-  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
   const [errorDetails, setErrorDetails] = useState<{
     title: string;
     message: string;
   } | null>(null);
-  const [iosStatus, setIosStatus] = useState<CapacitorStatus>("idle");
-  const [androidStatus, setAndroidStatus] = useState<CapacitorStatus>("idle");
 
-  // Check if Capacitor is installed
-  const { data: isCapacitor, isLoading } = useQuery({
+  const capacitorQuery = useQuery({
     queryKey: queryKeys.appUpgrades.isCapacitor({ appId }),
     queryFn: () => ipc.capacitor.isCapacitor({ appId }),
-    enabled: appId !== undefined && appId !== null,
+  });
+  const upgradesQuery = useQuery({
+    queryKey: queryKeys.appUpgrades.byApp({ appId }),
+    queryFn: () => ipc.upgrade.getAppUpgrades({ appId }),
   });
 
-  const showErrorDialog = (title: string, error: unknown) => {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    setErrorDetails({ title, message: errorMessage });
-    setErrorDialogOpen(true);
-  };
+  const setupMutation = useMutation({
+    mutationFn: () =>
+      ipc.upgrade.executeAppUpgrade({ appId, upgradeId: "capacitor" }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.appUpgrades.isCapacitor({ appId }),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.appUpgrades.byApp({ appId }),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.versions.list({ appId }),
+        }),
+      ]);
+      showSuccess("iOS and Android projects are ready");
+    },
+    onError: (error) => showError("Native setup failed", error),
+  });
 
-  // Sync and open iOS mutation
-  const syncAndOpenIosMutation = useMutation({
-    mutationFn: async () => {
-      setIosStatus("syncing");
-      // First sync
+  const nativeMutation = useMutation({
+    mutationFn: async (action: NativeAction) => {
       await ipc.capacitor.syncCapacitor({ appId });
-      setIosStatus("opening");
-      // Then open iOS
-      await ipc.capacitor.openIos({ appId });
+      if (action === "ios") await ipc.capacitor.openIos({ appId });
+      if (action === "android") await ipc.capacitor.openAndroid({ appId });
     },
-    onSuccess: () => {
-      setIosStatus("idle");
-      showSuccess("Synced and opened iOS project in Xcode");
+    onSuccess: (_, action) => {
+      showSuccess(
+        action === "sync"
+          ? "Native bundle built and synced"
+          : action === "ios"
+            ? "iOS project opened in Xcode"
+            : "Android project opened in Android Studio",
+      );
     },
-    onError: (error) => {
-      setIosStatus("idle");
-      showErrorDialog("Failed to sync and open iOS project", error);
-    },
+    onError: (error, action) =>
+      showError(
+        action === "sync" ? "Native build failed" : "Native project failed",
+        error,
+      ),
   });
 
-  // Sync and open Android mutation
-  const syncAndOpenAndroidMutation = useMutation({
-    mutationFn: async () => {
-      setAndroidStatus("syncing");
-      // First sync
-      await ipc.capacitor.syncCapacitor({ appId });
-      setAndroidStatus("opening");
-      // Then open Android
-      await ipc.capacitor.openAndroid({ appId });
-    },
-    onSuccess: () => {
-      setAndroidStatus("idle");
-      showSuccess("Synced and opened Android project in Android Studio");
-    },
-    onError: (error) => {
-      setAndroidStatus("idle");
-      showErrorDialog("Failed to sync and open Android project", error);
-    },
-  });
-
-  // Helper function to get button text based on status
-  const getIosButtonText = () => {
-    switch (iosStatus) {
-      case "syncing":
-        return { main: "Syncing...", sub: "Building app" };
-      case "opening":
-        return { main: "Opening...", sub: "Launching Xcode" };
-      default:
-        return { main: "Sync & Open iOS", sub: "Xcode" };
-    }
-  };
-
-  const getAndroidButtonText = () => {
-    switch (androidStatus) {
-      case "syncing":
-        return { main: "Syncing...", sub: "Building app" };
-      case "opening":
-        return { main: "Opening...", sub: "Launching Android Studio" };
-      default:
-        return { main: "Sync & Open Android", sub: "Android Studio" };
-    }
-  };
-
-  // Don't render anything if loading or if Capacitor is not installed
-  if (isLoading || !isCapacitor) {
-    return null;
+  function showError(title: string, error: unknown) {
+    setErrorDetails({
+      title,
+      message: error instanceof Error ? error.message : String(error),
+    });
   }
 
-  const iosButtonText = getIosButtonText();
-  const androidButtonText = getAndroidButtonText();
+  const isMac = navigator.platform.toUpperCase().includes("MAC");
+  const capacitorUpgrade = upgradesQuery.data?.find(
+    (upgrade) => upgrade.id === "capacitor",
+  );
+  const loading = capacitorQuery.isLoading || upgradesQuery.isLoading;
+  const queryError = capacitorQuery.error ?? upgradesQuery.error;
 
   return (
     <>
-      <Card className="mt-1" data-testid="capacitor-controls">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            Mobile Development
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                // TODO: Add actual help link
-                ipc.system.openExternalUrl(
-                  "https://dyad.sh/docs/guides/mobile-app#troubleshooting",
-                );
-              }}
-              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1"
-            >
-              Need help?
-              <ExternalLink className="h-3 w-3" />
-            </Button>
-          </CardTitle>
-          <CardDescription>
-            Sync and open your Capacitor mobile projects
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              onClick={() => syncAndOpenIosMutation.mutate()}
-              disabled={syncAndOpenIosMutation.isPending}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2 h-10"
-            >
-              {syncAndOpenIosMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Smartphone className="h-4 w-4" />
-              )}
-              <div className="text-left">
-                <div className="text-xs font-medium">{iosButtonText.main}</div>
-                <div className="text-xs text-gray-500">{iosButtonText.sub}</div>
-              </div>
-            </Button>
-
-            <Button
-              onClick={() => syncAndOpenAndroidMutation.mutate()}
-              disabled={syncAndOpenAndroidMutation.isPending}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2 h-10"
-            >
-              {syncAndOpenAndroidMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <TabletSmartphone className="h-4 w-4" />
-              )}
-              <div className="text-left">
-                <div className="text-xs font-medium">
-                  {androidButtonText.main}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {androidButtonText.sub}
-                </div>
-              </div>
-            </Button>
+      <section
+        className="caide-native-release"
+        data-testid="capacitor-controls"
+      >
+        <div className="caide-native-release-head">
+          <span className="caide-native-release-icon">
+            <Smartphone size={17} />
+          </span>
+          <div>
+            <span>NATIVE RELEASE</span>
+            <h2>iOS and Android</h2>
+            <p>
+              Package the current app with its frontend and backend connections.
+            </p>
           </div>
-        </CardContent>
-      </Card>
+          {!loading && capacitorQuery.data && (
+            <strong className="caide-native-ready">
+              <CheckCircle2 size={13} /> Ready
+            </strong>
+          )}
+        </div>
 
-      {/* Error Dialog */}
-      <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        {loading ? (
+          <div className="caide-native-state">
+            <Loader2 size={16} className="animate-spin" /> Checking native
+            project
+          </div>
+        ) : queryError ? (
+          <div className="caide-native-state is-error">
+            <AlertTriangle size={16} /> {queryError.message}
+          </div>
+        ) : !capacitorQuery.data ? (
+          <div className="caide-native-setup">
+            <div>
+              <strong>Enable native builds</strong>
+              <p>
+                Adds Capacitor, creates both platform projects, and keeps the
+                web preview as the shared app source.
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={() => setupMutation.mutate()}
+              disabled={setupMutation.isPending || !capacitorUpgrade?.isNeeded}
+              data-testid="setup-native-projects"
+            >
+              {setupMutation.isPending ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <Hammer size={15} />
+              )}
+              {setupMutation.isPending ? "Setting up..." : "Set up mobile"}
+            </Button>
+            {!capacitorUpgrade?.isNeeded && (
+              <small>
+                This project type cannot be converted automatically.
+              </small>
+            )}
+          </div>
+        ) : (
+          <div className="caide-native-actions">
+            <button
+              type="button"
+              onClick={() => nativeMutation.mutate("sync")}
+              disabled={nativeMutation.isPending}
+            >
+              <Hammer size={17} />
+              <span>
+                <strong>Build and sync</strong>
+                <small>Compile web assets and update native projects</small>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => nativeMutation.mutate("android")}
+              disabled={nativeMutation.isPending}
+            >
+              <TabletSmartphone size={17} />
+              <span>
+                <strong>Open Android</strong>
+                <small>Build, sync, and launch Android Studio</small>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => nativeMutation.mutate("ios")}
+              disabled={nativeMutation.isPending || !isMac}
+              title={isMac ? undefined : "Xcode requires macOS"}
+            >
+              <Smartphone size={17} />
+              <span>
+                <strong>Open iOS</strong>
+                <small>
+                  {isMac ? "Build, sync, and launch Xcode" : "Requires macOS"}
+                </small>
+              </span>
+            </button>
+          </div>
+        )}
+
+        {nativeMutation.isPending && nativeMutation.variables && (
+          <div className="caide-native-progress" role="status">
+            <Loader2 size={13} className="animate-spin" />
+            {actionLabels[nativeMutation.variables]}
+          </div>
+        )}
+      </section>
+
+      <Dialog
+        open={errorDetails !== null}
+        onOpenChange={(open) => !open && setErrorDetails(null)}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-red-600 dark:text-red-400">
-              {errorDetails?.title}
-            </DialogTitle>
+            <DialogTitle>{errorDetails?.title}</DialogTitle>
             <DialogDescription>
-              An error occurred while running the Capacitor command. See details
-              below:
+              CAIDE could not complete the native operation. The command output
+              is included below.
             </DialogDescription>
           </DialogHeader>
-
           {errorDetails && (
-            <div className="relative">
-              <div className="max-h-[50vh] w-full max-w-md rounded border p-4 bg-gray-50 dark:bg-gray-900 overflow-y-auto">
-                <pre className="text-xs whitespace-pre-wrap font-mono">
-                  {errorDetails.message}
-                </pre>
-              </div>
+            <div className="relative max-h-[50vh] overflow-y-auto rounded border bg-muted p-4">
+              <pre className="whitespace-pre-wrap text-xs">
+                {errorDetails.message}
+              </pre>
               <Button
-                onClick={() => {
-                  navigator.clipboard.writeText(errorDetails.message);
-                  showSuccess("Error details copied to clipboard");
-                }}
+                type="button"
                 variant="ghost"
-                size="sm"
-                className="absolute top-2 right-2 h-8 w-8 p-0"
+                size="icon"
+                className="absolute right-2 top-2"
+                aria-label="Copy error details"
+                onClick={() => {
+                  void navigator.clipboard.writeText(errorDetails.message);
+                  showSuccess("Error details copied");
+                }}
               >
-                <Copy className="h-4 w-4" />
+                <Copy size={14} />
               </Button>
             </div>
           )}
-
-          <div className="flex justify-end gap-2">
-            <Button
-              onClick={() => {
-                if (errorDetails) {
-                  navigator.clipboard.writeText(errorDetails.message);
-                  showSuccess("Error details copied to clipboard");
-                }
-              }}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Copy className="h-4 w-4" />
-              Copy Error
-            </Button>
-            <Button
-              onClick={() => setErrorDialogOpen(false)}
-              variant="outline"
-              size="sm"
-            >
-              Close
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
     </>

@@ -37,7 +37,6 @@ import { showError, showExtraFilesToast, showWarning } from "@/lib/toast";
 import { useSearch } from "@tanstack/react-router";
 import { useRunApp } from "./useRunApp";
 import { useCountTokens } from "./useCountTokens";
-import { useUserBudgetInfo } from "./useUserBudgetInfo";
 import { usePostHog } from "posthog-js/react";
 
 import { useSettings } from "./useSettings";
@@ -97,6 +96,7 @@ function cancelAckTimer(chatId: number): void {
 export function useStreamChat({
   hasChatId = true,
 }: { hasChatId?: boolean } = {}) {
+  const routeSearch = useSearch({ strict: false });
   const setMessagesById = useSetAtom(chatMessagesByIdAtom);
   const isStreamingById = useAtomValue(isStreamingByIdAtom);
   const setIsStreamingById = useSetAtom(isStreamingByIdAtom);
@@ -112,7 +112,6 @@ export function useStreamChat({
   const setStreamCountById = useSetAtom(chatStreamCountByIdAtom);
   const { refreshVersions } = useVersions(selectedAppId);
   const { refreshAppIframe } = useRunApp();
-  const { refetchUserBudget } = useUserBudgetInfo();
   const setPendingScreenshotAppId = useSetAtom(pendingScreenshotAppIdAtom);
   const { settings } = useSettings();
   const setRecentStreamChatIds = useSetAtom(recentStreamChatIdsAtom);
@@ -131,7 +130,9 @@ export function useStreamChat({
   const setPackageManagerWarning = useSetAtom(
     setPackageManagerWarningForAppAtom,
   );
-  let chatId: number | undefined;
+  const routeChatId = (routeSearch as { id?: unknown }).id;
+  const chatId =
+    hasChatId && typeof routeChatId === "number" ? routeChatId : undefined;
 
   const showWarningMessage = useCallback(
     (warningMessage: string, warningAppId: number | null) => {
@@ -161,10 +162,6 @@ export function useStreamChat({
     ],
   );
 
-  if (hasChatId) {
-    const { id } = useSearch({ from: "/chat" });
-    chatId = id;
-  }
   const { invalidateTokenCount } = useCountTokens(chatId ?? null, "");
 
   const streamMessage = useCallback(
@@ -471,8 +468,6 @@ export function useStreamChat({
                   queryKey: ["proposal", chatId],
                 });
 
-                refetchUserBudget();
-
                 // Invalidate free agent quota to update the UI after message
                 queryClient.invalidateQueries({
                   queryKey: queryKeys.freeAgentQuota.status,
@@ -629,7 +624,6 @@ export function useStreamChat({
       setQueuePausedById,
       setStreamingPreviewByChatId,
       selectedAppId,
-      refetchUserBudget,
       settings,
       showWarningMessage,
       queryClient,

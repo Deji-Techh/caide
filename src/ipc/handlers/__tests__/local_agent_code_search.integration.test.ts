@@ -7,7 +7,7 @@
 // the (fake) Dyad Engine /tools/code-search endpoint, and the resulting
 // <dyad-code-search> XML with the relevant files lands in the assistant
 // message — now also asserted as the rendered Code Search tool card in the
-// DOM. code_search requires Dyad Pro and uses the harness fake server via
+// DOM. code_search requires CAIDE Gateway and uses the harness fake server via
 // `engine: true`.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

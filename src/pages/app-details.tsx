@@ -8,9 +8,13 @@ import { ipc } from "@/ipc/types";
 import { useLoadApps } from "@/hooks/useLoadApps";
 import { useChats } from "@/hooks/useChats";
 import { useSelectChat } from "@/hooks/useSelectChat";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
+  ArrowUpRight,
+  CalendarClock,
+  Database,
+  GitBranch,
   MoreVertical,
   MessageCircle,
   Pencil,
@@ -18,6 +22,7 @@ import {
   Folder,
   Star,
   Trash2,
+  Wrench,
 } from "lucide-react";
 import { BackButton } from "@/components/ui/back-button";
 import {
@@ -64,6 +69,16 @@ import { AssignAppsToCollectionDialog } from "@/components/AssignAppsToCollectio
 import { useTranslation } from "react-i18next";
 import { queryKeys } from "@/lib/queryKeys";
 import { useInitialChatMode } from "@/hooks/useInitialChatMode";
+
+function formatProjectTimestamp(value: Date | string | number) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown";
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
 
 function UnavailableIntegrationCard({
   provider,
@@ -150,13 +165,10 @@ export default function AppDetailsPage() {
   const { collections, assignApps } = useAppCollections();
   const [isAssignCollectionDialogOpen, setIsAssignCollectionDialogOpen] =
     useState(false);
-  const currentCollection = useMemo(
-    () =>
-      selectedApp?.collectionId != null
-        ? (collections.find((c) => c.id === selectedApp.collectionId) ?? null)
-        : null,
-    [collections, selectedApp?.collectionId],
-  );
+  const currentCollection =
+    selectedApp?.collectionId != null
+      ? (collections.find((c) => c.id === selectedApp.collectionId) ?? null)
+      : null;
 
   useEffect(() => {
     if (appId) {
@@ -379,58 +391,80 @@ export default function AppDetailsPage() {
   };
 
   return (
-    <div
-      className="relative min-h-screen p-4 w-full"
-      data-testid="app-details-page"
-    >
-      <BackButton label="Back" className="absolute top-4 left-4 mb-0" />
+    <div className="caide-project-details" data-testid="app-details-page">
+      <div className="caide-details-toolbar">
+        <BackButton label="Projects" className="caide-details-back" />
+        <Button
+          onClick={handleOpenInChat}
+          disabled={chatsLoading || isOpeningChat}
+          className="caide-details-toolbar-chat"
+        >
+          {isOpeningChat ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <MessageCircle className="h-4 w-4" />
+          )}
+          Open in Chat
+        </Button>
+      </div>
 
-      <div className="w-full max-w-2xl mx-auto mt-10 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm relative">
-        <div className="flex items-center mb-3">
-          <h2 className="text-2xl font-bold">{selectedApp.name}</h2>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-1 p-0.5 h-auto"
-                  onClick={() => appId && toggleFavorite(appId)}
-                  disabled={isFavoriteLoading}
-                  data-testid="favorite-button"
+      <div className="caide-details-shell">
+        <div className="caide-details-title-row">
+          <div>
+            <span className="caide-details-eyebrow">PROJECT OVERVIEW</span>
+            <h2>{selectedApp.name}</h2>
+            <p>
+              <span className="caide-details-ready-dot" /> Project ready
+              <span className="caide-details-title-divider" /> Updated{" "}
+              {formatProjectTimestamp(selectedApp.updatedAt)}
+            </p>
+          </div>
+          <div className="caide-details-title-actions">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="caide-details-icon-button"
+                    onClick={() => appId && toggleFavorite(appId)}
+                    disabled={isFavoriteLoading}
+                    data-testid="favorite-button"
+                  />
+                }
+              >
+                <Star
+                  className={`h-4 w-4 ${
+                    selectedApp.isFavorite
+                      ? "fill-[#f0b65b] text-[#f0b65b]"
+                      : "text-muted-foreground"
+                  }`}
                 />
-              }
+              </TooltipTrigger>
+              <TooltipContent>
+                {selectedApp.isFavorite
+                  ? "Remove from favorites"
+                  : "Add to favorites"}
+              </TooltipContent>
+            </Tooltip>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="caide-details-icon-button"
+              onClick={handleOpenRenameDialog}
+              data-testid="app-details-rename-app-button"
             >
-              <Star
-                className={`h-4 w-4 ${
-                  selectedApp.isFavorite
-                    ? "fill-[#6c55dc] text-[#6c55dc]"
-                    : "hover:fill-[#6c55dc] hover:text-[#6c55dc]"
-                }`}
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              {selectedApp.isFavorite
-                ? "Remove from favorites"
-                : "Add to favorites"}
-            </TooltipContent>
-          </Tooltip>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-1 p-0.5 h-auto"
-            onClick={handleOpenRenameDialog}
-            data-testid="app-details-rename-app-button"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
 
         {/* Overflow Menu in top right */}
-        <div className="absolute top-2 right-2">
+        <div className="caide-details-overflow">
           <Popover>
             <PopoverTrigger
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-7 w-7 p-0"
+              className="caide-details-more-button"
+              aria-label="Project actions"
               data-testid="app-details-more-options-button"
             >
               <MoreVertical className="h-4 w-4" />
@@ -465,7 +499,7 @@ export default function AppDetailsPage() {
                   onClick={() => setIsDeleteDialogOpen(true)}
                   variant="ghost"
                   size="sm"
-                  className="h-8 justify-start text-xs"
+                  className="h-8 justify-start text-xs text-destructive"
                 >
                   Delete
                 </Button>
@@ -474,84 +508,86 @@ export default function AppDetailsPage() {
           </Popover>
         </div>
 
-        {latestScreenshotUrl && !screenshotLoadFailed && (
-          <button
-            type="button"
-            onClick={handleOpenInChat}
-            disabled={chatsLoading || isOpeningChat}
-            aria-label={`Open ${selectedApp.name} in Chat`}
-            data-testid="app-details-screenshot-open-in-chat"
-            className="group relative mb-4 block aspect-video w-full overflow-hidden rounded-lg border border-border bg-muted cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-60"
-          >
-            <img
-              src={latestScreenshotUrl}
-              alt={`Preview of ${selectedApp?.name ?? "app"}`}
-              onError={() => setScreenshotLoadFailed(true)}
-              className="h-full w-full object-contain transition-transform duration-200 group-hover:scale-[1.02] group-disabled:scale-100"
-            />
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-200 group-hover:bg-black/15 group-hover:opacity-100 group-disabled:opacity-0">
-              <span className="flex items-center gap-2 rounded-md bg-background/95 px-3 py-1.5 text-sm font-medium text-foreground shadow-md">
-                Open in Chat
-                <MessageCircle className="h-4 w-4" />
+        <section className="caide-details-preview-section">
+          <div className="caide-details-section-heading">
+            <div>
+              <span>LIVE SNAPSHOT</span>
+              <h3>Current app</h3>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleOpenInChat}
+              disabled={chatsLoading || isOpeningChat}
+              aria-label="Open snapshot in Chat"
+            >
+              <ArrowUpRight />
+            </Button>
+          </div>
+          {latestScreenshotUrl && !screenshotLoadFailed ? (
+            <button
+              type="button"
+              onClick={handleOpenInChat}
+              disabled={chatsLoading || isOpeningChat}
+              aria-label={`Open ${selectedApp.name} in Chat`}
+              data-testid="app-details-screenshot-open-in-chat"
+              className="caide-details-preview"
+            >
+              <img
+                src={latestScreenshotUrl}
+                alt={`Preview of ${selectedApp.name}`}
+                onError={() => setScreenshotLoadFailed(true)}
+              />
+              <span>
+                Open in Chat <MessageCircle />
               </span>
-            </div>
-          </button>
-        )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleOpenInChat}
+              disabled={chatsLoading || isOpeningChat}
+              className="caide-details-preview-empty"
+            >
+              <MessageCircle />
+              <strong>Open project workspace</strong>
+              <small>The first snapshot appears after the app runs.</small>
+            </button>
+          )}
+        </section>
 
-        <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+        <div className="caide-details-facts">
           <div>
-            <span className="block text-gray-500 dark:text-gray-400 mb-0.5 text-xs">
-              Created
-            </span>
-            <span>{selectedApp.createdAt.toString()}</span>
+            <CalendarClock />
+            <span>Created</span>
+            <strong>{formatProjectTimestamp(selectedApp.createdAt)}</strong>
           </div>
           <div>
-            <span className="block text-gray-500 dark:text-gray-400 mb-0.5 text-xs">
-              Last Updated
-            </span>
-            <span>{selectedApp.updatedAt.toString()}</span>
+            <CalendarClock />
+            <span>Last updated</span>
+            <strong>{formatProjectTimestamp(selectedApp.updatedAt)}</strong>
           </div>
-          <div className="col-span-2">
-            <span className="block text-gray-500 dark:text-gray-400 mb-0.5 text-xs">
-              Path
-            </span>
-            <div className="flex items-center gap-1">
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="ml-[-8px] p-0.5 h-auto cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                      onClick={() => {
-                        ipc.system.showItemInFolder(currentAppPath);
-                      }}
-                    />
-                  }
-                >
-                  <Folder className="h-3.5 w-3.5" />
-                </TooltipTrigger>
-                <TooltipContent>Show in folder</TooltipContent>
-              </Tooltip>
-              <span className="text-sm break-all">{currentAppPath}</span>
-            </div>
+          <div className="caide-details-fact-wide">
+            <Folder />
+            <span>Local path</span>
+            <button
+              type="button"
+              onClick={() => ipc.system.showItemInFolder(currentAppPath)}
+              title="Show in folder"
+            >
+              {currentAppPath} <ArrowUpRight />
+            </button>
           </div>
-          <div className="col-span-2">
-            <span className="block text-gray-500 dark:text-gray-400 mb-0.5 text-xs">
-              Collection
-            </span>
-            <div className="flex items-center gap-1">
-              <Folder className="h-3.5 w-3.5 text-muted-foreground" />
-              <span
-                className="text-sm"
-                data-testid="app-details-collection-name"
-              >
-                {currentCollection?.name ?? "No collection yet"}
+          <div className="caide-details-fact-wide">
+            <Folder />
+            <span>Collection</span>
+            <div className="caide-details-collection">
+              <span data-testid="app-details-collection-name">
+                {currentCollection?.name ?? "No collection"}
               </span>
               <Button
                 variant="ghost"
-                size="sm"
-                className="ml-1 h-auto text-muted-foreground cursor-pointer hover:bg-transparent hover:text-foreground transition-colors"
+                size="icon"
                 onClick={() => setIsAssignCollectionDialogOpen(true)}
                 data-testid="app-details-edit-collection-button"
               >
@@ -564,8 +600,7 @@ export default function AppDetailsPage() {
               {selectedApp.collectionId != null && (
                 <Button
                   variant="ghost"
-                  size="sm"
-                  className="-ml-2 h-auto text-muted-foreground cursor-pointer hover:bg-transparent hover:text-destructive transition-colors"
+                  size="icon"
                   onClick={async () => {
                     try {
                       await assignApps({
@@ -587,68 +622,109 @@ export default function AppDetailsPage() {
             </div>
           </div>
         </div>
-        <div className="mt-4 flex flex-col gap-2">
-          <Button
-            onClick={handleOpenInChat}
-            disabled={chatsLoading || isOpeningChat}
-            className="cursor-pointer w-full py-5 flex justify-center items-center gap-2"
-            size="lg"
-          >
-            Open in Chat
-            <MessageCircle className="h-4 w-4" />
-          </Button>
-          <div className="border border-gray-200 rounded-md p-4">
-            <GitHubConnector appId={appId} folderName={selectedApp.path} />
-            {selectedApp.githubOrg && selectedApp.githubRepo && appId && (
-              <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
-                <GithubCollaboratorManager appId={appId} />
+        <div className="caide-details-operations">
+          <section className="caide-details-operation">
+            <div className="caide-details-section-heading">
+              <div className="caide-details-section-icon">
+                <GitBranch />
               </div>
-            )}
-          </div>
-          {/* When providerFilter is set, show the selected connector only if the other provider isn't already active */}
-          {providerFilter === "supabase" &&
-            appId &&
-            !selectedApp?.neonProjectId && <SupabaseConnector appId={appId} />}
-          {providerFilter === "supabase" &&
-            appId &&
-            selectedApp?.neonProjectId && (
-              <UnavailableIntegrationCard provider="supabase" />
-            )}
-          {providerFilter === "neon" &&
-            appId &&
-            !selectedApp?.supabaseProjectId && <NeonConnector appId={appId} />}
-          {providerFilter === "neon" &&
-            appId &&
-            selectedApp?.supabaseProjectId && (
-              <UnavailableIntegrationCard provider="neon" />
-            )}
-          {/* When no providerFilter, show both with existing mutual exclusion */}
-          {!providerFilter && (
-            <>
-              {appId &&
-                !selectedApp?.neonProjectId &&
-                !selectedApp?.supabaseProjectId && (
-                  <div className="flex items-start gap-2 rounded-md border border-muted bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                    <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                    <span>{t("integrations.mutualExclusion.chooseOne")}</span>
-                  </div>
+              <div>
+                <span>SOURCE CONTROL</span>
+                <h3>GitHub</h3>
+                <p>Back up the project and collaborate from one repository.</p>
+              </div>
+            </div>
+            <div className="caide-details-operation-body">
+              <GitHubConnector appId={appId} folderName={selectedApp.path} />
+              {selectedApp.githubOrg && selectedApp.githubRepo && appId && (
+                <div className="caide-details-collaborators">
+                  <GithubCollaboratorManager appId={appId} />
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="caide-details-operation">
+            <div className="caide-details-section-heading">
+              <div className="caide-details-section-icon is-database">
+                <Database />
+              </div>
+              <div>
+                <span>DATA &amp; AUTH</span>
+                <h3>Database</h3>
+                <p>
+                  Connect one provider for data, authentication, and storage.
+                </p>
+              </div>
+            </div>
+            <div className="caide-details-operation-body caide-details-databases">
+              {/* Only one database provider can be active for an app. */}
+              {providerFilter === "supabase" &&
+                appId &&
+                !selectedApp.neonProjectId && (
+                  <SupabaseConnector appId={appId} />
                 )}
-              {appId && !selectedApp?.neonProjectId && (
-                <SupabaseConnector appId={appId} />
+              {providerFilter === "supabase" &&
+                appId &&
+                selectedApp.neonProjectId && (
+                  <UnavailableIntegrationCard provider="supabase" />
+                )}
+              {providerFilter === "neon" &&
+                appId &&
+                !selectedApp.supabaseProjectId && (
+                  <NeonConnector appId={appId} />
+                )}
+              {providerFilter === "neon" &&
+                appId &&
+                selectedApp.supabaseProjectId && (
+                  <UnavailableIntegrationCard provider="neon" />
+                )}
+              {!providerFilter && (
+                <>
+                  {appId &&
+                    !selectedApp.neonProjectId &&
+                    !selectedApp.supabaseProjectId && (
+                      <div className="caide-details-integration-note">
+                        <Info />
+                        <span>
+                          {t("integrations.mutualExclusion.chooseOne")}
+                        </span>
+                      </div>
+                    )}
+                  {appId && !selectedApp.neonProjectId && (
+                    <SupabaseConnector appId={appId} />
+                  )}
+                  {appId && selectedApp.neonProjectId && (
+                    <UnavailableIntegrationCard provider="supabase" />
+                  )}
+                  {appId && !selectedApp.supabaseProjectId && (
+                    <NeonConnector appId={appId} />
+                  )}
+                  {appId && selectedApp.supabaseProjectId && (
+                    <UnavailableIntegrationCard provider="neon" />
+                  )}
+                </>
               )}
-              {appId && selectedApp?.neonProjectId && (
-                <UnavailableIntegrationCard provider="supabase" />
-              )}
-              {appId && !selectedApp?.supabaseProjectId && (
-                <NeonConnector appId={appId} />
-              )}
-              {appId && selectedApp?.supabaseProjectId && (
-                <UnavailableIntegrationCard provider="neon" />
-              )}
-            </>
-          )}
+            </div>
+          </section>
+
           {appId && <CapacitorControls appId={appId} />}
-          <AppUpgrades appId={appId} />
+
+          <section className="caide-details-operation caide-details-maintenance">
+            <div className="caide-details-section-heading">
+              <div className="caide-details-section-icon is-maintenance">
+                <Wrench />
+              </div>
+              <div>
+                <span>MAINTENANCE</span>
+                <h3>Project capabilities</h3>
+                <p>Keep the project runtime and build tools current.</p>
+              </div>
+            </div>
+            <div className="caide-details-operation-body">
+              <AppUpgrades appId={appId} />
+            </div>
+          </section>
         </div>
 
         {/* Rename Dialog */}

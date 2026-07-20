@@ -34,6 +34,8 @@ export interface RunningAppInfo {
   originalUrl?: string;
   /** Proxy worker dedicated to this running app */
   proxyWorker?: Worker;
+  /** Listen host for the proxy server (default: "localhost") */
+  proxyListenHost?: string;
 }
 
 // Store running app processes

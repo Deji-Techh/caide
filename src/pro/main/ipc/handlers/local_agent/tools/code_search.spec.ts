@@ -119,7 +119,7 @@ describe("codeSearchTool", () => {
   });
 
   describe("isEnabled", () => {
-    it("is enabled for Dyad Pro when the code explorer setting is disabled", () => {
+    it("is enabled for CAIDE Gateway when the code explorer setting is disabled", () => {
       mocks.readSettings.mockReturnValue({ enableCodeExplorer: false });
       mocks.isCodeExplorerReady.mockReturnValue(true);
 

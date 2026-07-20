@@ -331,6 +331,10 @@ export const clearPackageManagerWarningForAppAtom = atom(
   },
 );
 
+// Mobile preview (QR code) state
+export const mobilePreviewEnabledAtom = atom<boolean>(false);
+export const mobilePreviewLanUrlAtom = atom<string | null>(null);
+
 export const clearPreviewRuntimeForAppAtom = atom(
   null,
   (_get, set, appId: number) => {
@@ -374,5 +378,7 @@ export const clearPreviewRuntimeForAppAtom = atom(
       next.delete(appId);
       return next;
     });
+    set(mobilePreviewEnabledAtom, false);
+    set(mobilePreviewLanUrlAtom, null);
   },
 );

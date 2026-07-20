@@ -14,6 +14,7 @@ import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
 import { readFileSync } from "fs";
+import { execSync } from "child_process";
 import { createRequire } from "module";
 
 console.log("AZURE_CODE_SIGNING_DLIB", process.env.AZURE_CODE_SIGNING_DLIB);
@@ -211,21 +212,41 @@ const config: ForgeConfig = {
           },
     ),
     new MakerZIP({}, ["darwin"]),
-    new MakerRpm({
-      options: {
-        mimeType: ["x-scheme-handler/dyad"],
-        icon: "./assets/icon/logo.png",
-      },
-    }),
-    new MakerDeb({
-      options: {
-        mimeType: ["x-scheme-handler/dyad"],
-        icon: "./assets/icon/logo.png",
-      },
-    }),
-    new MakerAppImage({
-      icon: "./assets/icon/logo.png",
-    }),
+    ...(process.platform === "linux"
+      ? (() => {
+          const makers: Array<
+            MakerRpm | MakerDeb | MakerAppImage
+          > = [];
+          try {
+            execSync("which rpmbuild", { stdio: "ignore" });
+            makers.push(
+              new MakerRpm({
+                options: {
+                  mimeType: ["x-scheme-handler/dyad"],
+                  icon: "./assets/icon/logo.png",
+                },
+              }),
+            );
+          } catch {}
+          try {
+            execSync("which dpkg-deb", { stdio: "ignore" });
+            makers.push(
+              new MakerDeb({
+                options: {
+                  mimeType: ["x-scheme-handler/dyad"],
+                  icon: "./assets/icon/logo.png",
+                },
+              }),
+            );
+          } catch {}
+          makers.push(
+            new MakerAppImage({
+              icon: "./assets/icon/logo.png",
+            }),
+          );
+          return makers;
+        })()
+      : []),
   ],
   publishers: [
     {

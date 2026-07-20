@@ -137,19 +137,19 @@ export function ApiKeyConfiguration({
   return (
     <Accordion
       multiple
-      className="w-full space-y-4"
+      className="w-full divide-y divide-border/70 border-y border-border/70"
       defaultValue={defaultAccordionValue}
     >
-      <AccordionItem
-        value="settings-key"
-        className="border rounded-lg px-4 bg-(--background-lightest)"
-      >
-        <AccordionTrigger className="text-lg font-medium hover:no-underline cursor-pointer">
+      <AccordionItem value="settings-key" className="border-0 px-0">
+        <AccordionTrigger className="min-h-12 cursor-pointer py-3 text-sm font-semibold hover:no-underline">
           API Key from Settings
         </AccordionTrigger>
-        <AccordionContent className="pt-4 ">
+        <AccordionContent className="pb-5 pt-1">
           {isValidUserKey && (
-            <Alert variant="default" className="mb-4">
+            <Alert
+              variant="default"
+              className="mb-4 rounded-md border-border/70 bg-transparent"
+            >
               <KeyRound className="h-4 w-4" />
               <AlertTitle className="flex justify-between items-center">
                 <span>Current Key (Settings)</span>
@@ -202,7 +202,7 @@ export function ApiKeyConfiguration({
             >
               {isValidUserKey ? "Update" : "Set"} {providerDisplayName} API Key
             </label>
-            <div className="flex items-start space-x-2">
+            <div className="flex flex-wrap items-start gap-2">
               <Input
                 id="apiKeyInput"
                 value={apiKeyInput}
@@ -296,16 +296,16 @@ export function ApiKeyConfiguration({
       </AccordionItem>
 
       {!isDyad && envVarName && (
-        <AccordionItem
-          value="env-key"
-          className="border rounded-lg px-4 bg-(--background-lightest)"
-        >
-          <AccordionTrigger className="text-lg font-medium hover:no-underline cursor-pointer">
+        <AccordionItem value="env-key" className="border-0 px-0">
+          <AccordionTrigger className="min-h-12 cursor-pointer py-3 text-sm font-semibold hover:no-underline">
             API Key from Environment Variable
           </AccordionTrigger>
-          <AccordionContent className="pt-4">
+          <AccordionContent className="pb-5 pt-1">
             {hasEnvKey ? (
-              <Alert variant="default">
+              <Alert
+                variant="default"
+                className="rounded-md border-border/70 bg-transparent"
+              >
                 <KeyRound className="h-4 w-4" />
                 <AlertTitle>Environment Variable Key ({envVarName})</AlertTitle>
                 <AlertDescription>
@@ -326,7 +326,10 @@ export function ApiKeyConfiguration({
                 </AlertDescription>
               </Alert>
             ) : (
-              <Alert variant="default">
+              <Alert
+                variant="default"
+                className="rounded-md border-border/70 bg-transparent"
+              >
                 <Info className="h-4 w-4" />
                 <AlertTitle>Environment Variable Not Set</AlertTitle>
                 <AlertDescription>

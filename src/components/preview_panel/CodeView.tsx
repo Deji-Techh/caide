@@ -1,5 +1,6 @@
 import { FileEditor } from "./FileEditor";
 import { FileTree } from "./FileTree";
+import { getVisibleCaideSourceFiles } from "./file_visibility";
 import { useEffect, useState } from "react";
 import { useLoadApp } from "@/hooks/useLoadApp";
 import { RefreshCw, Maximize2, Minimize2 } from "lucide-react";
@@ -66,11 +67,12 @@ export const CodeView = ({ loading, app }: CodeViewProps) => {
   }
 
   const isVersionDiffMode = selectedVersionId != null && app.id != null;
+  const visibleFileCount = getVisibleCaideSourceFiles(app.files ?? []).length;
 
   // The version diff view is driven by the selected commit, not the current
   // working-tree files, so it must render even when the checkout has no files
   // (e.g. a deletion-only version or an otherwise empty working tree).
-  if (isVersionDiffMode || (app.files && app.files.length > 0)) {
+  if (isVersionDiffMode || visibleFileCount > 0) {
     return (
       <div
         className={`flex flex-col bg-background ${isFullscreen ? "fixed inset-0 z-50 h-screen w-screen shadow-2xl" : "h-full"}`}
@@ -94,7 +96,7 @@ export const CodeView = ({ loading, app }: CodeViewProps) => {
           <div className="text-sm text-gray-500">
             {isVersionDiffMode
               ? t("preview.viewingVersionChanges")
-              : `${app.files?.length ?? 0} ${t("preview.files")}`}
+              : `${visibleFileCount} ${t("preview.files")}`}
           </div>
           <div className="flex-1" />
           <Tooltip>

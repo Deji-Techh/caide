@@ -617,12 +617,6 @@ Modern dark theme with purple accents for testing.
         };
       }
 
-      if (!settings.enableDyadPro) {
-        throw new Error(
-          "Dyad Pro is required for AI theme generation. Please enable Dyad Pro in Settings.",
-        );
-      }
-
       // Validate inputs - image paths are required
       if (params.imagePaths.length === 0) {
         throw new DyadError(
@@ -771,12 +765,6 @@ Modern theme extracted from website for testing.
         };
       }
 
-      if (!settings.enableDyadPro) {
-        throw new Error(
-          "Dyad Pro is required for AI theme generation. Please enable Dyad Pro in Settings.",
-        );
-      }
-
       // Validate URL format and protocol
       let parsedUrl: URL;
       try {
@@ -841,7 +829,10 @@ Modern theme extracted from website for testing.
       // Get API key for Dyad Engine
       const apiKey = settings.providerSettings?.auto?.apiKey?.value;
       if (!apiKey) {
-        throw new DyadError("Dyad Pro API key is required", DyadErrorKind.Auth);
+        throw new DyadError(
+          "The website capture service is not configured. Add a CAIDE engine key or upload screenshots instead.",
+          DyadErrorKind.Auth,
+        );
       }
 
       // Crawl the website

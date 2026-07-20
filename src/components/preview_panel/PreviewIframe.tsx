@@ -33,10 +33,16 @@ import {
   Trash2,
   Maximize2,
   Minimize2,
+  ScanQrCode,
 } from "lucide-react";
 import { selectedChatIdAtom } from "@/atoms/chatAtoms";
 import { CopyErrorMessage } from "@/components/CopyErrorMessage";
 import { ipc } from "@/ipc/types";
+import QRCode from "qrcode";
+import {
+  mobilePreviewEnabledAtom,
+  mobilePreviewLanUrlAtom,
+} from "@/atoms/previewRuntimeAtoms";
 
 import { useParseRouter } from "@/hooks/useParseRouter";
 import {
@@ -65,6 +71,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Tooltip,
@@ -84,9 +91,7 @@ import {
   formatPreviewNetworkStatus,
 } from "@/lib/preview_console_buffer";
 import { queryKeys } from "@/lib/queryKeys";
-import { AnnotatorOnlyForPro } from "./AnnotatorOnlyForPro";
 import { useAttachments } from "@/hooks/useAttachments";
-import { useUserBudgetInfo } from "@/hooks/useUserBudgetInfo";
 import { Annotator } from "@/pro/ui/components/Annotator/Annotator";
 import { VisualEditingToolbar } from "./VisualEditingToolbar";
 import { resolvePreviewBrowserUrl } from "./previewBrowserUrl";
@@ -134,6 +139,7 @@ const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
       {/* Close button in top left */}
       <button
         onClick={onDismiss}
+        aria-label="Dismiss preview error"
         className="absolute top-1 left-1 p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded"
       >
         <X size={14} className="text-red-500 dark:text-red-400" />
@@ -141,7 +147,7 @@ const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
 
       {(isInternalDyadError || isSyncError) && (
         <div className="absolute top-1 right-1 p-1 bg-red-100 dark:bg-red-900 rounded-md text-xs font-medium text-red-700 dark:text-red-300">
-          {isSyncError ? "Cloud sync issue" : "Internal Dyad error"}
+          {isSyncError ? "Cloud sync issue" : "Internal CAIDE error"}
         </div>
       )}
 
@@ -176,9 +182,9 @@ const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
             {isDockerError
               ? "Make sure Docker Desktop is running and try restarting the app."
               : isSyncError
-                ? "Dyad could not upload your latest local changes to the cloud sandbox. Check your network connection or wait for sync to recover."
+                ? "CAIDE could not upload your latest local changes to the cloud sandbox. Check your network connection or wait for sync to recover."
                 : isInternalDyadError
-                  ? "Try restarting the Dyad app or restarting your computer to see if that fixes the error."
+                  ? "Try restarting CAIDE or restarting your computer to see if that fixes the error."
                   : "Check if restarting the app fixes the error."}
           </span>
         </div>
@@ -205,7 +211,13 @@ const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
 const SCREENSHOT_CAPTURE_DELAY_MS = 3_000;
 
 // Preview iframe component
-export const PreviewIframe = ({ loading }: { loading: boolean }) => {
+export const PreviewIframe = ({
+  loading,
+  showChrome = true,
+}: {
+  loading: boolean;
+  showChrome?: boolean;
+}) => {
   const { t } = useTranslation("home");
   const selectedAppId = useAtomValue(selectedAppIdAtom);
   const { appUrl, originalUrl, mode } = useAtomValue(currentAppUrlAtom);
@@ -232,8 +244,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   } = useParseRouter(selectedAppId);
   const { restartApp, refreshAppIframe } = useRunApp();
   const { settings, updateSettings } = useSettings();
-  const { userBudget } = useUserBudgetInfo();
-  const isProMode = !!userBudget;
+  const isVisualEditingEnabled = true;
   const queryClient = useQueryClient();
 
   // Preserved URL state (persists across HMR-induced remounts)
@@ -306,9 +317,70 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   } | null>(null);
   const pendingAnnotatorScreenshotRequestIdRef = useRef<string | null>(null);
   const captureTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshBootstrapRetryCountRef = useRef(0);
+  const refreshBootstrapTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   // Read the latest selected app inside the capture timeout so the bail-out
   // check compares against the current selection, not a stale render closure.
   const selectedAppIdRef = useRef<number | null>(selectedAppId);
+
+  // Mobile preview (QR code) state
+  const [isMobilePreviewEnabled, setIsMobilePreviewEnabled] = useAtom(
+    mobilePreviewEnabledAtom,
+  );
+  const [mobilePreviewLanUrl, setMobilePreviewLanUrl] = useAtom(
+    mobilePreviewLanUrlAtom,
+  );
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
+  const [isQrPopoverOpen, setIsQrPopoverOpen] = useState(false);
+
+  const toggleMobilePreview = useCallback(async () => {
+    if (selectedAppId === null) return;
+
+    const newEnabled = !isMobilePreviewEnabled;
+    try {
+      const proxyUrl = await ipc.app.setAppMobilePreview({
+        appId: selectedAppId,
+        enabled: newEnabled,
+      });
+
+      if (newEnabled && proxyUrl) {
+        const lanIp = await ipc.system.getNetworkAddress();
+        if (lanIp) {
+          const lanUrl = proxyUrl.replace(/localhost|127\.0\.0\.1/, lanIp);
+          setMobilePreviewLanUrl(lanUrl);
+          const dataUrl = await QRCode.toDataURL(lanUrl, {
+            width: 256,
+            margin: 2,
+            color: { dark: "#000000", light: "#ffffff" },
+          });
+          setQrCodeDataUrl(dataUrl);
+          setIsQrPopoverOpen(true);
+        } else {
+          showError(
+            "Could not detect a local network address. Make sure you are connected to a Wi-Fi or LAN network.",
+          );
+        }
+      } else {
+        setMobilePreviewLanUrl(null);
+        setQrCodeDataUrl(null);
+        setIsQrPopoverOpen(false);
+      }
+      setIsMobilePreviewEnabled(newEnabled);
+    } catch (error) {
+      showError(
+        error instanceof Error
+          ? error.message
+          : "Failed to toggle mobile preview",
+      );
+    }
+  }, [
+    selectedAppId,
+    isMobilePreviewEnabled,
+    setIsMobilePreviewEnabled,
+    setMobilePreviewLanUrl,
+  ]);
   // Track which apps have already had the on-load fallback attempted this
   // session so the check doesn't re-run on every HMR/reload.
   const fallbackAttemptedAppIdsRef = useRef<Set<number>>(new Set());
@@ -338,9 +410,14 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   // guard from a replaced iframe doesn't block future captures.
   useEffect(() => {
     pendingCommitScreenshotRequestRef.current = null;
+    refreshBootstrapRetryCountRef.current = 0;
     if (captureTimeoutRef.current !== null) {
       clearTimeout(captureTimeoutRef.current);
       captureTimeoutRef.current = null;
+    }
+    if (refreshBootstrapTimeoutRef.current !== null) {
+      clearTimeout(refreshBootstrapTimeoutRef.current);
+      refreshBootstrapTimeoutRef.current = null;
     }
   }, [selectedAppId]);
 
@@ -350,6 +427,10 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
       if (captureTimeoutRef.current !== null) {
         clearTimeout(captureTimeoutRef.current);
         captureTimeoutRef.current = null;
+      }
+      if (refreshBootstrapTimeoutRef.current !== null) {
+        clearTimeout(refreshBootstrapTimeoutRef.current);
+        refreshBootstrapTimeoutRef.current = null;
       }
     };
   }, []);
@@ -451,7 +532,9 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   const [currentImageSrc, setCurrentImageSrc] = useState("");
 
   // Device mode state
-  const deviceMode: DeviceMode = settings?.previewDeviceMode ?? "desktop";
+  const deviceMode: DeviceMode = showChrome
+    ? (settings?.previewDeviceMode ?? "desktop")
+    : "desktop";
   const [isDevicePopoverOpen, setIsDevicePopoverOpen] = useState(false);
   const {
     mutateAsync: createCloudSandboxShareLink,
@@ -470,6 +553,10 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
 
   //detect if the user is using Mac
   const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+  const componentSelectorShortcut = useMemo(
+    () => ({ shift: true, ctrl: !isMac, meta: isMac }),
+    [isMac],
+  );
   const isCloudMode = mode === "cloud";
   const isCloudSandboxMode = settings?.runtimeMode2 === "cloud";
   const { mutate: clearSessionData } = useMutation({
@@ -514,11 +601,11 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
           ? cloudSandboxStatus.lastErrorMessage.includes("Dyad stopped")
             ? cloudSandboxStatus.lastErrorMessage
             : cloudSandboxStatus.terminationReason === "credits_exhausted"
-              ? "This cloud sandbox was stopped because your Dyad Pro credits ran out. Add credits and start it again."
-              : "This cloud sandbox was stopped because Dyad could not confirm billing. Please try starting it again."
+              ? "This cloud sandbox stopped because its runtime allowance was exhausted. Switch to the local runtime or start it again."
+              : "This cloud sandbox could not confirm availability. Switch to the local runtime or try starting it again."
           : cloudSandboxStatus.terminationReason === "credits_exhausted"
-            ? "This cloud sandbox was stopped because your Dyad Pro credits ran out. Add credits and start it again."
-            : "This cloud sandbox was stopped because Dyad could not confirm billing. Please try starting it again.",
+            ? "This cloud sandbox stopped because its runtime allowance was exhausted. Switch to the local runtime or start it again."
+            : "This cloud sandbox could not confirm availability. Switch to the local runtime or try starting it again.",
         source: "dyad-app",
       });
     }
@@ -673,17 +760,18 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   // Update iframe ref atom
   useEffect(() => {
     setPreviewIframeRef(iframeRef.current);
-  }, [iframeRef.current, setPreviewIframeRef]);
+    return () => setPreviewIframeRef(null);
+  }, [setPreviewIframeRef]);
 
-  // Send pro mode status to iframe
+  // The combined CAIDE renderer exposes visual editing without a subscription gate.
   useEffect(() => {
     if (iframeRef.current?.contentWindow && isComponentSelectorInitialized) {
       iframeRef.current.contentWindow.postMessage(
-        { type: "dyad-pro-mode", enabled: isProMode },
+        { type: "dyad-pro-mode", enabled: isVisualEditingEnabled },
         "*",
       );
     }
-  }, [isProMode, isComponentSelectorInitialized]);
+  }, [isComponentSelectorInitialized]);
 
   // Restore component overlays in iframe only during queued-message edit restoration.
   // Normal interactive selections are already handled by the iframe's own click handler,
@@ -849,9 +937,10 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
       }
 
       if (event.data?.type === "dyad-component-selector-initialized") {
+        refreshBootstrapRetryCountRef.current = 0;
         setIsComponentSelectorInitialized(true);
         iframeRef.current?.contentWindow?.postMessage(
-          { type: "dyad-pro-mode", enabled: isProMode },
+          { type: "dyad-pro-mode", enabled: isVisualEditingEnabled },
           "*",
         );
 
@@ -916,7 +1005,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
         if (!component) return;
 
         // Store the coordinates
-        if (event.data.coordinates && isProMode) {
+        if (event.data.coordinates && isVisualEditingEnabled) {
           setCurrentComponentCoordinates(event.data.coordinates);
         }
 
@@ -936,7 +1025,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
           return [...prev, component];
         });
 
-        if (isProMode) {
+        if (isVisualEditingEnabled) {
           // Set as the highlighted component for visual editing
           setVisualEditingSelectedComponent(component);
           // Trigger AST analysis
@@ -1101,6 +1190,27 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
         type === "unhandled-rejection" ||
         type === "iframe-sourcemapped-error"
       ) {
+        const rawMessage = payload?.message || payload?.reason || "";
+        const isRefreshBootstrapRace = rawMessage.includes(
+          "$RefreshReg$ is not defined",
+        );
+        if (
+          isRefreshBootstrapRace &&
+          (refreshBootstrapRetryCountRef.current < 3 ||
+            refreshBootstrapTimeoutRef.current !== null)
+        ) {
+          if (refreshBootstrapTimeoutRef.current === null) {
+            refreshBootstrapRetryCountRef.current += 1;
+            console.warn(
+              "Vite refresh initialized out of order; retrying the preview once",
+            );
+            refreshBootstrapTimeoutRef.current = setTimeout(() => {
+              refreshBootstrapTimeoutRef.current = null;
+              setReloadKey((current) => current + 1);
+            }, 500 * refreshBootstrapRetryCountRef.current);
+          }
+          return;
+        }
         const stack =
           type === "iframe-sourcemapped-error"
             ? payload?.stack?.split("\n").slice(0, 1).join("\n")
@@ -1317,7 +1427,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   // Activate component selector using a shortcut
   useShortcut(
     "c",
-    { shift: true, ctrl: !isMac, meta: isMac },
+    componentSelectorShortcut,
     handleActivateComponentSelector,
     isComponentSelectorInitialized,
     iframeRef,
@@ -1598,7 +1708,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   return (
     <div className="flex flex-col h-full">
       {/* Browser-style header - hide when annotator is active */}
-      {!annotatorMode && (
+      {showChrome && !annotatorMode && (
         <PreviewToolbar>
           {/* Browser navigation group */}
           <div className="flex items-center space-x-2 ml-auto">
@@ -1863,6 +1973,82 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
               </TooltipTrigger>
               <TooltipContent>Open in browser</TooltipContent>
             </Tooltip>
+            <Popover
+              open={isQrPopoverOpen}
+              onOpenChange={setIsQrPopoverOpen}
+              modal={false}
+            >
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <PopoverTrigger
+                      data-testid="preview-mobile-preview-button"
+                      aria-label={
+                        isMobilePreviewEnabled
+                          ? "Disable mobile preview"
+                          : "Mobile preview"
+                      }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleMobilePreview();
+                      }}
+                      disabled={
+                        isCloudMode || !originalUrl || selectedAppId === null
+                      }
+                      className={cn(
+                        "flex-shrink-0 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-300 transition-colors",
+                        isMobilePreviewEnabled &&
+                          "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300",
+                      )}
+                    />
+                  }
+                >
+                  <ScanQrCode size={14} />
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isMobilePreviewEnabled
+                    ? "Disable mobile preview"
+                    : "Preview on mobile"}
+                </TooltipContent>
+              </Tooltip>
+              <PopoverContent
+                className="w-72 p-4"
+                align="end"
+                side="bottom"
+                sideOffset={8}
+              >
+                {isMobilePreviewEnabled && qrCodeDataUrl ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Scan to preview on your phone
+                    </p>
+                    <img
+                      src={qrCodeDataUrl}
+                      alt="QR code for mobile preview"
+                      className="w-56 h-56 rounded-lg border border-gray-200 dark:border-gray-700"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center break-all">
+                      {mobilePreviewLanUrl}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+                      Make sure your phone is on the same Wi-Fi network
+                    </p>
+                    <button
+                      onClick={toggleMobilePreview}
+                      className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                    >
+                      Disable mobile preview
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 py-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Enabling mobile preview...
+                    </p>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Right action group - restart, editing tools, panel toggle */}
@@ -2018,7 +2204,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
       )}
 
       <div className="relative flex-grow overflow-hidden">
-        {!loading && (
+        {!loading && showChrome && (
           <ErrorBanner
             error={errorMessage}
             onDismiss={() => setErrorMessage(undefined)}
@@ -2032,11 +2218,20 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
             }}
           />
         )}
-        <PreviewLoadingScreen
-          loading={loading}
-          isAppUrlReady={!!appUrl}
-          hasStartupError={!loading && errorMessage?.source === "dyad-app"}
-        />
+        {showChrome ? (
+          <PreviewLoadingScreen
+            loading={loading}
+            isAppUrlReady={!!appUrl}
+            hasStartupError={!loading && errorMessage?.source === "dyad-app"}
+          />
+        ) : (
+          (loading || !appUrl) && (
+            <div className="caide-device-loading" role="status">
+              <span />
+              <strong>Starting app</strong>
+            </div>
+          )
+        )}
         {!loading && appUrl && (
           <div
             className={cn(
@@ -2053,17 +2248,11 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
                     : { width: `${deviceWidthConfig[deviceMode]}px` }
                 }
               >
-                {userBudget ? (
-                  <Annotator
-                    screenshotUrl={screenshotDataUrl}
-                    onSubmit={addAttachments}
-                    handleAnnotatorClick={handleAnnotatorClick}
-                  />
-                ) : (
-                  <AnnotatorOnlyForPro
-                    onGoBack={() => setAnnotatorMode(false)}
-                  />
-                )}
+                <Annotator
+                  screenshotUrl={screenshotDataUrl}
+                  onSubmit={addAttachments}
+                  handleAnnotatorClick={handleAnnotatorClick}
+                />
               </div>
             ) : (
               <>
@@ -2079,6 +2268,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
                   ref={iframeRef}
                   key={reloadKey}
                   title={`Preview for App ${selectedAppId}`}
+                  scrolling="yes"
                   className="w-full h-full border-none bg-white dark:bg-gray-950"
                   style={
                     deviceMode == "desktop"
@@ -2089,7 +2279,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
                   allow="clipboard-read; clipboard-write; fullscreen; microphone; camera; display-capture; geolocation; autoplay; picture-in-picture"
                 />
                 {/* Visual Editing Toolbar */}
-                {isProMode &&
+                {showChrome &&
                   visualEditingSelectedComponent &&
                   selectedAppId && (
                     <VisualEditingToolbar

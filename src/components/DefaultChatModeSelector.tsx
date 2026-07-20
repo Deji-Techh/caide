@@ -1,5 +1,5 @@
-import { useSettings } from "@/hooks/useSettings";
-import { useFreeAgentQuota } from "@/hooks/useFreeAgentQuota";
+import { useTranslation } from "react-i18next";
+
 import {
   Select,
   SelectContent,
@@ -7,70 +7,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSettings } from "@/hooks/useSettings";
 import type { ChatMode } from "@/lib/schemas";
-import { isDyadProEnabled, getEffectiveDefaultChatMode } from "@/lib/schemas";
-import { useTranslation } from "react-i18next";
-import { useEffect } from "react";
-import {
-  FREE_PRO_MODEL_FALLBACK_CHAT_MODE,
-  isFreeProBuildModeCombination,
-  isFreeProModel,
-} from "@/lib/freeProModel";
+
+const modeNames: Record<ChatMode, string> = {
+  "local-agent": "Agent",
+  build: "Build",
+  ask: "Ask",
+  plan: "Plan",
+};
 
 export function DefaultChatModeSelector() {
-  const { settings, updateSettings, envVars } = useSettings();
-  const { isQuotaExceeded, isLoading: isQuotaLoading } = useFreeAgentQuota();
+  const { settings, updateSettings } = useSettings();
   const { t } = useTranslation("settings");
+  if (!settings) return null;
 
-  useEffect(() => {
-    if (
-      settings &&
-      isFreeProBuildModeCombination(
-        settings.selectedModel,
-        settings.defaultChatMode,
-      )
-    ) {
-      updateSettings({ defaultChatMode: FREE_PRO_MODEL_FALLBACK_CHAT_MODE });
-    }
-  }, [settings, updateSettings]);
-
-  if (!settings) {
-    return null;
-  }
-
-  const isProEnabled = isDyadProEnabled(settings);
-  const isDyadFreeSelected = isFreeProModel(settings.selectedModel);
-  // Wait for quota status to load before determining effective default
-  const freeAgentQuotaAvailable = !isQuotaLoading && !isQuotaExceeded;
-  const effectiveDefault = getEffectiveDefaultChatMode(
-    settings,
-    envVars,
-    freeAgentQuotaAvailable,
-  );
-  // Show Basic Agent option if user is Pro OR if they have free quota available
-  const showBasicAgentOption = isProEnabled || freeAgentQuotaAvailable;
-
-  const handleDefaultChatModeChange = (value: ChatMode) => {
-    if (isFreeProBuildModeCombination(settings.selectedModel, value)) {
-      return;
-    }
-    updateSettings({ defaultChatMode: value });
-  };
-
-  const getModeDisplayName = (mode: ChatMode) => {
-    switch (mode) {
-      case "build":
-        return "Build";
-      case "local-agent":
-        return isProEnabled ? "Agent" : "Basic Agent";
-      case "ask":
-        return "Ask";
-      case "plan":
-        return "Plan";
-      default:
-        throw new Error(`Unknown chat mode: ${mode}`);
-    }
-  };
+  const mode = settings.defaultChatMode ?? settings.selectedChatMode ?? "build";
 
   return (
     <div className="space-y-1">
@@ -82,37 +34,19 @@ export function DefaultChatModeSelector() {
           {t("workflow.defaultChatMode")}
         </label>
         <Select
-          value={effectiveDefault}
-          onValueChange={(v) => v && handleDefaultChatModeChange(v)}
+          value={mode}
+          onValueChange={(value) =>
+            value && updateSettings({ defaultChatMode: value })
+          }
         >
           <SelectTrigger className="w-40" id="default-chat-mode">
-            <SelectValue>{getModeDisplayName(effectiveDefault)}</SelectValue>
+            <SelectValue>{modeNames[mode]}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {showBasicAgentOption && (
-              <SelectItem value="local-agent">
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">
-                    {isProEnabled ? "Agent" : "Basic Agent"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {isProEnabled
-                      ? "Better at bigger tasks"
-                      : "Free tier (10 messages/day)"}
-                  </span>
-                </div>
-              </SelectItem>
-            )}
-            <SelectItem value="build" disabled={isDyadFreeSelected}>
-              <div className="flex flex-col items-start">
-                <span className="font-medium">Build</span>
-                <span className="text-xs text-muted-foreground">
-                  {isDyadFreeSelected
-                    ? "Use Agent with Dyad Free"
-                    : "Generate and edit code"}
-                </span>
-              </div>
-            </SelectItem>
+            <SelectItem value="local-agent">Agent</SelectItem>
+            <SelectItem value="build">Build</SelectItem>
+            <SelectItem value="plan">Plan</SelectItem>
+            <SelectItem value="ask">Ask</SelectItem>
           </SelectContent>
         </Select>
       </div>

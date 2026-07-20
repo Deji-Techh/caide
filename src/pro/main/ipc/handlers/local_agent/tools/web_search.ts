@@ -169,7 +169,7 @@ export const webSearchTool: ToolDefinition<z.infer<typeof webSearchSchema>> = {
   defaultConsent: "ask",
   usesEngineEndpoint: true,
 
-  // Requires Dyad Pro engine API
+  // Requires CAIDE Gateway engine API
   isEnabled: (ctx) => ctx.isDyadPro,
 
   getConsentPreview: (args) => `Search the web: "${args.query}"`,

@@ -40,8 +40,8 @@ describe("exploreCodeTool", () => {
     );
   });
 
-  it("is treated as engine-backed so Dyad Free model turns filter it out", () => {
-    expect(exploreCodeTool.usesEngineEndpoint).toBe(true);
+  it("is available independently of hosted engine tools", () => {
+    expect(exploreCodeTool.usesEngineEndpoint).toBe(false);
   });
 
   it("runs the sub-agent on every call (no report cache)", async () => {

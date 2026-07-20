@@ -86,7 +86,7 @@ const DebugSettingsSchema = z.object({
   defaultChatMode: z.string().nullable(),
   /** Whether changes are auto-approved without review */
   autoApproveChanges: z.boolean().nullable(),
-  /** Whether Dyad Pro is enabled */
+  /** Whether CAIDE Gateway is enabled */
   enableDyadPro: z.boolean().nullable(),
   /** Thinking budget level: "low" | "medium" | "high" */
   thinkingBudget: z.string().nullable(),
@@ -110,9 +110,9 @@ const DebugSettingsSchema = z.object({
   enableProLazyEditsMode: z.boolean().nullable(),
   /** Turbo edits mode variant: "off" | "v1" | "v2" */
   proLazyEditsMode: z.string().nullable(),
-  /** Whether smart files context mode is enabled (Pro) */
+  /** Whether smart files context mode is enabled */
   enableProSmartFilesContextMode: z.boolean().nullable(),
-  /** Whether web search is enabled (Pro) */
+  /** Whether hosted web search is enabled */
   enableProWebSearch: z.boolean().nullable(),
   /** Smart context option: "balanced" | "conservative" | "deep" */
   proSmartContextOption: z.string().nullable(),

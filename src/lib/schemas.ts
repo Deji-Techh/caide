@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isNonGoogleProviderSetup } from "./providerUtils";
+import { isNonGoogleProviderSetup, isProviderSetup } from "./providerUtils";
 
 export const SecretSchema = z.object({
   value: z.string(),
@@ -61,6 +61,8 @@ export type AppSearchResult = z.infer<typeof AppSearchResultSchema>;
 export const AppSearchResultsSchema = z.array(AppSearchResultSchema);
 
 const providers = [
+  "chatgpt",
+  "deepseek",
   "openai",
   "anthropic",
   "google",
@@ -351,6 +353,8 @@ const BaseUserSettingsFields = {
   zoomLevel: ZoomLevelSchema.optional(),
   language: LanguageSchema.optional(),
   previewDeviceMode: DeviceModeSchema.optional(),
+  previewDevicePreset: z.string().optional(),
+  previewOrientation: z.enum(["portrait", "landscape"]).optional(),
 
   enableAutoFixProblems: z.boolean().optional(),
   enableAppBlueprint: z.boolean().optional(),
@@ -484,56 +488,27 @@ export function shouldShowPnpmMinimumReleaseAgeWarning(
   );
 }
 
-/**
- * Gets the effective default chat mode based on settings, pro status, and free quota availability.
- * - If defaultChatMode is set and valid for the user's Pro status, use it
- * - If defaultChatMode is "local-agent" but user doesn't have Pro:
- *   - If free agent quota available AND a non-Google provider is set up, use "local-agent" (basic agent mode)
- *   - Otherwise, fall back to "build"
- * - If defaultChatMode is NOT set:
- *   - Pro users: use "local-agent"
- *   - Non-Pro users with quota AND a non-Google provider set up: use "local-agent" (basic agent mode)
- *   - Non-Pro users without quota or provider: use "build"
- */
+/** Uses the configured default, or selects Agent whenever a model provider is ready. */
 export function getEffectiveDefaultChatMode(
   settings: UserSettings,
   envVars: Record<string, string | undefined>,
   freeAgentQuotaAvailable?: boolean,
 ): ChatMode {
-  const isPro = isDyadProEnabled(settings);
-  // If user only has a Google/Gemini API key, we don't default to local-agent because
-  // most likely it's a free API key with stringent limits and they'll get
-  // a bad experience with local-agent.
-  const hasNonGoogleProviderSetup = isNonGoogleProviderSetup(settings, envVars);
-
-  if (settings.defaultChatMode) {
-    // "local-agent" requires either Pro OR (available free quota AND provider setup)
-    if (settings.defaultChatMode === "local-agent") {
-      if (isPro) return "local-agent";
-      if (freeAgentQuotaAvailable && hasNonGoogleProviderSetup)
-        return "local-agent";
-      return "build";
-    }
-    return settings.defaultChatMode;
-  }
-
-  // No explicit default set
-  if (isPro) return "local-agent";
-  if (freeAgentQuotaAvailable && hasNonGoogleProviderSetup)
-    return "local-agent";
-  return "build";
+  void freeAgentQuotaAvailable;
+  if (settings.defaultChatMode) return settings.defaultChatMode;
+  const providerOptions = { settings, envVars };
+  const hasProvider =
+    isNonGoogleProviderSetup(settings, envVars) ||
+    isProviderSetup("google", providerOptions) ||
+    isProviderSetup("auto", providerOptions) ||
+    settings.selectedModel.provider === "chatgpt";
+  return hasProvider ? "local-agent" : "build";
 }
 
-/**
- * Determines if the current session is using Basic Agent mode (free tier with quota).
- * Basic Agent mode is when:
- * - User is NOT a Pro subscriber
- * - User is using local-agent chat mode
- */
+/** Legacy compatibility hook. CAIDE no longer limits Agent mode by subscription. */
 export function isBasicAgentMode(settings: UserSettings): boolean {
-  return (
-    !isDyadProEnabled(settings) && settings.selectedChatMode === "local-agent"
-  );
+  void settings;
+  return false;
 }
 
 export function isSupabaseConnected(settings: UserSettings | null): boolean {
@@ -549,7 +524,6 @@ export function isSupabaseConnected(settings: UserSettings | null): boolean {
 
 export function isTurboEditsV2Enabled(settings: UserSettings): boolean {
   return Boolean(
-    isDyadProEnabled(settings) &&
     settings.enableProLazyEditsMode === true &&
     settings.proLazyEditsMode === "v2",
   );

@@ -21,7 +21,6 @@ import { ChatHeader } from "./chat/ChatHeader";
 import { MessagesList } from "./chat/MessagesList";
 import { ChatInput } from "./chat/ChatInput";
 import { VersionPane } from "./chat/VersionPane";
-import { FreeAgentQuotaBanner } from "./chat/FreeAgentQuotaBanner";
 import { NotificationBanner } from "./chat/NotificationBanner";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,9 +30,6 @@ import {
 } from "@/components/ui/tooltip";
 import { ArrowDown } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
-import { useFreeAgentQuota } from "@/hooks/useFreeAgentQuota";
-import { useChatMode } from "@/hooks/useChatMode";
-import { isDyadProEnabled } from "@/lib/schemas";
 import { terminalOpenByChatIdAtom } from "@/atoms/terminalAtoms";
 import { selectedAppIdAtom } from "@/atoms/appAtoms";
 import { useReducedMotionPref } from "@/hooks/useReducedMotion";
@@ -45,12 +41,14 @@ interface ChatPanelProps {
   chatId?: number;
   isPreviewOpen: boolean;
   onTogglePreview: () => void;
+  compact?: boolean;
 }
 
 export function ChatPanel({
   chatId,
   isPreviewOpen,
   onTogglePreview,
+  compact = false,
 }: ChatPanelProps) {
   const { t } = useTranslation("chat");
   const messagesById = useAtomValue(chatMessagesByIdAtom);
@@ -69,13 +67,6 @@ export function ChatPanel({
   const isStreamingById = useAtomValue(isStreamingByIdAtom);
   const store = useStore();
   const { settings } = useSettings();
-  const { selectedMode, setChatMode } = useChatMode(chatId);
-  const { isQuotaExceeded } = useFreeAgentQuota();
-  const showFreeAgentQuotaBanner =
-    settings &&
-    !isDyadProEnabled(settings) &&
-    selectedMode === "local-agent" &&
-    isQuotaExceeded;
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -289,7 +280,10 @@ export function ChatPanel({
   const showTerminalDrawer = isTerminalOpen && chatId && !isVersionPaneOpen;
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden">
+    <div
+      className="caide-chat-panel relative flex h-full min-w-0 flex-col overflow-hidden"
+      data-testid="chat-panel"
+    >
       <ChatHeader
         isVersionPaneOpen={isVersionPaneOpen}
         isPreviewOpen={isPreviewOpen}
@@ -319,6 +313,7 @@ export function ChatPanel({
                       messagesEndRef={messagesEndRef}
                       ref={messagesContainerRef}
                       onAtBottomChange={handleAtBottomChange}
+                      disableVirtualization={compact}
                     />
 
                     {/* Scroll to bottom button */}
@@ -342,13 +337,6 @@ export function ChatPanel({
                       </div>
                     )}
                   </div>
-                  {showFreeAgentQuotaBanner && (
-                    <FreeAgentQuotaBanner
-                      onSwitchToBuildMode={() =>
-                        void setChatMode("build").catch(() => {})
-                      }
-                    />
-                  )}
                   <NotificationBanner />
                   <ChatInput chatId={chatId} />
                 </motion.div>

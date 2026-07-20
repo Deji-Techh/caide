@@ -725,14 +725,18 @@ export async function listSupabaseBranches({
   );
 
   if (response.status === 403) {
-    // 403 Forbidden means the user doesn't have access to branches (e.g., free tier)
     logger.info(
-      `Branches not available for project ${supabaseProjectId} (403 Forbidden - likely free tier)`,
+      `Branch listing is unavailable for ${supabaseProjectId}; using the production project`,
     );
-    throw new DyadError(
-      "Branches are only supported for Supabase paid customers",
-      DyadErrorKind.Precondition,
-    );
+    return [
+      {
+        id: `production-${supabaseProjectId}`,
+        name: "Production",
+        is_default: true,
+        project_ref: supabaseProjectId,
+        parent_project_ref: supabaseProjectId,
+      },
+    ];
   }
 
   if (response.status !== 200) {
@@ -741,7 +745,17 @@ export async function listSupabaseBranches({
 
   logger.info(`Listed Supabase branches for project: ${supabaseProjectId}`);
   const jsonResponse: SupabaseProjectBranch[] = await response.json();
-  return jsonResponse;
+  return jsonResponse.length
+    ? jsonResponse
+    : [
+        {
+          id: `production-${supabaseProjectId}`,
+          name: "Production",
+          is_default: true,
+          project_ref: supabaseProjectId,
+          parent_project_ref: supabaseProjectId,
+        },
+      ];
 }
 
 // ─────────────────────────────────────────────────────────────────────

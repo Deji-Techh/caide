@@ -254,7 +254,7 @@ export async function ensureGitLineEndingPolicy({
     try {
       await fsPromises.writeFile(
         gitattributesPath,
-        "# Normalize text files to LF so Dyad commits are stable across platforms.\n* text=auto eol=lf\n",
+        "# Normalize text files to LF so CAIDE commits are stable across platforms.\n* text=auto eol=lf\n",
         { flag: "wx" },
       );
       logger.debug(`Created default .gitattributes in ${path}`);

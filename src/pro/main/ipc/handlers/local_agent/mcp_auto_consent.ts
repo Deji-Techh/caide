@@ -2,7 +2,7 @@ import { streamText } from "ai";
 import { z } from "zod";
 import log from "electron-log";
 import { getModelClient } from "@/ipc/utils/get_model_client";
-import type { LargeLanguageModel, UserSettings } from "@/lib/schemas";
+import type { UserSettings } from "@/lib/schemas";
 import { buildMcpConsentSystemPrompt } from "@/prompts/mcp_consent_policy";
 import type { McpAutoApproveResult } from "@/ipc/utils/mcp_consent";
 import { fastTextOutput } from "@/ipc/utils/stream_text_utils";
@@ -13,14 +13,6 @@ import {
 } from "./mcp_consent_context";
 
 const logger = log.scope("mcp-auto-consent");
-
-// Fixed, cheap classifier model routed through the Dyad Pro engine gateway.
-// Mirrors SUBAGENT_MODEL in explore_code_subagent.ts (same subsystem). Swap here
-// only; a mid-size model is deliberate for a security judgment, not the smallest.
-const MCP_CONSENT_MODEL: LargeLanguageModel = {
-  name: "gpt-5.4-mini",
-  provider: "openai",
-};
 
 const CLASSIFIER_TIMEOUT_MS = 8000;
 
@@ -95,7 +87,7 @@ export async function classifyMcpToolConsent(
   });
   try {
     const { modelClient } = await getModelClient(
-      MCP_CONSENT_MODEL,
+      input.settings.selectedModel,
       input.settings,
     );
 
@@ -152,11 +144,7 @@ export function buildMcpAutoApprove(params: {
   inputSchema?: unknown;
   args: unknown;
 }): (() => Promise<McpAutoApproveResult>) | undefined {
-  if (
-    !params.settings.autoApproveSafeMcpTools ||
-    !params.isDyadPro ||
-    params.freeModelMode
-  ) {
+  if (!params.settings.autoApproveSafeMcpTools || params.freeModelMode) {
     return undefined;
   }
   return async () => {

@@ -212,7 +212,10 @@ export function ChatHeader({
       )}
 
       {/* Why is this pt-0.5? Because the loading bar is h-1 (it always takes space) and we want the vertical spacing to be consistent.*/}
-      <div className="@container flex items-center justify-between pb-1.5 pt-0.5">
+      <div
+        className="caide-chat-header @container flex items-center justify-between pb-1.5 pt-0.5"
+        data-testid="chat-header"
+      >
         <div className="flex items-center space-x-2">
           <Button
             onClick={handleNewChat}
@@ -264,8 +267,10 @@ export function ChatHeader({
             </Tooltip>
           </TooltipProvider>
           <button
+            type="button"
             data-testid="toggle-preview-panel-button"
             onClick={onTogglePreview}
+            aria-label={isPreviewOpen ? "Hide preview" : "Show preview"}
             className="cursor-pointer p-2 hover:bg-(--background-lightest) rounded-md"
           >
             {isPreviewOpen ? (

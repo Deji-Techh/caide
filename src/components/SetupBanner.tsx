@@ -5,6 +5,7 @@ import {
   CircleCheck,
   ChevronRight,
   GiftIcon,
+  KeyRound,
   Play,
   Settings,
 } from "lucide-react";
@@ -15,18 +16,14 @@ import { SECTION_IDS } from "@/lib/settingsSearchIndex";
 import SetupProviderCard from "@/components/SetupProviderCard";
 
 import { ipc } from "@/ipc/types";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { usePostHog } from "posthog-js/react";
 import { useLanguageModelProviders } from "@/hooks/useLanguageModelProviders";
 import { useScrollAndNavigateTo } from "@/hooks/useScrollAndNavigateTo";
 // @ts-ignore
-import logo from "../../assets/logo.svg";
-// @ts-ignore
 import googleIcon from "../../assets/ai-logos/google-g-icon.svg";
 // @ts-ignore
 import openrouterLogo from "../../assets/ai-logos/openrouter-logo.png";
-import { SetupDyadProButton } from "./ProBanner";
 
 export function SetupBanner({
   variant = "inline",
@@ -62,13 +59,6 @@ export function SetupBanner({
       params: { provider: "openrouter" },
     });
   };
-  const handleDyadProSetupClick = () => {
-    posthog.capture("setup-flow:ai-provider-setup:dyad:click");
-    ipc.system.openExternalUrl(
-      "https://academy.dyad.sh/redirect-to-checkout?trialCode=7PRO30&utm_source=dyad-app&utm_medium=app&utm_campaign=setup-dialog-v2",
-    );
-  };
-
   const handleOtherProvidersClick = () => {
     posthog.capture("setup-flow:ai-provider-setup:other:click");
     settingsScrollAndNavigateTo(SECTION_IDS.providers);
@@ -120,38 +110,32 @@ export function SetupBanner({
           ) : (
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {hasProviderSetup
-                ? "Change how Dyad accesses AI."
-                : "Dyad uses AI to build your app."}
+                ? "Change how CAIDE accesses AI."
+                : "Connect a model provider to build with CAIDE."}
             </p>
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={handleDyadProSetupClick}
-          className="mt-5 flex w-full cursor-pointer items-center justify-between gap-4 rounded-lg border border-primary/45 bg-primary/8 p-4 text-left transition-colors hover:bg-primary/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:bg-primary/15 dark:hover:bg-primary/20"
-        >
+        <div className="mt-5 flex w-full items-center justify-between gap-4 rounded-lg border border-border bg-muted/25 p-4 text-left">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10">
-              <img src={logo} alt="Dyad Logo" className="size-6" />
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <KeyRound className="size-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-lg font-semibold text-primary">
-                Start free Dyad Pro trial
+              <h3 className="text-lg font-semibold text-foreground">
+                All CAIDE tools are unlocked
               </h3>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                No API keys. Access leading models instantly.
+                Add your own provider key. CAIDE has no subscription or paid
+                feature tier.
               </p>
             </div>
           </div>
-          <Button as="span" size="sm" className="shrink-0">
-            Start
-          </Button>
-        </button>
+        </div>
 
         <div className="mt-4">
           <p className="mb-2 text-sm font-medium text-muted-foreground">
-            Or use your own API key
+            Choose a provider
           </p>
           <div className="grid gap-2 sm:grid-cols-3">
             <ProviderOptionButton
@@ -180,8 +164,7 @@ export function SetupBanner({
           </div>
         </div>
 
-        <div className="mt-4 flex w-full flex-col items-center justify-around gap-2 text-xs sm:flex-row">
-          <SetupDyadProButton />
+        <div className="mt-4 flex w-full justify-center text-xs">
           <button
             type="button"
             onClick={() => {

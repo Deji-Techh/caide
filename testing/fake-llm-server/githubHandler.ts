@@ -423,7 +423,12 @@ export function handleRepoCollaborators(req: Request, res: Response) {
   }
 
   if (req.method === "PUT") {
-    const username = req.params.username;
+    const username = Array.isArray(req.params.username)
+      ? req.params.username[0]
+      : req.params.username;
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
     const collaborators = repoCollaborators[repoName] || [];
     const existing = collaborators.find((c) => c.login === username);
     if (!existing) {

@@ -1,6 +1,5 @@
 import {
   getEffectiveDefaultChatMode,
-  isDyadProEnabled,
   migrateStoredChatMode,
   StoredChatModeSchema,
   type ChatMode,
@@ -42,14 +41,8 @@ export function getUnavailableChatModeReason({
     return undefined;
   }
 
-  if (isDyadProEnabled(settings)) {
-    return undefined;
-  }
-
-  if (freeAgentQuotaAvailable === false) {
-    return "quota-exhausted";
-  }
-
+  void settings;
+  void freeAgentQuotaAvailable;
   return undefined;
 }
 

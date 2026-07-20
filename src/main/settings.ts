@@ -55,7 +55,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   enableProLazyEditsMode: true,
   enableProSmartFilesContextMode: true,
   selectedChatMode: "build",
-  enableAutoFixProblems: false,
+  enableAutoFixProblems: true,
   enableAppBlueprint: true,
   enableAutoUpdate: true,
   releaseChannel: "stable",
@@ -962,7 +962,7 @@ function readSettingsForWrite(filePath: string): {
     logger.error("Existing settings file is unreadable:", error);
     notifyRendererError({
       message:
-        "Dyad could not read your existing settings file, so it fell back to default settings.",
+        "CAIDE could not read your existing settings file, so it fell back to default settings.",
       action: {
         label: "Read restore docs",
         url: RESTORE_SETTINGS_DOCS_URL,

@@ -130,10 +130,10 @@ describe("local-agent default request (integration)", () => {
       typeof systemMessage.content === "string"
         ? systemMessage.content
         : systemMessage.content.map((c: { text: string }) => c.text).join("");
-    // Shared role block (create/modify web apps) — distinguishes agent mode from
+    // Shared role block (create/modify mobile apps) distinguishes agent mode from
     // the ask-mode "helps users understand" role.
     expect(systemText).toContain(
-      "You are Dyad, an AI assistant that creates and modifies web applications.",
+      "You are CAIDE, an AI assistant that creates and modifies production mobile applications.",
     );
     // Pro-only file-editing guidance (basic mode uses a shorter table).
     expect(systemText).toContain(

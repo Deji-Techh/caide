@@ -11,9 +11,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Try to get the saved theme from localStorage
     const savedTheme = localStorage.getItem("theme") as Theme;
-    return savedTheme || "system";
+    // CAIDE exposes two deliberate visual modes. Older "system" preferences
+    // migrate to the neutral grey workspace instead of changing unexpectedly.
+    return savedTheme === "light" ? "light" : "dark";
   });
 
   useEffect(() => {

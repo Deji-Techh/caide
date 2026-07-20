@@ -193,12 +193,12 @@ function scheduleManagedPnpmInstall(currentPnpmVersion: string | null): void {
     return;
   }
   if (managedPnpmInstallPromise) {
-    logger.info("Dyad-managed pnpm install is already in progress.");
+    logger.info("CAIDE-managed pnpm install is already in progress.");
     return;
   }
   if (managedPnpmImplicitInstallFailed) {
     logger.info(
-      "Skipping implicit Dyad-managed pnpm install because it already failed this session.",
+      "Skipping implicit CAIDE-managed pnpm install because it already failed this session.",
     );
     return;
   }
@@ -209,7 +209,7 @@ function scheduleManagedPnpmInstall(currentPnpmVersion: string | null): void {
     );
   } else {
     logger.info(
-      "pnpm not found; installing Dyad-managed pnpm in the background.",
+      "pnpm not found; installing CAIDE-managed pnpm in the background.",
     );
   }
 

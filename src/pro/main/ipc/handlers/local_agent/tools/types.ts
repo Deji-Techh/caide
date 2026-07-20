@@ -71,8 +71,8 @@ export interface AgentContext {
   /** Tracks file edit tool usage per file for telemetry */
   fileEditTracker: FileEditTracker;
   /**
-   * If true, the user has Dyad Pro enabled.
-   * Engine-dependent tools require this to access the Dyad Pro API.
+   * If true, the user has CAIDE Gateway enabled.
+   * Engine-dependent tools require this to access the CAIDE Gateway API.
    */
   isDyadPro: boolean;
   /**

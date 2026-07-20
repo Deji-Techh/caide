@@ -10,8 +10,6 @@ import {
   fastTextOutput,
 } from "@/ipc/utils/stream_text_utils";
 import { getMaxTokens, getTemperature } from "@/ipc/utils/token_utils";
-import type { UserSettings } from "@/lib/schemas";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
 import { grepTool } from "./grep";
 import { listFilesTool } from "./list_files";
 import { readFileTool } from "./read_file";
@@ -60,7 +58,6 @@ import { formatExploreProgressLog } from "./explore_code_subagent_progress";
 
 const logger = log.scope("explore_code_subagent");
 
-const SUBAGENT_MODEL = { provider: "openai", name: "gpt-5.4-mini" } as const;
 // Max model turns in the agent loop. Each step may issue several parallel tool
 // calls, so this is distinct from the read-only tool-call budget below.
 const SUBAGENT_MAX_STEPS = 12;
@@ -93,14 +90,13 @@ export async function runExploreCodeSubagent({
   onProgress?: (progressText: string) => void;
 }): Promise<string> {
   const settings = readSettings();
-  assertDyadValueAvailable(settings);
-
-  const modelInfo = await getModelClient(SUBAGENT_MODEL, settings);
+  const subagentModel = settings.selectedModel;
+  const modelInfo = await getModelClient(subagentModel, settings);
   const maxOutputTokens = Math.min(
-    (await getMaxTokens(SUBAGENT_MODEL)) ?? SUBAGENT_MAX_OUTPUT_TOKENS,
+    (await getMaxTokens(subagentModel)) ?? SUBAGENT_MAX_OUTPUT_TOKENS,
     SUBAGENT_MAX_OUTPUT_TOKENS,
   );
-  const temperature = await getTemperature(SUBAGENT_MODEL);
+  const temperature = await getTemperature(subagentModel);
   const intent: ExploreIntent = args.intent ?? "locate";
   const observations: SubagentObservation[] = [];
   const candidateRegistry = createCandidateRegistry();
@@ -290,15 +286,6 @@ function renderFinalReport({
     }).text;
   }
   return buildDeterministicReport({ query: args.query, intent, observations });
-}
-
-function assertDyadValueAvailable(settings: UserSettings): void {
-  if (!settings.enableDyadPro || !settings.providerSettings?.auto?.apiKey) {
-    throw new DyadError(
-      "explore_code sub-agent requires Dyad Pro with an auto provider API key",
-      DyadErrorKind.Precondition,
-    );
-  }
 }
 
 function createReadOnlyToolBudget(): ReadOnlyToolBudget {

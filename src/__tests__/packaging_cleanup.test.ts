@@ -144,6 +144,39 @@ describe("removeUnusedAppPackageFiles", () => {
     await expectMissing(path.join(betterSqlitePath, "src/addon.cpp"));
   });
 
+  it("keeps only Windows native bindings in a Windows package", async () => {
+    const buildPath = await fs.mkdtemp(
+      path.join(os.tmpdir(), "caide-package-cleanup-windows-"),
+    );
+    tempDirectories.push(buildPath);
+
+    const nodePtyPath = path.join(buildPath, "node_modules/node-pty");
+    const hostBuiltPty = path.join(nodePtyPath, "build/Release/pty.node");
+    const windowsPty = path.join(nodePtyPath, "prebuilds/win32-x64/pty.node");
+    const linuxMustard = path.join(
+      buildPath,
+      "node_modules/@mustardscript/binding-linux-x64-gnu/index.node",
+    );
+    const windowsMustard = path.join(
+      buildPath,
+      "node_modules/@mustardscript/binding-win32-x64-msvc/index.node",
+    );
+
+    await Promise.all([
+      writeFixtureFile(hostBuiltPty),
+      writeFixtureFile(windowsPty),
+      writeFixtureFile(linuxMustard),
+      writeFixtureFile(windowsMustard),
+    ]);
+
+    await removeUnusedAppPackageFiles(buildPath, "win32", "x64");
+
+    await expectMissing(hostBuiltPty);
+    await expect(fs.readFile(windowsPty, "utf8")).resolves.toBe("fixture");
+    await expectMissing(linuxMustard);
+    await expect(fs.readFile(windowsMustard, "utf8")).resolves.toBe("fixture");
+  });
+
   it("keeps keychain reader runtime files and removes build intermediates", async () => {
     const buildPath = await fs.mkdtemp(
       path.join(os.tmpdir(), "dyad-package-cleanup-keychain-"),

@@ -183,6 +183,12 @@ export const systemContracts = {
     output: z.string(),
   }),
 
+  getNetworkAddress: defineContract({
+    channel: "get-network-address",
+    input: z.void(),
+    output: z.string().nullable(),
+  }),
+
   getInitialLoadTelemetryContext: defineContract({
     channel: "get-initial-load-telemetry-context",
     input: z.void(),

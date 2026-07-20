@@ -98,7 +98,7 @@ export function registerProHandlers() {
 
     if (!apiKey) {
       // Expected state for non-Pro users; not an error.
-      logger.debug("LLM Gateway API key (Dyad Pro) is not configured.");
+      logger.debug("LLM Gateway API key (CAIDE Gateway) is not configured.");
       return null;
     }
 
@@ -156,11 +156,13 @@ export function registerProHandlers() {
     audioContracts.transcribeAudio,
     async (_event, input: TranscribeAudioParams) => {
       const settings = readSettings();
-      const apiKey = settings.providerSettings?.auto?.apiKey?.value;
+      const gatewayApiKey = settings.providerSettings?.auto?.apiKey?.value;
+      const openAiApiKey = settings.providerSettings?.openai?.apiKey?.value;
+      const apiKey = gatewayApiKey ?? openAiApiKey;
 
-      if (!apiKey || !settings.enableDyadPro) {
+      if (!apiKey) {
         throw new DyadError(
-          "Dyad Pro is not enabled. Voice-to-text requires a Pro subscription.",
+          "Voice-to-text needs either a connected CAIDE Gateway or an OpenAI API key in Settings > Models & keys.",
           DyadErrorKind.Auth,
         );
       }
@@ -179,7 +181,9 @@ export function registerProHandlers() {
         input.requestId,
         {
           apiKey,
-          baseURL: getDyadEngineBaseUrl(),
+          baseURL: gatewayApiKey
+            ? getDyadEngineBaseUrl()
+            : "https://api.openai.com/v1",
           dyadOptions: {},
           settings,
         },

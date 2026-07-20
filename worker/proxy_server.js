@@ -12,7 +12,7 @@ const fs = require("fs");
 const path = require("path");
 
 /* ──────────────────────────── worker code ─────────────────────────────── */
-const LISTEN_HOST = "localhost";
+const LISTEN_HOST = workerData.listenHost || "localhost";
 const LISTEN_PORT = workerData.port;
 let rememberedOrigin = null; // e.g. "http://localhost:5173"
 let rememberedBaseUrl = null;
@@ -193,7 +193,23 @@ function injectHTML(buf) {
   const legacyAppWithShim =
     txt.includes("window-error") && txt.includes("unhandled-rejection");
 
-  const scripts = [];
+  const scripts = [
+    `<style data-caide-preview-viewport>
+html, body, #root { width: 100%; max-width: 100%; min-width: 0; }
+html, body { overflow-x: hidden; overscroll-behavior-x: none; }
+main, header, footer, section, nav, form { max-width: 100%; min-width: 0; }
+img, video, canvas, svg { max-width: 100%; height: auto; }
+body [class*="flex"] > * { min-width: 0; }
+@media (max-width: 480px) {
+  header > [class*="flex"] { flex-wrap: wrap; row-gap: 0.5rem; }
+  header button, header [role="button"] { max-width: 100%; }
+}
+</style>`,
+    `<script data-caide-react-refresh-guard>
+window.$RefreshReg$ = window.$RefreshReg$ || function () {};
+window.$RefreshSig$ = window.$RefreshSig$ || function () { return function (type) { return type; }; };
+</script>`,
+  ];
 
   if (!legacyAppWithShim) {
     if (stacktraceJsContent) {

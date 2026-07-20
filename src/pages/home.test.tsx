@@ -346,7 +346,7 @@ describe("HomePage", () => {
     expect(screen.getByText("AI setup dialog")).toBeTruthy();
   });
 
-  it("hides the setup pill when a Dyad Pro API key is saved", () => {
+  it("hides the setup pill when a CAIDE Gateway API key is saved", () => {
     mocks.settings = {
       enableDyadPro: false,
       isTestMode: true,

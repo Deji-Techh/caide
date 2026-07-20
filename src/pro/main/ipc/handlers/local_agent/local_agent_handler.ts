@@ -26,7 +26,7 @@ import { buildMcpAutoApprove } from "./mcp_auto_consent";
 import { parseMcpToolKey, sanitizeMcpName } from "@/ipc/utils/mcp_tool_utils";
 
 import {
-  isDyadProEnabled,
+  hasDyadProKey,
   isBasicAgentMode,
   type UserSettings,
 } from "@/lib/schemas";
@@ -36,6 +36,10 @@ import { readSettings } from "@/main/settings";
 import { getDyadAppPath } from "@/paths/paths";
 import { detectFrameworkType } from "@/ipc/utils/framework_utils";
 import { getModelClient } from "@/ipc/utils/get_model_client";
+import {
+  createMobileUiQualityPrompt,
+  scanMobileUiFiles,
+} from "@/ipc/utils/mobile_ui_quality";
 import { safeSend } from "@/ipc/utils/safe_sender";
 import {
   cancelOrphanedBaseStream,
@@ -465,26 +469,6 @@ export async function handleLocalAgentStream(
     await updateResponseInDb(placeholderMessageId, fullResponse);
   };
 
-  // Check Pro status or Basic Agent mode
-  // Basic Agent mode allows non-Pro users with quota (quota check is done in chat_stream_handlers)
-  // Read-only mode (ask mode) is allowed for all users without Pro
-  if (
-    !readOnly &&
-    !planModeOnly &&
-    !isDyadProEnabled(settings) &&
-    !isBasicAgentMode(settings)
-  ) {
-    const errorMessage =
-      referencedApps.length > 0
-        ? "Referencing other apps (@app:Name) in local-agent mode requires Dyad Pro. Please enable Dyad Pro in Settings → Pro."
-        : "Agent v2 requires Dyad Pro. Please enable Dyad Pro in Settings → Pro.";
-    safeSend(event.sender, "chat:response:error", {
-      chatId: req.chatId,
-      error: errorMessage,
-    });
-    return false;
-  }
-
   const loadChat = async () =>
     db.query.chats.findFirst({
       where: eq(chats.id, req.chatId),
@@ -663,7 +647,9 @@ export async function handleLocalAgentStream(
       todos: persistedTodos,
       dyadRequestId,
       fileEditTracker,
-      isDyadPro: isDyadProEnabled(settings),
+      // Legacy field name: this now means hosted CAIDE Gateway access only.
+      // Local agent capabilities are not gated by it.
+      isDyadPro: hasDyadProKey(settings),
       freeModelMode: effectiveFreeModelMode,
       onXmlStream: (accumulatedXml: string) => {
         // Stream the in-progress tool XML as a sidecar preview overlay.
@@ -855,6 +841,8 @@ export async function handleLocalAgentStream(
     // there are still incomplete todos, we append a reminder and do another pass.
     const maxTodoFollowUpLoops = 1;
     let todoFollowUpLoops = 0;
+    const maxUiQualityFollowUpLoops = 1;
+    let uiQualityFollowUpLoops = 0;
     let hasInjectedPlanningQuestionnaireReflection = false;
     let currentMessageHistory = messageHistory;
     const accumulatedAiMessages: ModelMessage[] = [];
@@ -1499,6 +1487,37 @@ export async function handleLocalAgentStream(
           stepOnlyCalledTool(lastStep, setChatSummaryTool.name));
 
       if (
+        !readOnly &&
+        !planModeOnly &&
+        uiQualityFollowUpLoops < maxUiQualityFollowUpLoops &&
+        Object.keys(fileEditTracker).length > 0
+      ) {
+        const uiProblems = await scanMobileUiFiles(
+          appPath,
+          Object.keys(fileEditTracker),
+        );
+        if (uiProblems.length > 0) {
+          uiQualityFollowUpLoops += 1;
+          currentMessageHistory = [
+            ...currentMessageHistory,
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: createMobileUiQualityPrompt(uiProblems),
+                },
+              ],
+            },
+          ];
+          logger.info(
+            `Starting mobile UI quality repair pass ${uiQualityFollowUpLoops}/${maxUiQualityFollowUpLoops} for chat ${req.chatId}`,
+          );
+          continue;
+        }
+      }
+
+      if (
         !shouldRunTodoFollowUpPass({
           readOnly,
           planModeOnly,
@@ -1812,8 +1831,8 @@ function getErrorResponseBody(error: unknown, depth = 0): string | undefined {
 const FREE_MODEL_QUOTA_MARKERS = [
   "dyad_free_model_quota_exceeded",
   "FREE_MODEL_QUOTA_EXCEEDED",
-  "Dyad Free has reached its daily limit.",
-  "Dyad Free limit",
+  "CAIDE Free has reached its daily limit.",
+  "CAIDE Free limit",
 ];
 
 function getErrorMessageWithDetails(error: unknown): string {

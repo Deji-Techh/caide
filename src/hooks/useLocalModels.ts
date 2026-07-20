@@ -16,7 +16,7 @@ export function useLocalModels() {
   const loadModels = useCallback(async () => {
     const result = await refetch();
     if (result.error) {
-      console.error("Error loading local Ollama models:", result.error);
+      console.debug("Ollama is not available locally:", result.error);
       return [];
     }
     return result.data ?? [];

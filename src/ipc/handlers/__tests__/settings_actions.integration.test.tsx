@@ -190,7 +190,7 @@ describe("settings actions (integration)", () => {
     });
   });
 
-  it("validates Dyad Pro keys before saving provider settings", async () => {
+  it("validates CAIDE Gateway keys before saving provider settings", async () => {
     resetSettings();
 
     harness.mountSurface({

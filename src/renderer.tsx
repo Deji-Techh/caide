@@ -4,11 +4,7 @@ import { router } from "./router";
 import { RouterProvider } from "@tanstack/react-router";
 import { PostHogProvider } from "posthog-js/react";
 import posthog from "posthog-js";
-import {
-  getTelemetryUserId,
-  isTelemetryOptedIn,
-  isDyadProUser,
-} from "./hooks/useSettings";
+import { getTelemetryUserId, isTelemetryOptedIn } from "./hooks/useSettings";
 
 // Initialize i18next before any rendering
 import "./i18n";
@@ -22,14 +18,16 @@ import {
 import { showError } from "./lib/toast";
 import { ipc } from "./ipc/types";
 import { useStore } from "jotai";
-import { queryKeys } from "./lib/queryKeys";
 import {
   createExceptionFromTelemetry,
   getExceptionTelemetryContext,
-  shouldBypassNonProTelemetrySampling,
   shouldFilterPostHogExceptionEvent,
 } from "./lib/posthogTelemetry";
 import { registerRendererIpcListeners } from "./app_wiring/registerRendererIpcListeners";
+
+// CSS entry — imported here so Vite bundles them into the main renderer chunk
+import "./styles/globals.css";
+import "./pages/caide-home.css";
 
 // @ts-ignore
 console.log("Running in mode:", import.meta.env.MODE);
@@ -101,19 +99,6 @@ const posthogClient = posthog.init(
         event.properties["$ip"] = null;
       }
 
-      // For non-Pro users, only send 10% of events (but always send errors,
-      // app:initial-load, promo_click, and sandbox.script.* — see
-      // shouldBypassNonProTelemetrySampling).
-      if (!isDyadProUser()) {
-        if (
-          !shouldBypassNonProTelemetrySampling(event) &&
-          Math.random() > 0.1
-        ) {
-          console.debug("Non-Pro user: sampling out event", event?.event);
-          return null;
-        }
-      }
-
       console.debug(
         "Telemetry opted in - UUID:",
         telemetryUserId,
@@ -129,14 +114,6 @@ const posthogClient = posthog.init(
 function App() {
   const queryClient = useQueryClient();
   const store = useStore();
-
-  // Fetch user budget on app load
-  useEffect(() => {
-    queryClient.prefetchQuery({
-      queryKey: queryKeys.userBudget.info,
-      queryFn: () => ipc.system.getUserBudget(),
-    });
-  }, [queryClient]);
 
   useEffect(() => {
     // Subscribe to navigation state changes

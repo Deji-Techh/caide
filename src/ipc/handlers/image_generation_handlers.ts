@@ -16,7 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 import log from "electron-log";
 import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
-import { getDyadEngineBaseUrl } from "../utils/dyad_engine_url";
+import { chatGPTCodexFetch, readChatGPTTokens } from "@/main/chatgpt_auth";
 
 const logger = log.scope("image_generation_handlers");
 
@@ -25,6 +25,64 @@ const activeControllers = new Map<string, AbortController>();
 
 const IMAGE_GENERATION_TIMEOUT_MS = 120_000;
 const MAX_IMAGE_SIZE = 50 * 1024 * 1024; // 50 MB
+
+type ImageGenerationPayload = {
+  created: number;
+  data: Array<{
+    url?: string | null;
+    b64_json?: string | null;
+    revised_prompt?: string | null;
+  }>;
+};
+
+async function generateWithChatGPT(
+  prompt: string,
+  signal: AbortSignal,
+): Promise<Response> {
+  return chatGPTCodexFetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-5.5",
+      input: prompt,
+      tools: [{ type: "image_generation" }],
+      tool_choice: { type: "image_generation" },
+    }),
+    signal,
+  });
+}
+
+function parseChatGPTImageResponse(value: unknown): ImageGenerationPayload {
+  const record =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+  const output = Array.isArray(record.output) ? record.output : [];
+  const imageCall = output.find(
+    (item) =>
+      item &&
+      typeof item === "object" &&
+      item.type === "image_generation_call" &&
+      typeof item.result === "string",
+  ) as { result: string; revised_prompt?: string } | undefined;
+
+  if (!imageCall) {
+    throw new DyadError(
+      "Your connected ChatGPT session did not return an image. Reconnect ChatGPT or configure an OpenAI API key as a fallback.",
+      DyadErrorKind.External,
+    );
+  }
+
+  return {
+    created: Math.floor(Date.now() / 1000),
+    data: [
+      {
+        b64_json: imageCall.result,
+        revised_prompt: imageCall.revised_prompt,
+      },
+    ],
+  };
+}
 
 const THEME_SYSTEM_PROMPTS: Record<ImageThemeMode, string | null> = {
   plain: null,
@@ -41,11 +99,12 @@ export function registerImageGenerationHandlers() {
     imageGenerationContracts.generateImage,
     async (_, params) => {
       const settings = readSettings();
-      const apiKey = settings.providerSettings?.auto?.apiKey?.value;
+      const apiKey = settings.providerSettings?.openai?.apiKey?.value;
+      const hasChatGPTSession = Boolean(readChatGPTTokens());
 
-      if (!apiKey) {
+      if (!apiKey && !hasChatGPTSession) {
         throw new DyadError(
-          "Dyad Pro API key is required for image generation",
+          "Connect ChatGPT or add an OpenAI API key in Settings > Models & keys to generate images.",
           DyadErrorKind.Auth,
         );
       }
@@ -72,19 +131,21 @@ export function registerImageGenerationHandlers() {
 
       let response: Response;
       try {
-        response = await fetch(`${getDyadEngineBaseUrl()}/images/generations`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-            "X-Dyad-Request-Id": requestId,
-          },
-          body: JSON.stringify({
-            prompt: fullPrompt,
-            model: "gpt-image-1.5",
-          }),
-          signal: controller.signal,
-        });
+        response = hasChatGPTSession
+          ? await generateWithChatGPT(fullPrompt, controller.signal)
+          : await fetch("https://api.openai.com/v1/images/generations", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apiKey}`,
+              },
+              body: JSON.stringify({
+                prompt: fullPrompt,
+                model: "gpt-image-1.5",
+                output_format: "png",
+              }),
+              signal: controller.signal,
+            });
       } catch (error) {
         activeControllers.delete(requestId);
         if (error instanceof Error && error.name === "AbortError") {
@@ -108,11 +169,16 @@ export function registerImageGenerationHandlers() {
           `Image generation API error: HTTP ${response.status} (request: ${requestId})`,
         );
         throw new Error(
-          `Image generation failed (HTTP ${response.status}). Please try again.`,
+          hasChatGPTSession
+            ? `ChatGPT image generation is not available for this connected account (HTTP ${response.status}). Reconnect ChatGPT or use an OpenAI API key.`
+            : `Image generation failed (HTTP ${response.status}). Please try again.`,
         );
       }
 
-      const rawData = await response.json();
+      const responseData = await response.json();
+      const rawData = hasChatGPTSession
+        ? parseChatGPTImageResponse(responseData)
+        : responseData;
       const parsed = ImageGenerationApiResponseSchema.safeParse(rawData);
       if (!parsed.success) {
         logger.error("Invalid image generation response:", parsed.error);

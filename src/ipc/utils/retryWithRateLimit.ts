@@ -58,11 +58,54 @@ export function isRateLimitError(error: any): boolean {
   return status === 429;
 }
 
+const TRANSIENT_NETWORK_CODES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EAI_AGAIN",
+  "ENETUNREACH",
+  "ENOTFOUND",
+  "EPIPE",
+  "ETIMEDOUT",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
+
+export function isTransientNetworkError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  if ((error as { name?: string }).name === "AbortError") return false;
+
+  let current: unknown = error;
+  const visited = new Set<unknown>();
+  while (current && typeof current === "object" && !visited.has(current)) {
+    visited.add(current);
+    const candidate = current as {
+      code?: string;
+      message?: string;
+      cause?: unknown;
+    };
+    if (candidate.code && TRANSIENT_NETWORK_CODES.has(candidate.code)) {
+      return true;
+    }
+    if (
+      current instanceof TypeError &&
+      candidate.message?.toLowerCase() === "fetch failed"
+    ) {
+      return true;
+    }
+    current = candidate.cause;
+  }
+  return false;
+}
+
 // Retry configuration
 const RETRY_CONFIG = {
   maxRetries: 10,
   baseDelay: 2_000, // 2 seconds
   maxDelay: 30_000, // 30 seconds
+  maxNetworkRetries: 3,
+  networkBaseDelay: 500,
+  networkMaxDelay: 3_000,
   jitterFactor: 0.1, // 10% jitter
 };
 
@@ -73,6 +116,12 @@ export interface RetryWithRateLimitOptions {
   baseDelay?: number;
   /** Maximum delay in ms */
   maxDelay?: number;
+  /** Maximum number of retries for transient transport failures */
+  maxNetworkRetries?: number;
+  /** Base delay in ms for transient network retries */
+  networkBaseDelay?: number;
+  /** Maximum delay in ms for transient network retries */
+  networkMaxDelay?: number;
 }
 
 /**
@@ -91,26 +140,52 @@ export async function retryWithRateLimit<T>(
   const maxRetries = options?.maxRetries ?? RETRY_CONFIG.maxRetries;
   const baseDelay = options?.baseDelay ?? RETRY_CONFIG.baseDelay;
   const maxDelay = options?.maxDelay ?? RETRY_CONFIG.maxDelay;
+  const maxNetworkRetries =
+    options?.maxNetworkRetries ?? RETRY_CONFIG.maxNetworkRetries;
+  const networkBaseDelay =
+    options?.networkBaseDelay ?? RETRY_CONFIG.networkBaseDelay;
+  const networkMaxDelay =
+    options?.networkMaxDelay ?? RETRY_CONFIG.networkMaxDelay;
 
-  let lastError: any;
+  let rateLimitRetries = 0;
+  let networkRetries = 0;
+  let totalAttempts = 0;
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+  while (true) {
+    totalAttempts++;
     try {
       const result = await operation();
-      if (attempt > 0) {
-        logger.info(`${context}: Success after ${attempt + 1} attempts`);
+      if (totalAttempts > 1) {
+        logger.info(`${context}: Success after ${totalAttempts} attempts`);
       }
       return result;
     } catch (error: any) {
-      lastError = error;
+      const isRateLimited = isRateLimitError(error);
+      const isNetworkFailure = isTransientNetworkError(error);
+      if (!isRateLimited && !isNetworkFailure) throw error;
 
-      // Only retry on rate limit errors
-      if (!isRateLimitError(error)) {
-        throw error;
+      if (isNetworkFailure) {
+        if (networkRetries >= maxNetworkRetries) {
+          logger.error(
+            `${context}: Failed after ${totalAttempts} attempts due to a transient network error`,
+          );
+          throw error;
+        }
+
+        const delay = Math.min(
+          networkBaseDelay * Math.pow(2, networkRetries),
+          networkMaxDelay,
+        );
+        networkRetries++;
+        const code = error?.cause?.code ?? error?.code ?? "fetch failed";
+        logger.warn(
+          `${context}: Network error ${code} (${networkRetries}/${maxNetworkRetries}), retrying in ${delay}ms`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
       }
 
-      // Don't retry if we've exhausted all attempts
-      if (attempt === maxRetries) {
+      if (rateLimitRetries >= maxRetries) {
         logger.error(
           `${context}: Failed after ${maxRetries + 1} attempts due to rate limit`,
         );
@@ -130,24 +205,23 @@ export async function retryWithRateLimit<T>(
         // against a malformed/pathological HTTP-date value.
         delay = Math.min(retryAfterMs, 2_147_483_647);
         logger.warn(
-          `${context}: Rate limited (attempt ${attempt + 1}/${maxRetries + 1}), honoring Retry-After: ${Math.round(delay)}ms`,
+          `${context}: Rate limited (${rateLimitRetries + 1}/${maxRetries}), honoring Retry-After: ${Math.round(delay)}ms`,
         );
       } else {
         // Exponential backoff with jitter
-        const exponentialDelay = baseDelay * Math.pow(2, attempt);
+        const exponentialDelay = baseDelay * Math.pow(2, rateLimitRetries);
         const jitter =
           exponentialDelay * RETRY_CONFIG.jitterFactor * Math.random();
         delay = Math.min(exponentialDelay + jitter, maxDelay);
         logger.warn(
-          `${context}: Rate limited (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delay)}ms`,
+          `${context}: Rate limited (${rateLimitRetries + 1}/${maxRetries}), retrying in ${Math.round(delay)}ms`,
         );
       }
 
+      rateLimitRetries++;
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
-
-  throw lastError;
 }
 
 /**

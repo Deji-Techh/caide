@@ -1,5 +1,3 @@
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { DeepLinkProvider } from "../contexts/DeepLinkContext";
 import { Toaster } from "sonner";
@@ -22,14 +20,10 @@ import i18n from "@/i18n";
 import { LanguageSchema } from "@/lib/schemas";
 import { useShortcut } from "@/hooks/useShortcut";
 import { useIsMac } from "@/hooks/useChatModeToggle";
-import { ReleaseNotesDialog } from "@/components/ReleaseNotesDialog";
 import { ForceCloseDialog } from "@/components/ForceCloseDialog";
-import { useRouterState } from "@tanstack/react-router";
+import { HelpDialog } from "@/components/HelpDialog";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const isCaideHome = useRouterState({
-    select: (state) => state.location.pathname === "/",
-  });
   const { refreshAppIframe } = useRunApp();
   // Subscribe to app output events once at the root level to avoid duplicates
   useAppOutputSubscription();
@@ -130,12 +124,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <>
       <ThemeProvider>
         <DeepLinkProvider>
-          <SidebarProvider defaultOpen={false}>
-            <TitleBar caide={isCaideHome} />
-            {!isCaideHome && <AppSidebar />}
+          <div className="caide-app-root">
+            <TitleBar />
             <div
               id="layout-main-content-container"
-              className={`flex h-screenish w-full overflow-x-hidden mt-[var(--layout-title-bar-offset)] bg-background ${isCaideHome ? "border-l-0" : "border-l border-border"}`}
+              className="caide-route-viewport"
             >
               {children}
             </div>
@@ -144,9 +137,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               expand
               duration={settings?.isTestMode ? 500 : undefined}
             />
-            <ReleaseNotesDialog />
             <ForceCloseDialog />
-          </SidebarProvider>
+            <HelpDialog />
+          </div>
         </DeepLinkProvider>
       </ThemeProvider>
     </>

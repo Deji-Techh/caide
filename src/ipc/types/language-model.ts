@@ -16,6 +16,7 @@ export const LanguageModelProviderSchema = z.object({
   apiBaseUrl: z.string().optional(),
   type: z.enum(["custom", "local", "cloud"]),
   isCustom: z.boolean().optional(),
+  configured: z.boolean().optional(),
 });
 
 export type LanguageModelProvider = z.infer<typeof LanguageModelProviderSchema>;

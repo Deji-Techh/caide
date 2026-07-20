@@ -120,10 +120,10 @@
     "errorLoadingSettings": "Erro ao Carregar Configurações",
     "couldNotLoadProvider": "Não foi possível carregar os dados do provedor: {{message}}",
     "couldNotLoadSettings": "Não foi possível carregar os dados de configuração: {{message}}",
-    "enableDyadPro": "Ativar Dyad Pro",
-    "toggleDyadPro": "Alternar para ativar o Dyad Pro",
+    "enableDyadPro": "Ativar CAIDE Gateway",
+    "toggleDyadPro": "Alternar para ativar o CAIDE Gateway",
     "apiKeyEmpty": "A Chave de API não pode estar vazia.",
-    "errorTogglingPro": "Erro ao alternar Dyad Pro: {{error}}",
+    "errorTogglingPro": "Erro ao alternar CAIDE Gateway: {{error}}",
     "failedSaveApiKey": "Falha ao salvar a chave de API.",
     "failedDeleteApiKey": "Falha ao excluir a chave de API."
   },
@@ -146,7 +146,7 @@
     "title": "Integrações"
   },
   "agentPermissions": {
-    "title": "Permissões do Agente (Pro)",
+    "title": "Permissões do Agente",
     "description": "Configure as permissões para as ferramentas integradas do Agente.",
     "defaultAllowedTools": "Ferramentas permitidas por padrão ({{count}})",
     "ask": "Perguntar",
@@ -304,6 +304,6 @@
     "updateProvider": "Atualizar Provedor",
     "failedCreate": "Falha ao criar provedor personalizado"
   },
-  "manageDyadPro": "Gerenciar Assinatura Dyad Pro",
-  "setupDyadPro": "Configurar Assinatura Dyad Pro"
+  "manageDyadPro": "Gerenciar Assinatura CAIDE Gateway",
+  "setupDyadPro": "Configurar Assinatura CAIDE Gateway"
 }

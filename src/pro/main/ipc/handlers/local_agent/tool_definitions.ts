@@ -382,10 +382,7 @@ export interface BuildAgentToolSetOptions {
    * Plan mode has access to read-only tools plus planning-specific tools.
    */
   planModeOnly?: boolean;
-  /**
-   * If true, exclude Pro-only tools.
-   * Used for basic agent mode where some tools may not be available.
-   */
+  /** Legacy compatibility option; no tools are subscription-gated. */
   basicAgentMode?: boolean;
   /**
    * If true, exclude tools that call separate Dyad Engine endpoints.
@@ -400,14 +397,14 @@ export interface BuildAgentToolSetOptions {
 
 /**
  * Tools that should ONLY be available in plan mode (excluded from normal agent mode).
- * Note: planning_questionnaire is intentionally omitted so it's available in pro agent mode too.
+ * Note: planning_questionnaire is intentionally omitted so it is available in normal Agent mode too.
  */
 const PLAN_MODE_ONLY_TOOLS = new Set(["write_plan", "exit_plan"]);
 
 /**
  * Planning-specific tools that are allowed in plan mode despite modifying state.
  * Superset of PLAN_MODE_ONLY_TOOLS plus tools that participate in planning
- * but are also available in normal (pro) agent mode.
+ * but are also available in normal Agent mode.
  */
 const PLANNING_SPECIFIC_TOOLS = new Set([
   ...PLAN_MODE_ONLY_TOOLS,
@@ -415,7 +412,7 @@ const PLANNING_SPECIFIC_TOOLS = new Set([
 ]);
 
 /**
- * Tools only available in Pro agent mode (excluded from basic agent mode).
+ * Kept for compatibility. CAIDE has no subscription-only agent tools.
  */
 const PRO_AGENT_ONLY_TOOLS = new Set<string>();
 
@@ -475,7 +472,7 @@ export function shouldIncludeTool(
   if (!options.planModeOnly && PLAN_MODE_ONLY_TOOLS.has(tool.name)) {
     return false;
   }
-  // Skip Pro-only tools in basic agent mode.
+  // Compatibility path for old settings; the set is intentionally empty.
   if (options.basicAgentMode && PRO_AGENT_ONLY_TOOLS.has(tool.name)) {
     return false;
   }

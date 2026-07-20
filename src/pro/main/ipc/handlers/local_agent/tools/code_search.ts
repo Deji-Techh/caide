@@ -106,7 +106,7 @@ export const codeSearchTool: ToolDefinition<CodeSearchArgs> = {
   defaultConsent: "always",
   usesEngineEndpoint: true,
 
-  // Requires Dyad Pro engine API. When the compiler-backed `explore_code` tool
+  // Requires CAIDE Gateway engine API. When the compiler-backed `explore_code` tool
   // is available for the current app, it supersedes semantic code search for
   // discovery, so we hide `code_search` to keep a single discovery tool. This
   // mirrors the prompt gating in chat_stream_handlers (`codeExplorerAvailable`).

@@ -13,6 +13,7 @@ import {
   PROVIDER_TO_ENV_VAR,
 } from "./language_model_constants";
 import { getBuiltinLanguageModelCatalog } from "./remote_language_model_catalog";
+import { listChatGPTModels, readChatGPTTokens } from "@/main/chatgpt_auth";
 
 const logger = log.scope("language_model_helpers");
 /**
@@ -67,6 +68,8 @@ export async function getLanguageModelProviders(): Promise<
           PROVIDER_TO_ENV_VAR[providerId as keyof typeof PROVIDER_TO_ENV_VAR] ??
           undefined,
         type: "cloud",
+        configured:
+          providerId === "chatgpt" ? Boolean(readChatGPTTokens()) : undefined,
       });
     }
   }
@@ -103,6 +106,43 @@ export async function getLanguageModels({
   if (!provider) {
     console.warn(`Provider with ID "${providerId}" not found.`);
     return [];
+  }
+
+  if (providerId === "chatgpt") {
+    if (!readChatGPTTokens()) {
+      return [
+        {
+          apiName: "__connect_chatgpt__",
+          displayName: "Login with ChatGPT",
+          description:
+            "Connect your ChatGPT account to load the Codex models included with your plan",
+          tag: "Account",
+          type: "cloud" as const,
+        },
+      ];
+    }
+    try {
+      const modelNames = await listChatGPTModels();
+      return modelNames.map((apiName) => ({
+        apiName,
+        displayName: apiName
+          .split("-")
+          .map((part) =>
+            part.toLowerCase() === "gpt"
+              ? "GPT"
+              : part.charAt(0).toUpperCase() + part.slice(1),
+          )
+          .join(" "),
+        description: "Available through your connected ChatGPT plan",
+        type: "cloud" as const,
+      }));
+    } catch (error) {
+      logger.warn(
+        "Could not discover models for the connected ChatGPT account",
+        error,
+      );
+      return [];
+    }
   }
 
   // Get custom models from DB for all provider types

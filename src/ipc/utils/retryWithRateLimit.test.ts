@@ -1,5 +1,6 @@
 import {
   isRateLimitError,
+  isTransientNetworkError,
   retryWithRateLimit,
   RateLimitError,
   fetchWithRetry,
@@ -135,6 +136,28 @@ describe("isRateLimitError", () => {
   });
 });
 
+describe("isTransientNetworkError", () => {
+  it("recognizes Node fetch failures", () => {
+    expect(isTransientNetworkError(new TypeError("fetch failed"))).toBe(true);
+  });
+
+  it("recognizes nested Undici socket failures", () => {
+    const error = new TypeError("request failed", {
+      cause: Object.assign(new Error("socket closed"), {
+        code: "UND_ERR_SOCKET",
+      }),
+    });
+    expect(isTransientNetworkError(error)).toBe(true);
+  });
+
+  it("does not retry aborted or generic errors", () => {
+    expect(
+      isTransientNetworkError(new DOMException("Stopped", "AbortError")),
+    ).toBe(false);
+    expect(isTransientNetworkError(new Error("Network failure"))).toBe(false);
+  });
+});
+
 describe("retryWithRateLimit", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -198,6 +221,22 @@ describe("retryWithRateLimit", () => {
       expect(result).toBe("success after 3 retries");
       expect(operation).toHaveBeenCalledTimes(4);
     });
+
+    it("retries a transient fetch failure independently of rate limits", async () => {
+      const operation = vi
+        .fn()
+        .mockRejectedValueOnce(new TypeError("fetch failed"))
+        .mockResolvedValueOnce("recovered");
+
+      const resultPromise = retryWithRateLimit(operation, "test-operation", {
+        maxNetworkRetries: 2,
+        networkBaseDelay: 100,
+      });
+      await vi.runAllTimersAsync();
+
+      await expect(resultPromise).resolves.toBe("recovered");
+      expect(operation).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("non-rate-limit errors", () => {
@@ -243,6 +282,20 @@ describe("retryWithRateLimit", () => {
   });
 
   describe("exhausted retries", () => {
+    it("throws after transient network retries are exhausted", async () => {
+      const error = new TypeError("fetch failed");
+      const operation = vi.fn().mockRejectedValue(error);
+      const resultPromise = retryWithRateLimit(operation, "test-operation", {
+        maxNetworkRetries: 2,
+        networkBaseDelay: 100,
+      });
+      const expectation = expect(resultPromise).rejects.toBe(error);
+
+      await vi.runAllTimersAsync();
+      await expectation;
+      expect(operation).toHaveBeenCalledTimes(3);
+    });
+
     it("should throw after max retries are exhausted", async () => {
       const rateLimitError = { response: { status: 429 } };
       const operation = vi.fn().mockRejectedValue(rateLimitError);

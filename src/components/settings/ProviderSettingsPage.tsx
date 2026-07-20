@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { BackButton } from "@/components/ui/back-button";
 import { useSettings } from "@/hooks/useSettings";
 import { useLanguageModelProviders } from "@/hooks/useLanguageModelProviders";
 import { useQueryClient } from "@tanstack/react-query";
@@ -42,6 +41,7 @@ import {
 import { ProviderSettingsHeader } from "./ProviderSettingsHeader";
 import { ApiKeyConfiguration } from "./ApiKeyConfiguration";
 import { ModelsSection } from "./ModelsSection";
+import { ChatGPTConfiguration } from "./ChatGPTConfiguration";
 
 interface ProviderSettingsPageProps {
   provider: string;
@@ -55,6 +55,7 @@ type ApiKeyValidationDialogState = {
 };
 
 const VALIDATED_API_KEY_PROVIDERS = new Set<string>([
+  "deepseek",
   "google",
   "openrouter",
   "auto",
@@ -112,6 +113,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
     providerData?.type === "custom" || providerData?.type === "cloud";
 
   const isDyad = provider === "auto";
+  const isChatGPT = provider === "chatgpt";
 
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -132,10 +134,10 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
 
   // Use fetched data (or defaults for Dyad)
   const providerDisplayName = isDyad
-    ? "Dyad"
+    ? "CAIDE Engine"
     : (providerData?.name ?? "Unknown Provider");
-  const providerWebsiteUrl = providerData?.websiteUrl;
-  const hasFreeTier = isDyad ? false : providerData?.hasFreeTier;
+  const providerWebsiteUrl = isChatGPT ? undefined : providerData?.websiteUrl;
+  const hasFreeTier = isDyad || isChatGPT ? false : providerData?.hasFreeTier;
   const envVarName = isDyad ? undefined : providerData?.envVarName;
 
   // Use provider ID (which is the 'provider' prop)
@@ -176,8 +178,9 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
       ? azureHasSavedSettings || azureHasEnvConfiguration
       : false;
 
-  const isConfigured =
-    provider === "azure"
+  const isConfigured = isChatGPT
+    ? providerData?.configured === true
+    : provider === "azure"
       ? isAzureConfigured
       : provider === "vertex"
         ? isVertexConfigured
@@ -229,7 +232,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
           setApiKeyValidationDialog({
             message:
               error?.message ||
-              `Dyad could not verify this ${providerDisplayName} API key.`,
+              `CAIDE could not verify this ${providerDisplayName} API key.`,
             apiKey: normalizedValue,
             allowKeepInvalidKey: true,
             errorKind: getErrorKind(error),
@@ -239,7 +242,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
       }
 
       const isFirstProviderSetup = !isAnyProviderSetup();
-      // Check if this is the first time user is setting up Dyad Pro
+      // Check if this is the first time user is setting up CAIDE Gateway
       const isNewDyadProSetup = isDyad && settings && !hasDyadProKey(settings);
 
       const settingsUpdate: Partial<UserSettings> = {
@@ -255,7 +258,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
       };
       if (isDyad) {
         settingsUpdate.enableDyadPro = true;
-        // Set default chat mode to local-agent when user upgrades to pro
+        // Prefer the full local agent when the bundled gateway is connected.
         if (isNewDyadProSetup) {
           settingsUpdate.defaultChatMode = "local-agent";
         }
@@ -268,7 +271,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
         setShowStartBuildingBanner(true);
       }
 
-      // Refetch user budget when Dyad Pro key is saved
+      // Refetch user budget when CAIDE Gateway key is saved
       if (isDyad) {
         queryClient.invalidateQueries({ queryKey: queryKeys.userBudget.info });
       }
@@ -303,7 +306,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
       setApiKeyValidationDialog({
         message:
           error?.message ||
-          `Dyad could not verify this ${providerDisplayName} API key.`,
+          `CAIDE could not verify this ${providerDisplayName} API key.`,
         apiKey: normalizedValue,
         allowKeepInvalidKey: false,
         errorKind: getErrorKind(error),
@@ -336,7 +339,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
     }
   };
 
-  // --- Toggle Dyad Pro Handler ---
+  // --- Toggle CAIDE Gateway Handler ---
   const handleToggleDyadPro = async (enabled: boolean) => {
     setIsSaving(true);
     try {
@@ -344,7 +347,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
         enableDyadPro: enabled,
       });
     } catch (error: any) {
-      showError(`Error toggling Dyad Pro: ${error}`);
+      showError(`Error toggling the bundled engine: ${error}`);
     } finally {
       setIsSaving(false);
     }
@@ -398,7 +401,6 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
     return (
       <div className="min-h-screen px-8 py-4">
         <div className="max-w-4xl mx-auto">
-          <BackButton />
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mr-3 mb-6">
             Configure Provider
           </h1>
@@ -419,7 +421,6 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
     return (
       <div className="min-h-screen px-8 py-4">
         <div className="max-w-4xl mx-auto">
-          <BackButton />
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mr-3 mb-6">
             Provider Not Found
           </h1>
@@ -494,7 +495,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
                   AI access is ready
                 </h2>
                 <p className="mt-1 text-sm text-green-800/80 dark:text-green-200/80">
-                  You can now start building with Dyad.
+                  You can now start building with CAIDE.
                 </p>
               </div>
             </div>
@@ -532,6 +533,22 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
                 Could not load configuration data: {settingsError.message}
               </AlertDescription>
             </Alert>
+          ) : isChatGPT ? (
+            <ChatGPTConfiguration
+              onConnectionChange={() => {
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.languageModels.providers,
+                });
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.languageModels.byProviders,
+                });
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.languageModels.forProvider({
+                    providerId: "chatgpt",
+                  }),
+                });
+              }}
+            />
           ) : (
             <ApiKeyConfiguration
               provider={provider}
@@ -561,13 +578,13 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
           {isDyad && !settingsLoading && (
             <div className="mt-6 flex items-center justify-between p-4 bg-(--background-lightest) rounded-lg border">
               <div>
-                <h3 className="font-medium">Enable Dyad Pro</h3>
+                <h3 className="font-medium">Enable bundled engine</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Toggle to enable Dyad Pro
+                  Route supported models through the bundled backend
                 </p>
               </div>
               <Switch
-                aria-label="Enable Dyad Pro"
+                aria-label="Enable bundled engine"
                 checked={settings?.enableDyadPro}
                 onCheckedChange={handleToggleDyadPro}
                 disabled={isSaving}
@@ -577,7 +594,10 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
 
           {/* Conditionally render CustomModelsSection */}
           {supportsCustomModels && providerData && (
-            <ModelsSection providerId={providerData.id} />
+            <ModelsSection
+              providerId={providerData.id}
+              allowCustomModels={!isChatGPT}
+            />
           )}
           <div className="h-24"></div>
         </div>

@@ -70,11 +70,11 @@ export function formatCloudSandboxError(error: unknown) {
 
   switch (error.code) {
     case "sandbox_pro_required":
-      return "Dyad Pro is required to use cloud sandboxes.";
+      return "Cloud sandbox access is unavailable for this CAIDE Gateway. Use the Local runtime or connect a gateway with sandbox access.";
     case "sandbox_insufficient_credits":
       return "You need at least 1 credit available to start a cloud sandbox.";
     case "sandbox_billing_unavailable":
-      return "Dyad couldn’t verify sandbox billing right now. Please try again.";
+      return "CAIDE couldn't verify cloud sandbox availability. Please try again.";
     case "sandbox_credits_exhausted":
       return "This cloud sandbox stopped because your credits ran out.";
     default:
@@ -82,13 +82,13 @@ export function formatCloudSandboxError(error: unknown) {
         return "This cloud sandbox is no longer available.";
       }
       if (error.status === 401 || error.status === 403) {
-        return "Dyad couldn’t authorize the cloud sandbox request. Please try again.";
+        return "CAIDE couldn't authorize the cloud sandbox request. Please reconnect the gateway and try again.";
       }
       if (error.status === 429) {
-        return "Dyad is rate limiting cloud sandbox requests right now. Please try again.";
+        return "The cloud sandbox service is rate limiting requests. Please try again.";
       }
       if (typeof error.status === "number" && error.status >= 500) {
-        return "Dyad’s cloud sandbox service is temporarily unavailable. Please try again.";
+        return "CAIDE's cloud sandbox service is temporarily unavailable. Please try again.";
       }
       return error.message;
   }
@@ -311,7 +311,7 @@ function notifyPnpmVersionMigrationAvailable({
     if (!pnpmVersionMigrationNotifiedAppIds.has(appId)) {
       safeSend(event.sender, "app:output", {
         type: "stdout",
-        message: `[dyad] This pnpm app needs a pnpm ${managedMajor} migration (pre-9 lockfile or pnpm <= 8 pin). Dyad already runs pnpm ${managedMajor}, so deploys, CI, and teammates' installs can drift without the matching project pin. Open App Details -> App Upgrades and apply "Migrate to pnpm ${managedMajor}".`,
+        message: `[caide] This pnpm app needs a pnpm ${managedMajor} migration (pre-9 lockfile or pnpm <= 8 pin). CAIDE already runs pnpm ${managedMajor}, so deploys, CI, and teammates' installs can drift without the matching project pin. Open App Details -> App Upgrades and apply "Migrate to pnpm ${managedMajor}".`,
         appId,
       });
       pnpmVersionMigrationNotifiedAppIds.add(appId);
@@ -319,7 +319,7 @@ function notifyPnpmVersionMigrationAvailable({
     safeSend(event.sender, "app:output", {
       type: "package-manager-warning",
       warningKind: "pnpm-migration",
-      message: `This app pins an older pnpm that can't read the lockfile Dyad writes. Migrate to pnpm ${managedMajor} so CI, deploys, and teammates can install it reliably.`,
+      message: `This app pins an older pnpm that can't read the lockfile CAIDE writes. Migrate to pnpm ${managedMajor} so CI, deploys, and teammates can install it reliably.`,
       appId,
     });
   } catch (error) {
@@ -352,11 +352,13 @@ export async function ensureProxyForRunningApp({
   event,
   originalUrl,
   mode,
+  listenHost,
 }: {
   appId: number;
   event: Electron.IpcMainInvokeEvent;
   originalUrl: string;
   mode: RuntimeMode2;
+  listenHost?: string;
 }): Promise<void> {
   const appInfo = runningApps.get(appId);
   if (!appInfo) {
@@ -366,11 +368,13 @@ export async function ensureProxyForRunningApp({
   const proxyAuthToken =
     mode === "cloud" ? appInfo.cloudPreviewAuthToken : undefined;
 
+  // If the proxy is already running with the same config, reuse it.
   if (
     appInfo.proxyWorker &&
     appInfo.originalUrl === originalUrl &&
     appInfo.proxyAuthToken === proxyAuthToken &&
-    appInfo.proxyUrl
+    appInfo.proxyUrl &&
+    (listenHost ?? "localhost") === (appInfo.proxyListenHost ?? "localhost")
   ) {
     emitProxyServerStarted({
       appId,
@@ -397,12 +401,14 @@ export async function ensureProxyForRunningApp({
 
   const proxyWorker = await startProxy(originalUrl, {
     port: proxyPort,
+    listenHost,
     onStarted: (proxyUrl) => {
       const latestAppInfo = runningApps.get(appId);
       if (latestAppInfo) {
         latestAppInfo.proxyUrl = proxyUrl;
         latestAppInfo.originalUrl = originalUrl;
         latestAppInfo.proxyAuthToken = proxyAuthToken;
+        latestAppInfo.proxyListenHost = listenHost ?? "localhost";
       }
       emitProxyServerStarted({
         appId,
@@ -433,6 +439,7 @@ export async function ensureProxyForRunningApp({
     latestAppInfo.proxyWorker = proxyWorker;
     latestAppInfo.originalUrl = originalUrl;
     latestAppInfo.proxyAuthToken = proxyAuthToken;
+    latestAppInfo.proxyListenHost = listenHost ?? "localhost";
   } else {
     await proxyWorker.terminate();
   }
@@ -551,7 +558,7 @@ Details: ${details || "n/a"}
             safeSend(event.sender, "app:output", {
               type: "stdout",
               message:
-                "[dyad] pnpm blocked dependency build scripts. Recorded the decision in pnpm-workspace.yaml and reinstalling...",
+                "[caide] pnpm blocked dependency build scripts. Recorded the decision in pnpm-workspace.yaml and reinstalling...",
               appId,
             });
 
@@ -1113,7 +1120,7 @@ ${errorOutput || "(empty)"}`,
             safeSend(event.sender, "app:output", {
               type: "stdout",
               message:
-                "[dyad] pnpm blocked dependency build scripts. Recorded the decision in pnpm-workspace.yaml and reinstalling...",
+                "[caide] pnpm blocked dependency build scripts. Recorded the decision in pnpm-workspace.yaml and reinstalling...",
               appId,
             });
 

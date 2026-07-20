@@ -75,6 +75,8 @@ const KNOWN_BUILTIN_MODEL_ALIASES = [
   "dyad/theme-generator/google",
   "dyad/theme-generator/anthropic",
   "dyad/theme-generator/openai",
+  "caide/theme-generator/chatgpt",
+  "caide/theme-generator/deepseek",
   "dyad/auto/openai",
   "dyad/auto/anthropic",
   "dyad/auto/google",
@@ -134,7 +136,20 @@ const DEFAULT_THEME_GENERATION_OPTIONS: ThemeGenerationModelOption[] = [
   { id: "dyad/theme-generator/google", label: "Google" },
   { id: "dyad/theme-generator/anthropic", label: "Anthropic" },
   { id: "dyad/theme-generator/openai", label: "OpenAI" },
+  { id: "caide/theme-generator/chatgpt", label: "ChatGPT" },
+  { id: "caide/theme-generator/deepseek", label: "DeepSeek" },
 ];
+
+const CAIDE_THEME_ALIASES: Record<string, ResolvedBuiltinModel> = {
+  "caide/theme-generator/chatgpt": {
+    providerId: "chatgpt",
+    apiName: GPT_5_5_MODEL_NAME,
+  },
+  "caide/theme-generator/deepseek": {
+    providerId: "deepseek",
+    apiName: "deepseek-v4-pro",
+  },
+};
 
 function buildFallbackCatalog(): BuiltinLanguageModelCatalog {
   const providers: LanguageModelProvider[] = Object.entries(
@@ -474,12 +489,21 @@ export async function getThemeGenerationModelOptions(): Promise<
   ThemeGenerationModelOption[]
 > {
   const catalog = await getBuiltinLanguageModelCatalog();
-  return catalog.themeGenerationOptions;
+  const options = [...catalog.themeGenerationOptions];
+  for (const requiredOption of DEFAULT_THEME_GENERATION_OPTIONS) {
+    if (!options.some((option) => option.id === requiredOption.id)) {
+      options.push(requiredOption);
+    }
+  }
+  return options;
 }
 
 export async function resolveBuiltinModelAlias(
   aliasId: BuiltinModelAlias | string,
 ): Promise<ResolvedBuiltinModel | null> {
+  const caideAlias = CAIDE_THEME_ALIASES[aliasId];
+  if (caideAlias) return caideAlias;
+
   const catalog = await getBuiltinLanguageModelCatalog();
   const resolvedModel =
     catalog.aliases.find((alias) => alias.id === aliasId)?.resolvedModel ??

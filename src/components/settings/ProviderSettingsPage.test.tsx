@@ -53,6 +53,10 @@ vi.mock("@/hooks/useLanguageModelProviders", () => ({
   }),
 }));
 
+vi.mock("@/atoms/chatAtoms", () => ({
+  pendingFirstPromptAtom: {},
+}));
+
 vi.mock("jotai", async (importOriginal) => ({
   ...(await importOriginal<typeof import("jotai")>()),
   useAtomValue: () => false,

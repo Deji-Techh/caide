@@ -147,7 +147,7 @@ describe("getModelClient", () => {
     ]);
   });
 
-  test("adds OpenRouter free as a regular auto fallback only outside Dyad Pro", async () => {
+  test("adds OpenRouter free as a regular auto fallback only outside CAIDE Gateway", async () => {
     const { modelClient, isEngineEnabled } = await getModelClient(
       {
         provider: "auto",

@@ -191,15 +191,16 @@ const ChatMessage = ({
 
   return (
     <div
+      data-message-role={message.role}
       className={`flex ${message.role === "assistant" ? "justify-start" : "justify-end"}`}
     >
       <div
-        className={`mt-2 w-full max-w-3xl mx-auto group ${isCancelled ? "opacity-50" : ""}`}
+        className={`caide-chat-message mt-2 mx-auto w-full max-w-3xl group ${isCancelled ? "opacity-50" : ""}`}
       >
         {/* Show message box for assistant messages or user messages with text */}
         {(message.role === "assistant" || hasUserText) && (
           <div
-            className={`rounded-lg p-2 ${
+            className={`caide-chat-message-body rounded-lg p-2 ${
               message.role === "assistant" ? "" : "ml-24 bg-(--sidebar-accent)"
             }`}
           >

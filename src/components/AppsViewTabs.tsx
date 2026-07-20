@@ -17,7 +17,7 @@ export function AppsViewTabs({ value, onChange }: AppsViewTabsProps) {
     <div
       role="tablist"
       aria-label="Apps view"
-      className="flex items-center gap-2"
+      className="inline-grid grid-cols-2 border border-border bg-[#0d0e11] p-0.5"
       data-testid="apps-view-tabs"
     >
       {TABS.map((tab) => {
@@ -31,11 +31,10 @@ export function AppsViewTabs({ value, onChange }: AppsViewTabsProps) {
             data-testid={`apps-view-tab-${tab.key}`}
             onClick={() => onChange(tab.key)}
             className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-              "border",
+              "min-h-9 px-4 text-[11px] font-semibold transition-colors",
               active
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-(--background-lighter) text-foreground border-border hover:border-primary/40",
+                ? "bg-[#efefec] text-[#101113]"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             {tab.label}

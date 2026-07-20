@@ -88,7 +88,7 @@ function readPnpmLockfileVersion(appPath: string): number | null {
  * state the app's legacy pnpm cannot read: a pre-9.0 lockfile (which the
  * managed pnpm rewrites incompatibly on install) or a `packageManager` pin at
  * or below pnpm 8 (whose corepack/CI installs cannot read the 9.0 lockfile
- * Dyad produces).
+ * CAIDE produces).
  */
 export function isPnpmVersionMigrationNeeded(appPath: string): boolean {
   const signal = getPackageManagerSignal(appPath);
@@ -141,7 +141,7 @@ export async function applyPnpmVersionMigration({
   const pnpmSupport = await getPnpmMinimumReleaseAgeSupport();
   if (!pnpmSupport.available || !pnpmSupport.version) {
     throw new DyadError(
-      "pnpm is not available, so the project cannot be migrated. Restart Dyad and try again.",
+      "pnpm is not available, so the project cannot be migrated. Restart CAIDE and try again.",
       DyadErrorKind.External,
     );
   }
@@ -166,7 +166,7 @@ export async function applyPnpmVersionMigration({
   await simpleSpawnWithDeniedPnpmBuildSelfHeal({
     command: `pnpm ${PNPM_INSTALL_POLICY_ARGS.join(" ")} install`,
     cwd: appPath,
-    successMessage: "Reinstalled dependencies with the Dyad-managed pnpm",
+    successMessage: "Reinstalled dependencies with the CAIDE-managed pnpm",
     errorPrefix: "Failed to reinstall dependencies with pnpm",
   });
 

@@ -397,7 +397,7 @@ export async function transcribeWithDyadEngine(
   if (!response.ok) {
     const errorText = await response.text();
     throw new DyadError(
-      `Dyad Engine transcription failed: ${response.status} ${response.statusText} - ${errorText}`,
+      `CAIDE Engine transcription failed: ${response.status} ${response.statusText} - ${errorText}`,
       DyadErrorKind.External,
     );
   }
@@ -409,13 +409,13 @@ function getDyadEngineApiKey(apiKey: string | undefined): string {
   const loadedApiKey = loadApiKey({
     apiKey,
     environmentVariableName: "DYAD_PRO_API_KEY",
-    description: "Dyad Pro API key",
+    description: "CAIDE Gateway API key",
   });
   const normalizedApiKey = normalizeProviderApiKeyInput(loadedApiKey);
   const invalidCharacter = findInvalidProviderApiKeyCharacter(normalizedApiKey);
   if (invalidCharacter) {
     throw new DyadError(
-      formatInvalidProviderApiKeyMessage("Dyad", invalidCharacter),
+      formatInvalidProviderApiKeyMessage("CAIDE Gateway", invalidCharacter),
       DyadErrorKind.Validation,
     );
   }

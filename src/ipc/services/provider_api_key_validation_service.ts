@@ -27,9 +27,10 @@ const VALIDATION_TIMEOUT_MS = 20_000;
 
 const PROVIDER_DISPLAY_NAMES: Record<ProviderApiKeyValidationProvider, string> =
   {
+    deepseek: "DeepSeek",
     google: "Google",
     openrouter: "OpenRouter",
-    auto: "Dyad",
+    auto: "CAIDE Engine",
   };
 
 export async function validateProviderApiKey({
@@ -112,6 +113,15 @@ async function createValidationModel(
   apiKey: string,
 ): Promise<LanguageModel> {
   switch (provider) {
+    case "deepseek": {
+      const deepseek = createOpenAICompatible({
+        name: "deepseek",
+        apiKey,
+        baseURL: "https://api.deepseek.com",
+        ...getTestFetchOption(),
+      });
+      return deepseek("deepseek-v4-flash");
+    }
     case "google": {
       const google = createGoogle({
         apiKey,
@@ -206,7 +216,7 @@ function classifyValidationError(
   }
 
   return new DyadError(
-    `Dyad could not verify this ${providerDisplayName} API key: ${errorMessage || "Unknown error"}`,
+    `CAIDE could not verify this ${providerDisplayName} API key: ${errorMessage || "Unknown error"}`,
     DyadErrorKind.External,
   );
 }

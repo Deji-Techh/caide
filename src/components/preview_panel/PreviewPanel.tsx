@@ -78,7 +78,13 @@ const ConsoleHeader = ({
 };
 
 // Main PreviewPanel component
-export function PreviewPanel() {
+export function PreviewPanel({
+  canvasOnly = false,
+  stageOnly = false,
+}: {
+  canvasOnly?: boolean;
+  stageOnly?: boolean;
+}) {
   const previewMode = useAtomValue(previewModeAtom);
   const selectedAppId = useAtomValue(selectedAppIdAtom);
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
@@ -168,6 +174,77 @@ export function PreviewPanel() {
   // Note: We no longer stop all apps on unmount. The garbage collector
   // will handle cleanup of idle apps, and users may want apps to keep
   // running in the background.
+
+  if (canvasOnly && previewMode === "preview") {
+    return (
+      <div className="caide-preview-viewport h-full overflow-hidden">
+        {isNodeMissing ? (
+          <PreviewNodeRequirement
+            appName={app?.name}
+            nodeDownloadUrl={nodeSystemInfo?.nodeDownloadUrl}
+            managedNodeSupported={nodeSystemInfo?.managedNodeSupported ?? false}
+            autoInstallManagedNode={
+              !!settings &&
+              !settings.disablePreviewNodeAutoInstall &&
+              (nodeSystemInfo?.managedNodeSupported ?? false)
+            }
+            isCheckFailed={nodeCheckFailed}
+            onCheckAgain={async () => {
+              await ipc.system.reloadEnvPath();
+              await refetchNodeStatus();
+            }}
+            onInstallManagedNode={async () => {
+              await ipc.system.installManagedNode();
+              await ipc.system.reloadEnvPath();
+              await queryClient.invalidateQueries({
+                queryKey: queryKeys.settings.user,
+              });
+              await refetchNodeStatus();
+            }}
+            onCancelManagedNodeInstall={async () => {
+              await ipc.system.cancelManagedNodeInstall();
+              await updateSettings({ disablePreviewNodeAutoInstall: true });
+            }}
+            onSelectNodeFolder={async () => {
+              const result = await ipc.system.selectNodeFolder();
+              if (result.path) {
+                await updateSettings({ customNodePath: result.path });
+                await ipc.system.reloadEnvPath();
+                await refetchNodeStatus();
+              }
+            }}
+          />
+        ) : (
+          <PreviewIframe key={key} loading={loading} showChrome={false} />
+        )}
+      </div>
+    );
+  }
+
+  if (stageOnly && previewMode !== "preview") {
+    return (
+      <div className="flex h-full flex-col overflow-hidden">
+        <PackageManagerWarningBanner />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {previewMode === "code" ? (
+            <CodeView loading={loading} app={app ?? null} />
+          ) : previewMode === "configure" ? (
+            <ConfigurePanel />
+          ) : previewMode === "publish" ? (
+            <PublishPanel />
+          ) : previewMode === "security" ? (
+            <SecurityPanel />
+          ) : previewMode === "tests" ? (
+            <TestsPanel />
+          ) : previewMode === "plan" ? (
+            <PlanPanel />
+          ) : (
+            <Problems />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -330,7 +407,9 @@ function PreviewNodeRequirement({
   // Quietly re-check for Node.js while this state is visible so the preview
   // starts on its own the moment the installer finishes — no click required.
   const checkAgainRef = useRef(onCheckAgain);
-  checkAgainRef.current = onCheckAgain;
+  useEffect(() => {
+    checkAgainRef.current = onCheckAgain;
+  }, [onCheckAgain]);
   const isPollInFlightRef = useRef(false);
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -365,7 +444,7 @@ function PreviewNodeRequirement({
       if (isManagedNodeInstallCancelError(error)) {
         return;
       }
-      showError(error.message ?? "Failed to install Dyad-managed Node.js");
+      showError(error.message ?? "Failed to install CAIDE-managed Node.js");
     } finally {
       setIsInstallingManagedNode(false);
     }
@@ -440,7 +519,7 @@ function PreviewNodeRequirement({
                     Installing Node.js
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-foreground/80">
-                    Dyad is setting up a private Node.js runtime for previews.
+                    CAIDE is setting up a private Node.js runtime for previews.
                   </p>
                   <div className="mt-4">
                     <div className="h-2 overflow-hidden rounded-full bg-(--background-darker)">
@@ -522,7 +601,7 @@ function PreviewNodeRequirement({
               {isCheckFailed && (
                 <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
                   <AlertCircle className="mr-1.5 inline size-3.5 align-[-2px]" />
-                  Dyad couldn't check for Node.js. It will keep trying.
+                  CAIDE couldn't check for Node.js. It will keep trying.
                 </p>
               )}
 

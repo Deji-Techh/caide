@@ -108,9 +108,10 @@ describe("buildMcpAutoApprove", () => {
     expect(autoApprove).toBeUndefined();
   });
 
-  it("builds an auto-approve callback for Pro non-free turns when enabled", () => {
+  it("builds an auto-approve callback without a gateway subscription", () => {
     const autoApprove = buildMcpAutoApprove({
       ...baseParams,
+      isDyadPro: false,
       freeModelMode: false,
     });
 

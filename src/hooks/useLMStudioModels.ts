@@ -16,7 +16,7 @@ export function useLocalLMSModels() {
   const loadModels = useCallback(async () => {
     const result = await refetch();
     if (result.error) {
-      console.error("Error loading local LMStudio models:", result.error);
+      console.debug("LM Studio is not available locally:", result.error);
       return [];
     }
     return result.data ?? [];

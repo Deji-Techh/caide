@@ -3,6 +3,7 @@ import { defineContract, createClient } from "../contracts/core";
 import { UserSettingsSchema } from "../../lib/schemas";
 
 export const ProviderApiKeyValidationProviderSchema = z.enum([
+  "deepseek",
   "google",
   "openrouter",
   "auto",

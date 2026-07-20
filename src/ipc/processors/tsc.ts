@@ -18,6 +18,7 @@ import {
 } from "../utils/dyad_tag_parser";
 import { getTypeScriptCachePath } from "@/paths/paths";
 import { typescriptUtilityProcessScheduler } from "./typescript_utility_process_scheduler";
+import { scanMobileUiResponse } from "../utils/mobile_ui_quality";
 
 const logger = log.scope("tsc");
 
@@ -148,9 +149,14 @@ export async function generateProblemReport({
   fullResponse: string;
   appPath: string;
 }): Promise<ProblemReport> {
-  return typescriptUtilityProcessScheduler.runExclusive("tsc", () =>
-    runProblemReportWorker({ fullResponse, appPath }),
+  const report = await typescriptUtilityProcessScheduler.runExclusive(
+    "tsc",
+    () => runProblemReportWorker({ fullResponse, appPath }),
   );
+
+  return {
+    problems: [...report.problems, ...scanMobileUiResponse(fullResponse)],
+  };
 }
 
 function runProblemReportWorker({

@@ -91,6 +91,7 @@ describe("runExploreCodeSubagent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.readSettings.mockReturnValue({
+      selectedModel: { provider: "openai", name: "gpt-5.4-mini" },
       enableDyadPro: true,
       providerSettings: {
         auto: {
@@ -783,14 +784,20 @@ describe("runExploreCodeSubagent", () => {
     );
   });
 
-  it("fails clearly when Dyad Pro is unavailable", async () => {
-    mocks.readSettings.mockReturnValue({ enableDyadPro: false });
-    await expect(
-      runExploreCodeSubagent({
-        args: { query: "widget save flow", intent: "locate" },
-        ctx: createMockContext(),
-      }),
-    ).rejects.toThrow(/Dyad Pro/);
+  it("uses the selected provider when CAIDE Gateway is unavailable", async () => {
+    const selectedModel = { provider: "deepseek", name: "deepseek-v4" };
+    mocks.readSettings.mockReturnValue({
+      selectedModel,
+      enableDyadPro: false,
+    });
+    await runExploreCodeSubagent({
+      args: { query: "widget save flow", intent: "locate" },
+      ctx: createMockContext(),
+    });
+    expect(mocks.getModelClient).toHaveBeenCalledWith(
+      selectedModel,
+      expect.objectContaining({ enableDyadPro: false }),
+    );
   });
 
   it("keeps benchmark-derived domain literals out of production explorer code", async () => {

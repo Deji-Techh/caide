@@ -32,7 +32,7 @@ function getAvailableUpgrades(): Omit<AppUpgrade, "isNeeded">[] {
       id: "component-tagger",
       title: "Enable select component to edit",
       description:
-        "Installs the Dyad component tagger Vite plugin and its dependencies.",
+        "Installs the CAIDE component tagger Vite plugin and its dependencies.",
       manualUpgradeUrl: "https://dyad.sh/docs/upgrades/select-component",
     },
     {

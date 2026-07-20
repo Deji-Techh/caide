@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  Archive,
+  ArrowLeft,
   CheckSquare,
+  Database,
   FolderPlus,
   Loader2,
   Plus,
@@ -10,7 +13,7 @@ import {
 } from "lucide-react";
 import { useAtom, useSetAtom } from "jotai";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/ui/back-button";
+import { ImportAppButton } from "@/components/ImportAppButton";
 import {
   Dialog,
   DialogContent,
@@ -184,51 +187,50 @@ export default function AppsPage() {
   };
 
   return (
-    <div className="min-h-screen w-full px-8 py-4">
-      <div className="max-w-6xl mx-auto pb-12">
-        <BackButton />
+    <main className="caide-backup-library">
+      <header className="caide-backup-topbar">
+        <button type="button" onClick={() => navigate({ to: "/" })}>
+          <ArrowLeft size={15} /> Overview
+        </button>
+        <div>
+          <span>CAIDE</span>
+          <strong>PROJECT BACKUPS</strong>
+        </div>
+        <ImportAppButton
+          className="caide-backup-import"
+          variant="outline"
+          size="sm"
+        />
+      </header>
 
-        <header className="mb-6 flex items-end justify-between gap-3">
-          <h1 className="text-3xl font-bold">Apps</h1>
-          {view === "apps" && !isSelectionMode && apps.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleEnterSelectionMode}
-              data-testid="apps-gallery-select-button"
-              className="flex items-center gap-2"
-            >
-              <CheckSquare className="h-4 w-4" />
-              Select
-            </Button>
-          )}
+      <section className="caide-backup-content">
+        <header className="caide-backup-heading">
+          <div>
+            <span>LOCAL PROJECT LIBRARY</span>
+            <h1>Open project backup</h1>
+            <p>
+              Resume a local workspace, organize related builds, or import an
+              external project folder.
+            </p>
+          </div>
+          <div
+            className="caide-backup-metrics"
+            aria-label="Project library summary"
+          >
+            <span>
+              <Archive size={14} />
+              <strong>{apps.length}</strong>
+              <small>projects</small>
+            </span>
+            <span>
+              <Database size={14} />
+              <strong>{collections.length}</strong>
+              <small>collections</small>
+            </span>
+          </div>
         </header>
 
-        <div className="mb-4">
-          <div
-            className={cn(
-              "relative flex items-center border border-border rounded-2xl bg-(--background-lighter) transition-colors duration-200",
-              "hover:border-primary/30",
-              "focus-within:border-primary/30 focus-within:ring-1 focus-within:ring-primary/20",
-            )}
-          >
-            <Search className="absolute left-4 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder={
-                view === "apps" ? "Search apps..." : "Search collections..."
-              }
-              aria-label={
-                view === "apps" ? "Search apps" : "Search collections"
-              }
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent py-3 pl-11 pr-4 text-sm outline-none placeholder:text-muted-foreground"
-            />
-          </div>
-        </div>
-
-        <div className="mb-4">
+        <div className="caide-backup-toolbar">
           <AppsViewTabs
             value={view}
             onChange={(next) => {
@@ -241,12 +243,44 @@ export default function AppsPage() {
               }
             }}
           />
+          <div
+            className={cn(
+              "caide-backup-search",
+              "focus-within:border-primary/50",
+            )}
+          >
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder={
+                view === "apps" ? "Search projects" : "Search collections"
+              }
+              aria-label={
+                view === "apps" ? "Search apps" : "Search collections"
+              }
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <kbd>CTRL K</kbd>
+          </div>
+          {view === "apps" && !isSelectionMode && apps.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEnterSelectionMode}
+              data-testid="apps-gallery-select-button"
+              className="flex min-h-10 items-center gap-2 rounded-sm"
+            >
+              <CheckSquare className="h-4 w-4" />
+              Select
+            </Button>
+          )}
         </div>
 
         {view === "apps" && isSelectionMode && (
           <div
             data-testid="apps-gallery-selection-toolbar"
-            className="mb-4 flex items-center justify-between gap-2 rounded-xl border border-border bg-(--background-lighter) px-3 py-2"
+            className="mb-3 flex items-center justify-between gap-2 border border-border bg-[#101114] px-3 py-2"
           >
             <div className="text-sm text-muted-foreground">
               <span data-testid="apps-gallery-selection-count">
@@ -317,10 +351,7 @@ export default function AppsPage() {
               )}
             </div>
           ) : (
-            <div
-              data-testid="apps-grid"
-              className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4"
-            >
+            <div data-testid="apps-grid" className="caide-backup-project-list">
               {filteredApps.map((app) => (
                 <AppShowcaseCard
                   key={app.id}
@@ -330,6 +361,7 @@ export default function AppsPage() {
                   isSelectionMode={isSelectionMode}
                   isSelected={selectedAppIds.has(app.id)}
                   onToggleSelect={handleToggleSelect}
+                  variant="archive"
                 />
               ))}
             </div>
@@ -402,7 +434,7 @@ export default function AppsPage() {
             )}
           </>
         )}
-      </div>
+      </section>
 
       <Dialog
         open={isBulkDeleteDialogOpen}
@@ -501,6 +533,6 @@ export default function AppsPage() {
           setDeletingCollection(null);
         }}
       />
-    </div>
+    </main>
   );
 }

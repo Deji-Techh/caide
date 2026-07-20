@@ -1,4 +1,4 @@
-import { isDyadProEnabled, type LargeLanguageModel } from "@/lib/schemas";
+import { type LargeLanguageModel } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,20 +18,19 @@ import { useLocalModels } from "@/hooks/useLocalModels";
 import { useLocalLMSModels } from "@/hooks/useLMStudioModels";
 import { useLanguageModelsByProviders } from "@/hooks/useLanguageModelsByProviders";
 
-import { ipc, type LanguageModel, LocalModel } from "@/ipc/types";
+import { type LanguageModel, LocalModel } from "@/ipc/types";
 import { useLanguageModelProviders } from "@/hooks/useLanguageModelProviders";
 import { useSettings } from "@/hooks/useSettings";
 import { PriceBadge } from "@/components/PriceBadge";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
-import { useTrialModelRestriction } from "@/hooks/useTrialModelRestriction";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { CheckIcon, LockIcon, SparklesIcon } from "lucide-react";
+import { CheckIcon, LockIcon } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import {
   Dialog,
@@ -44,7 +43,6 @@ import { providerSettingsRoute } from "@/routes/settings/providers/$provider";
 import { useFreeModelQuota } from "@/hooks/useFreeModelQuota";
 import {
   FREE_PRO_MODEL_FALLBACK_CHAT_MODE,
-  FREE_PRO_MODEL_NAME,
   isFreeProBuildModeCombination,
   isFreeProLanguageModel,
   isFreeProModel,
@@ -53,17 +51,15 @@ import { useRouterState } from "@tanstack/react-router";
 import { useChatMode } from "@/hooks/useChatMode";
 
 const SCROLL_AREA_CLASS = "max-h-100 overflow-y-auto scrollbar-on-hover";
+const PINNED_PROVIDER_IDS = ["chatgpt", "deepseek"] as const;
 
 const PILL_CLASS =
   "text-[10px] leading-none px-1.5 py-1 rounded-full font-medium";
 
-const PRO_PILL_CLASS = cn(
+const GATEWAY_PILL_CLASS = cn(
   PILL_CLASS,
   "bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 bg-[length:200%_100%] animate-[shimmer_5s_ease-in-out_infinite] text-white",
 );
-
-const DYAD_PRO_UPGRADE_BASE_URL =
-  "https://www.dyad.sh/pro?utm_source=dyad-app&utm_medium=app";
 
 type Tier = { label: string; caption: string; min: number; max: number };
 const PRICE_TIERS: Tier[] = [
@@ -98,7 +94,11 @@ function tierFor(dollarSigns: number | undefined): Tier {
   );
 }
 
-export function ModelPicker() {
+export function ModelPicker({
+  variant = "compact",
+}: {
+  variant?: "compact" | "overview";
+} = {}) {
   const { settings, updateSettings, loading: settingsLoading } = useSettings();
   const routerState = useRouterState();
   const isChatRoute = routerState.location.pathname === "/chat";
@@ -109,7 +109,7 @@ export function ModelPicker() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const posthog = usePostHog();
-  const { isTrial, isLoadingTrialStatus } = useTrialModelRestriction();
+  const isTrial = false;
   const freeModelQuota = useFreeModelQuota();
   const onModelSelect = async (model: LargeLanguageModel) => {
     posthog.capture("model-picker:select", {
@@ -141,7 +141,7 @@ export function ModelPicker() {
     setOpen(nextOpen);
     if (nextOpen) {
       posthog.capture("model-picker:open", {
-        isDyadPro: settings ? isDyadProEnabled(settings) : false,
+        isDyadPro: false,
       });
     }
   };
@@ -157,7 +157,7 @@ export function ModelPicker() {
   } = useLanguageModelProviders();
 
   const loading = modelsByProvidersLoading || providersLoading;
-  const dyadProEnabled = settings ? isDyadProEnabled(settings) : false;
+  const dyadProEnabled = false;
   // Ollama Models Hook
   const {
     models: ollamaModels,
@@ -221,21 +221,7 @@ export function ModelPicker() {
   };
 
   // Get auto provider models (if any)
-  const autoModels =
-    !loading && modelsByProviders && modelsByProviders["auto"]
-      ? modelsByProviders["auto"].filter((model) => {
-          if (model.apiName === FREE_PRO_MODEL_NAME) {
-            return dyadProEnabled && !isTrial && !isLoadingTrialStatus;
-          }
-          if (settings && !dyadProEnabled && model.apiName === "value") {
-            return false;
-          }
-          if (settings && dyadProEnabled && model.apiName === "free") {
-            return false;
-          }
-          return true;
-        })
-      : [];
+  const autoModels: LanguageModel[] = [];
 
   // Determine availability of local models
   const hasOllamaModels =
@@ -251,9 +237,17 @@ export function ModelPicker() {
   // Split providers into primary and secondary groups (excluding auto)
   const providerEntries =
     !loading && modelsByProviders
-      ? Object.entries(modelsByProviders).filter(
-          ([providerId]) => providerId !== "auto",
-        )
+      ? Object.entries(modelsByProviders)
+          .filter(([providerId]) => providerId !== "auto")
+          .map(
+            ([providerId, models]) =>
+              [
+                providerId,
+                models.filter(
+                  (model) => !isFreeProLanguageModel(providerId, model.apiName),
+                ),
+              ] as [string, LanguageModel[]],
+          )
       : [];
   const primaryProviderEntries = providerEntries.filter(
     ([providerId, models]) => {
@@ -272,12 +266,11 @@ export function ModelPicker() {
     ...primaryProviders,
     ...secondaryProviders,
   ];
-  const flatModelEntries = primaryProviderEntries
+  const allFlatModelEntries = primaryProviderEntries
     .flatMap(([providerId, models], providerIndex) =>
       models.flatMap((model, modelIndex) => {
-        // Free OpenRouter models stay out of the flat tier list: Pro routes to
-        // paid models, and non-Pro users reach them via the top-level Free row
-        // or the OpenRouter submenu under "More models".
+        // Free OpenRouter models stay in the provider submenu and top-level
+        // Free row instead of appearing in cost-ranked groups.
         if (isFreeOpenRouterModelName(model.apiName)) {
           return [];
         }
@@ -295,19 +288,33 @@ export function ModelPicker() {
       }
       return a.modelIndex - b.modelIndex;
     });
+  const pinnedModelEntries = PINNED_PROVIDER_IDS.flatMap((providerId) => {
+    const models = modelsByProviders?.[providerId] ?? [];
+    const model = models.find(
+      (candidate) => !isFreeProLanguageModel(providerId, candidate.apiName),
+    );
+    return model ? [{ providerId, model }] : [];
+  });
+  const flatModelEntries = allFlatModelEntries
+    .filter(
+      ({ providerId }) =>
+        !PINNED_PROVIDER_IDS.includes(
+          providerId as (typeof PINNED_PROVIDER_IDS)[number],
+        ),
+    )
+    .slice(0, 6);
 
   const getProviderDisplayName = (providerId: string) => {
     const provider = providers?.find((p) => p.id === providerId);
     return provider?.name ?? providerId;
   };
 
-  // Non-Pro users can still use any cloud model with their own API key, so a
-  // model is only locked when neither Dyad Pro nor a provider key can run it.
-  // Custom and local providers are never locked: Pro doesn't unlock those.
+  // Cloud models use the user's configured provider key. Custom and local
+  // providers are available directly.
   // While settings/env vars are still loading we can't tell whether a key
   // exists, so fail open rather than flash a lock at env-var-configured users.
   const isModelLocked = (providerId: string) => {
-    if (settingsLoading || dyadProEnabled || providerId === "auto") {
+    if (settingsLoading || providerId === "auto") {
       return false;
     }
     const provider = providers?.find((p) => p.id === providerId);
@@ -321,31 +328,6 @@ export function ModelPicker() {
     });
     setOpen(false);
     setUnlockTarget({ providerId, model });
-  };
-
-  const handleUnlockAllClick = () => {
-    posthog.capture("model-picker:upgrade-click", {
-      source: "unlock-all-footer",
-    });
-    ipc.system.openExternalUrl(
-      `${DYAD_PRO_UPGRADE_BASE_URL}&utm_campaign=model-picker-unlock-all`,
-    );
-    setOpen(false);
-  };
-
-  const handleUnlockDialogUpgradeClick = () => {
-    if (!unlockTarget) {
-      return;
-    }
-    posthog.capture("model-picker:upgrade-click", {
-      source: "locked-model-dialog",
-      provider: unlockTarget.providerId,
-      model: unlockTarget.model.apiName,
-    });
-    ipc.system.openExternalUrl(
-      `${DYAD_PRO_UPGRADE_BASE_URL}&utm_campaign=model-picker-locked-model`,
-    );
-    setUnlockTarget(null);
   };
 
   const handleUnlockDialogOwnKeyClick = () => {
@@ -363,9 +345,6 @@ export function ModelPicker() {
     });
   };
 
-  const unlockTargetIsFreeModel = unlockTarget
-    ? isFreeOpenRouterModelName(unlockTarget.model.apiName)
-    : false;
   const unlockTargetProviderName = unlockTarget
     ? getProviderDisplayName(unlockTarget.providerId)
     : "";
@@ -439,9 +418,11 @@ export function ModelPicker() {
         data-locked={isLocked || undefined}
         aria-label={
           isLocked
-            ? isFreeProviderRow
-              ? `${model.displayName} — requires an API key from ${getProviderDisplayName(providerId)}`
-              : `${model.displayName} — requires Dyad Pro or an API key from ${getProviderDisplayName(providerId)}`
+            ? providerId === "chatgpt"
+              ? `${model.displayName} — connect your ChatGPT account`
+              : isFreeProviderRow
+                ? `${model.displayName} — requires an API key from ${getProviderDisplayName(providerId)}`
+                : `${model.displayName} — connect an API key from ${getProviderDisplayName(providerId)}`
             : undefined
         }
         disabled={isFreeProRow && freeModelQuota.isQuotaExceeded}
@@ -577,7 +558,9 @@ export function ModelPicker() {
               <span>{providerDisplayName}</span>
               {provider?.type === "cloud" &&
                 !provider?.secondary &&
-                dyadProEnabled && <span className={PRO_PILL_CLASS}>Pro</span>}
+                dyadProEnabled && (
+                  <span className={GATEWAY_PILL_CLASS}>Gateway</span>
+                )}
               {provider?.type === "custom" && (
                 <span className={cn(PILL_CLASS, "bg-amber-500 text-white")}>
                   Custom
@@ -606,67 +589,36 @@ export function ModelPicker() {
     <>
       <DropdownMenu open={open} onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger
-          className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border-none bg-transparent shadow-none text-foreground/80 hover:text-foreground hover:bg-muted/60 h-7 max-w-[130px] px-2 gap-1.5 cursor-pointer"
+          className={
+            variant === "overview"
+              ? "caide-model-button"
+              : "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border-none bg-transparent shadow-none text-foreground/80 hover:text-foreground hover:bg-muted/60 h-7 max-w-[130px] px-2 gap-1.5 cursor-pointer"
+          }
           data-testid="model-picker"
           title={modelDisplayName}
         >
-          <span className="truncate">
-            {modelDisplayName === "Auto" && (
-              <>
-                <span className="text-xs text-muted-foreground/70">
-                  Model:
-                </span>{" "}
-              </>
-            )}
-            {modelDisplayName}
-          </span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-[17rem]" align="start">
-          {/* Trial user upgrade banner */}
-          {isTrial && (
+          {variant === "overview" ? (
             <>
-              <div className="px-2 py-3 bg-gradient-to-r from-indigo-50 to-sky-50 dark:from-indigo-950/50 dark:to-sky-950/50">
-                <p className="text-sm text-indigo-700 dark:text-indigo-300 mb-2">
-                  Upgrade from Dyad Pro trial to unlock more models.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-700 text-white hover:text-white border-indigo-600"
-                  onClick={() => {
-                    ipc.system.openExternalUrl(
-                      "https://academy.dyad.sh/subscription",
-                    );
-                    setOpen(false);
-                  }}
-                >
-                  Upgrade to Dyad Pro
-                </Button>
-              </div>
-              <DropdownMenuSeparator />
-              {/* Trial users only see the auto model */}
-              <DropdownMenuItem
-                className="relative py-2 bg-primary/8 before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-r-full before:bg-primary"
-                onClick={() => {
-                  void onModelSelect({ name: "auto", provider: "auto" });
-                  setOpen(false);
-                }}
-              >
-                <div className="flex justify-between items-center w-full gap-2">
-                  <span className="text-[13px]">Auto</span>
-                  <span className="flex items-center gap-1.5">
-                    <span
-                      className={cn(PILL_CLASS, "bg-primary/10 text-primary")}
-                    >
-                      Trial
-                    </span>
-                    <CheckIcon className="size-3.5 text-primary shrink-0" />
-                  </span>
-                </div>
-              </DropdownMenuItem>
+              <span>ACTIVE MODEL</span>
+              <strong>{modelDisplayName}</strong>
             </>
+          ) : (
+            <span className="truncate">
+              {modelDisplayName === "Auto" && (
+                <>
+                  <span className="text-xs text-muted-foreground/70">
+                    Model:
+                  </span>{" "}
+                </>
+              )}
+              {modelDisplayName}
+            </span>
           )}
-
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          className="max-h-[calc(100vh-120px)] w-[17rem] overflow-y-auto scrollbar-on-hover"
+          align={variant === "overview" ? "end" : "start"}
+        >
           {/* Cloud models - only show for non-trial users */}
           {!isTrial &&
             (loading ? (
@@ -681,6 +633,22 @@ export function ModelPicker() {
             ) : (
               /* Cloud models loaded */
               <>
+                {pinnedModelEntries.length > 0 && (
+                  <>
+                    <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">
+                      Account and direct providers
+                    </DropdownMenuLabel>
+                    {pinnedModelEntries.map(({ providerId, model }) =>
+                      renderCloudModelItem({
+                        providerId,
+                        model,
+                        showProvider: true,
+                        showPrice: false,
+                      }),
+                    )}
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 {/* Auto models at top level if any */}
                 {autoModels.length > 0 && (
                   <>
@@ -737,7 +705,13 @@ export function ModelPicker() {
                       </div>,
                     );
                     entries.forEach(({ providerId, model }) => {
-                      nodes.push(renderCloudModelItem({ providerId, model }));
+                      nodes.push(
+                        renderCloudModelItem({
+                          providerId,
+                          model,
+                          showProvider: true,
+                        }),
+                      );
                     });
                   });
                   return nodes;
@@ -972,25 +946,6 @@ export function ModelPicker() {
               </DropdownMenuSub>
             </>
           )}
-
-          {/* Upgrade footer for non-Pro users */}
-          {!isTrial && !dyadProEnabled && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                data-testid="model-picker-unlock-all"
-                className="px-2 py-2 bg-gradient-to-r from-indigo-50 to-sky-50 dark:from-indigo-950/50 dark:to-sky-950/50 focus:from-indigo-100 focus:to-sky-100 dark:focus:from-indigo-950 dark:focus:to-sky-950"
-                onClick={handleUnlockAllClick}
-              >
-                <div className="flex items-center gap-2 w-full">
-                  <SparklesIcon className="size-3.5 text-indigo-600 dark:text-indigo-300 shrink-0" />
-                  <span className="text-[13px] font-medium text-indigo-700 dark:text-indigo-300">
-                    Unlock all models with Dyad Pro
-                  </span>
-                </div>
-              </DropdownMenuItem>
-            </>
-          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -1007,57 +962,25 @@ export function ModelPicker() {
           className="sm:max-w-md"
           data-testid="unlock-model-dialog"
         >
-          {/* Free models aren't a Pro feature, so don't sell Pro for them —
-              they just need the user's own (free) provider API key. */}
-          {unlockTargetIsFreeModel ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>
-                  Use {unlockTarget?.model.displayName} with your own{" "}
-                  {unlockTargetProviderName} API key
-                </DialogTitle>
-                <DialogDescription>
-                  Free models run through your own {unlockTargetProviderName}{" "}
-                  account. Add an API key in provider settings to use this
-                  model.
-                </DialogDescription>
-              </DialogHeader>
-              <Button
-                className="cursor-pointer w-full"
-                onClick={handleUnlockDialogOwnKeyClick}
-              >
-                Add {unlockTargetProviderName} API key
-              </Button>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle>
-                  Unlock {unlockTarget?.model.displayName} with Dyad Pro
-                </DialogTitle>
-                <DialogDescription>
-                  Dyad Pro gives you {unlockTarget?.model.displayName} and every
-                  other leading AI model with one subscription — no API keys
-                  needed.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex flex-col gap-3">
-                <Button
-                  className="cursor-pointer w-full"
-                  onClick={handleUnlockDialogUpgradeClick}
-                >
-                  Get Dyad Pro
-                </Button>
-                <button
-                  type="button"
-                  className="cursor-pointer text-sm text-primary hover:underline underline-offset-4"
-                  onClick={handleUnlockDialogOwnKeyClick}
-                >
-                  Or use your own {unlockTargetProviderName} API key
-                </button>
-              </div>
-            </>
-          )}
+          <DialogHeader>
+            <DialogTitle>
+              Connect {unlockTargetProviderName} for{" "}
+              {unlockTarget?.model.displayName}
+            </DialogTitle>
+            <DialogDescription>
+              {unlockTarget?.providerId === "chatgpt"
+                ? "Sign in through OpenAI to load the Codex models available with your ChatGPT plan."
+                : `This model runs through your own ${unlockTargetProviderName} API key. Add the credential in provider settings to use it.`}
+            </DialogDescription>
+          </DialogHeader>
+          <Button
+            className="cursor-pointer w-full"
+            onClick={handleUnlockDialogOwnKeyClick}
+          >
+            {unlockTarget?.providerId === "chatgpt"
+              ? "Continue to ChatGPT settings"
+              : `Add ${unlockTargetProviderName} API key`}
+          </Button>
         </DialogContent>
       </Dialog>
     </>

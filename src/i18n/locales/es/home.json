@@ -66,10 +66,10 @@
   "deleteItemTitle": "Eliminar {{itemType}}",
   "deleteItemConfirmation": "¿Estás seguro de que quieres eliminar \"{{itemName}}\"? Esta acción no se puede deshacer.",
   "proBanner": {
-    "manageDyadPro": "Gestionar Dyad Pro",
-    "alreadyHavePro": "¿Ya tienes Dyad Pro? Añade tu clave",
+    "manageDyadPro": "Gestionar CAIDE Gateway",
+    "alreadyHavePro": "¿Ya tienes CAIDE Gateway? Añade tu clave",
     "accessLeadingModels": "Accede a los modelos líderes de IA con un solo plan",
-    "getDyadPro": "Consigue Dyad Pro",
+    "getDyadPro": "Consigue CAIDE Gateway",
     "upTo3xCheaper": "Hasta 3 veces más barato",
     "byUsingSmartContext": "al usar Smart Context"
   },
@@ -95,7 +95,7 @@
     "notSureWatchVideo": "¿No estás seguro de qué hacer? Mira el video de Primeros Pasos arriba",
     "setupGeminiApiKey": "Configurar Clave API de Google Gemini",
     "setupOpenRouterApiKey": "Configurar Clave API de OpenRouter",
-    "setupDyadPro": "Configurar Dyad Pro",
+    "setupDyadPro": "Configurar CAIDE Gateway",
     "accessAllModels": "Accede a todos los modelos de IA con un solo plan",
     "setupOtherProviders": "Configurar otros proveedores de IA",
     "openAiAnthropicMore": "OpenAI, Anthropic y más",
@@ -145,7 +145,7 @@
   "help": {
     "needHelp": "¿Necesitas ayuda con Dyad?",
     "helpOptions": "Si necesitas ayuda o quieres reportar un problema, aquí hay algunas opciones:",
-    "chatWithHelpBot": "Chatear con el bot de ayuda de Dyad (Pro)",
+    "chatWithHelpBot": "Chatear con el bot de ayuda de CAIDE",
     "helpBotDescription": "Abre un asistente de chat de ayuda en la aplicación que busca en la documentación de Dyad.",
     "openDocs": "Abrir Documentación",
     "openDocsDescription": "Obtén ayuda con preguntas y problemas comunes.",
@@ -179,7 +179,7 @@
     "nodeVersion": "Versión de Node:",
     "pnpmVersion": "Versión de PNPM:",
     "nodePath": "Ruta de Node:",
-    "proUserId": "ID de Usuario Pro:",
+    "proUserId": "ID de usuario de CAIDE:",
     "telemetryId": "ID de Telemetría:",
     "model": "Modelo:",
     "logs": "Registros",
@@ -342,9 +342,9 @@
       "redo": "Rehacer",
       "addToChat": "Añadir al Chat",
       "closeAnnotator": "Cerrar Anotador",
-      "proFeatureTitle": "El Anotador es una Función Pro",
-      "proFeatureDescription": "Desbloquea la capacidad de anotar capturas de pantalla y mejora tu flujo de trabajo con Dyad Pro.",
-      "getDyadPro": "Consigue Dyad Pro"
+      "proFeatureTitle": "Editor visual",
+      "proFeatureDescription": "Inspecciona y edita componentes directamente en la vista previa de la aplicación.",
+      "getDyadPro": "Consigue CAIDE Gateway"
     }
   },
   "integrations": {

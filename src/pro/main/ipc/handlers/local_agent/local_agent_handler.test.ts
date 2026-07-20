@@ -346,57 +346,35 @@ describe("handleLocalAgentStream", () => {
     vi.mocked(streamText).mockClear();
   });
 
-  describe("Pro status validation", () => {
-    it("should send error when Dyad Pro is not enabled", async () => {
-      // Arrange
-      const { event, getMessagesByChannel } = createFakeEvent();
-      mockSettings = buildTestSettings({ enableDyadPro: false });
+  describe("Free capability access", () => {
+    it.each([
+      { enableDyadPro: false, hasApiKey: false },
+      { enableDyadPro: true, hasApiKey: false },
+    ])(
+      "does not gate the local agent behind legacy Pro settings",
+      async (settings) => {
+        const { event, getMessagesByChannel } = createFakeEvent();
+        mockSettings = buildTestSettings(settings);
+        mockChatData = buildTestChat();
+        mockStreamResult = createFakeStream([
+          { type: "text-delta", text: "Agent ready" },
+        ]);
 
-      // Act
-      await handleLocalAgentStream(
-        event,
-        { chatId: 1, prompt: "test" },
-        new AbortController(),
-        {
-          placeholderMessageId: 10,
-          systemPrompt: "You are helpful",
-          dyadRequestId,
-        },
-      );
+        await handleLocalAgentStream(
+          event,
+          { chatId: 1, prompt: "test" },
+          new AbortController(),
+          {
+            placeholderMessageId: 10,
+            systemPrompt: "You are helpful",
+            dyadRequestId,
+          },
+        );
 
-      // Assert
-      const errorMessages = getMessagesByChannel("chat:response:error");
-      expect(errorMessages).toHaveLength(1);
-      expect(errorMessages[0].args[0]).toMatchObject({
-        chatId: 1,
-        error: expect.stringContaining("Agent v2 requires Dyad Pro"),
-      });
-    });
-
-    it("should send error when API key is missing even if Pro is enabled", async () => {
-      // Arrange
-      const { event, getMessagesByChannel } = createFakeEvent();
-      mockSettings = buildTestSettings({
-        enableDyadPro: true,
-        hasApiKey: false,
-      });
-
-      // Act
-      await handleLocalAgentStream(
-        event,
-        { chatId: 1, prompt: "test" },
-        new AbortController(),
-        {
-          placeholderMessageId: 10,
-          systemPrompt: "You are helpful",
-          dyadRequestId,
-        },
-      );
-
-      // Assert
-      const errorMessages = getMessagesByChannel("chat:response:error");
-      expect(errorMessages).toHaveLength(1);
-    });
+        expect(getMessagesByChannel("chat:response:error")).toHaveLength(0);
+        expect(streamText).toHaveBeenCalled();
+      },
+    );
   });
 
   describe("Chat lookup", () => {

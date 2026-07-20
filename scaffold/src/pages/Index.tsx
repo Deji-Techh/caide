@@ -1,18 +1,16 @@
-// Update this page (the content is just a fallback if you fail to update the page)
-
-import { MadeWithDyad } from "@/components/made-with-dyad";
-
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">
-          Start building your amazing project here!
+    <main className="flex min-h-[100dvh] w-full items-center justify-center overflow-x-hidden bg-neutral-950 px-6 text-neutral-100">
+      <section className="w-full max-w-sm border-l-2 border-emerald-400 pl-5">
+        <p className="text-xs font-semibold uppercase text-emerald-400">
+          Project ready
         </p>
-      </div>
-      <MadeWithDyad />
-    </div>
+        <h1 className="mt-2 text-2xl font-semibold">Build the first screen</h1>
+        <p className="mt-2 text-sm leading-6 text-neutral-400">
+          Describe the product, users, and core workflow in the builder.
+        </p>
+      </section>
+    </main>
   );
 };
 

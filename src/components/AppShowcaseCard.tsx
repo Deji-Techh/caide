@@ -10,6 +10,7 @@ interface AppShowcaseCardProps {
   isSelectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (appId: number) => void;
+  variant?: "showcase" | "archive";
 }
 
 function getInitial(name: string): string {
@@ -28,6 +29,7 @@ export function AppShowcaseCard({
   isSelectionMode = false,
   isSelected = false,
   onToggleSelect,
+  variant = "showcase",
 }: AppShowcaseCardProps) {
   const [imageBroken, setImageBroken] = useState(false);
   useEffect(() => {
@@ -42,6 +44,70 @@ export function AppShowcaseCard({
       onClick(app.id);
     }
   };
+
+  if (variant === "archive") {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        title={`Open ${app.name}`}
+        data-testid={`app-showcase-card-${app.name}`}
+        data-selected={isSelectionMode ? isSelected : undefined}
+        role={isSelectionMode ? "checkbox" : undefined}
+        aria-checked={isSelectionMode ? isSelected : undefined}
+        className={cn(
+          "group grid min-h-[82px] w-full grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-4 overflow-hidden border-b border-border bg-transparent px-3 text-left transition-colors hover:bg-white/[0.035] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary",
+          isSelectionMode && isSelected && "bg-primary/10",
+        )}
+      >
+        <span className="relative block h-12 w-[72px] overflow-hidden rounded-sm border border-border bg-muted">
+          {showImage ? (
+            <img
+              src={thumbnailUrl!}
+              alt=""
+              loading="lazy"
+              onError={() => setImageBroken(true)}
+              className="h-full w-full object-cover object-top"
+            />
+          ) : (
+            <span className="grid h-full w-full place-items-center bg-[#d8d8d3] text-sm font-bold text-[#111214]">
+              {getInitial(app.name)}
+            </span>
+          )}
+          {isSelectionMode && (
+            <span className="absolute left-1 top-1 grid size-5 place-items-center rounded-sm bg-background/95">
+              <Checkbox
+                checked={isSelected}
+                tabIndex={-1}
+                aria-hidden="true"
+                data-testid={`app-showcase-card-${app.name}-checkbox`}
+              />
+            </span>
+          )}
+        </span>
+        <span className="min-w-0">
+          <strong className="block truncate text-xs font-semibold text-foreground">
+            {app.name}
+          </strong>
+          <small className="mt-1 block truncate font-mono text-[9px] text-muted-foreground">
+            {app.resolvedPath ?? app.path}
+          </small>
+        </span>
+        <span className="min-w-24 text-right">
+          <small className="block font-mono text-[8px] uppercase text-muted-foreground">
+            Updated
+          </small>
+          <strong className="mt-1 block text-[10px] font-medium text-foreground/75">
+            {new Intl.DateTimeFormat(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }).format(app.updatedAt)}
+          </strong>
+        </span>
+      </button>
+    );
+  }
 
   return (
     <button
