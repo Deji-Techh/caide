@@ -77,7 +77,7 @@ describe("IPC invoke envelopes", () => {
     });
 
     await expect(client.load({})).rejects.toMatchObject({
-      name: "DyadError",
+      name: "CAIDEError",
       kind: DyadErrorKind.NotFound,
       message: "No matching app",
     });

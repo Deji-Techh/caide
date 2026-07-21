@@ -9,9 +9,30 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function readSavedTheme(): Theme | null {
+  try {
+    const storage = window.localStorage;
+    if (typeof storage?.getItem !== "function") return null;
+    return storage.getItem("theme") as Theme | null;
+  } catch {
+    return null;
+  }
+}
+
+function saveTheme(theme: Theme): void {
+  try {
+    const storage = window.localStorage;
+    if (typeof storage?.setItem === "function") {
+      storage.setItem("theme", theme);
+    }
+  } catch {
+    // The selected theme still applies for this session when storage is blocked.
+  }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const savedTheme = localStorage.getItem("theme") as Theme;
+    const savedTheme = readSavedTheme();
     // CAIDE exposes two deliberate visual modes. Older "system" preferences
     // migrate to the neutral grey workspace instead of changing unexpectedly.
     return savedTheme === "light" ? "light" : "dark";
@@ -19,7 +40,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Save theme preference to localStorage
-    localStorage.setItem("theme", theme);
+    saveTheme(theme);
 
     // Handle system theme changes
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");

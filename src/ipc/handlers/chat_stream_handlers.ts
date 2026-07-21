@@ -128,11 +128,7 @@ import {
   isSupabaseConnected,
   isTurboEditsV2Enabled,
 } from "@/lib/schemas";
-import {
-  FREE_PRO_BUILD_MODE_ERROR,
-  isFreeProBuildModeCombination,
-  isFreeProModel,
-} from "@/lib/freeProModel";
+import { isFreeProModel } from "@/lib/freeProModel";
 import { resolveChatModeForTurn } from "./chat_mode_resolution";
 import {
   getFreeAgentQuotaStatus,
@@ -688,14 +684,6 @@ ${componentSnippet}
         ...storedSettings,
         selectedChatMode,
       };
-      if (
-        isFreeProBuildModeCombination(settings.selectedModel, selectedChatMode)
-      ) {
-        throw new DyadError(
-          FREE_PRO_BUILD_MODE_ERROR,
-          DyadErrorKind.Precondition,
-        );
-      }
       const freeModelMode = isFreeProModel(settings.selectedModel);
       const hasImageAttachments = storedAttachments.some((attachment) =>
         attachment.mimeType.startsWith("image/"),
@@ -1431,7 +1419,7 @@ This conversation includes one or more image attachments. When the user uploads 
               "Ask mode local agent stream did not complete successfully",
             );
           }
-          return;
+          return req.chatId;
         }
 
         // Handle plan mode: use local-agent with plan tools only
@@ -1457,7 +1445,7 @@ This conversation includes one or more image attachments. When the user uploads 
             referencedApps: referencedAppsForAgent,
             currentTurnHasOnDiskAttachment: false,
           });
-          return;
+          return req.chatId;
         }
 
         // Handle local-agent mode (Agent v2).
@@ -1480,7 +1468,7 @@ This conversation includes one or more image attachments. When the user uploads 
                   resetTime: quotaStatus.resetTime,
                 }),
               });
-              return;
+              return req.chatId;
             }
           }
 
@@ -1515,7 +1503,7 @@ This conversation includes one or more image attachments. When the user uploads 
             }
           }
 
-          return;
+          return req.chatId;
         }
 
         // Use MCP agent code path if:

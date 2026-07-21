@@ -6,11 +6,11 @@
 
 ## 2. Use When
 
-- 
+-
 
 ## 3. Do Not Use When
 
-- 
+-
 
 ## 4. Semantic Role
 
@@ -27,14 +27,14 @@
 ## 6. Variants
 
 | Variant | Use case | Visual difference | Behavioral difference |
-|---|---|---|---|
-| | | | |
+| ------- | -------- | ----------------- | --------------------- |
+|         |          |                   |                       |
 
 ## 7. Sizes and Density
 
 | Size | Height | Padding | Icon | Context |
-|---|---:|---:|---:|---|
-| | | | | |
+| ---- | -----: | ------: | ---: | ------- |
+|      |        |         |      |         |
 
 ## 8. Content Constraints
 
@@ -47,30 +47,30 @@
 
 ## 9. States
 
-| State | Visual treatment | Behavior | ARIA/state exposure |
-|---|---|---|---|
-| Default | | | |
-| Hover | | | |
-| Focus | | | |
-| Pressed | | | |
-| Selected | | | |
-| Disabled | | | |
-| Loading | | | |
-| Error | | | |
-| Success | | | |
+| State    | Visual treatment | Behavior | ARIA/state exposure |
+| -------- | ---------------- | -------- | ------------------- |
+| Default  |                  |          |                     |
+| Hover    |                  |          |                     |
+| Focus    |                  |          |                     |
+| Pressed  |                  |          |                     |
+| Selected |                  |          |                     |
+| Disabled |                  |          |                     |
+| Loading  |                  |          |                     |
+| Error    |                  |          |                     |
+| Success  |                  |          |                     |
 
 Delete states that do not apply.
 
 ## 10. Keyboard Interaction
 
-| Key | Behavior |
-|---|---|
-| Tab | |
-| Enter | |
-| Space | |
-| Escape | |
-| Arrow keys | |
-| Home/End | |
+| Key        | Behavior |
+| ---------- | -------- |
+| Tab        |          |
+| Enter      |          |
+| Space      |          |
+| Escape     |          |
+| Arrow keys |          |
+| Home/End   |          |
 
 ## 11. Pointer and Touch Interaction
 
@@ -100,8 +100,8 @@ Delete states that do not apply.
 ## 14. Events and API
 
 | Property/Event | Type | Required | Description |
-|---|---|---:|---|
-| | | | |
+| -------------- | ---- | -------: | ----------- |
+|                |      |          |             |
 
 ## 15. Failure and Recovery
 

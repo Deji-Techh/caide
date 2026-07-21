@@ -36,6 +36,22 @@ describe("mobile UI quality scanner", () => {
     ).toEqual([]);
   });
 
+  it("rejects the centered Vite demo root that shrinks mobile apps", () => {
+    const issues = scanMobileUiSource(
+      "src/index.css",
+      `#root { max-width: 1280px; margin: 0 auto; padding: 2rem; }`,
+    );
+    expect(issues[0]?.message).toContain("centered #root max-width");
+  });
+
+  it("rejects document-level flex centering", () => {
+    const issues = scanMobileUiSource(
+      "src/index.css",
+      `body { display: flex; place-items: center; min-width: 320px; }`,
+    );
+    expect(issues[0]?.message).toContain("Document-level centering");
+  });
+
   it("scans only the latest write for a file", () => {
     const issues = scanMobileUiResponse(`
       <dyad-write path="src/App.tsx"><div>Made with Dyad</div></dyad-write>

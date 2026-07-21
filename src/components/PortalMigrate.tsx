@@ -41,7 +41,7 @@ export const PortalMigrate = ({ appId }: PortalMigrateProps) => {
 
   const openDocs = () => {
     ipc.system.openExternalUrl(
-      "https://www.dyad.sh/docs/templates/portal#create-a-database-migration",
+      "https://supabase.com/docs/guides/database/migrations",
     );
   };
 

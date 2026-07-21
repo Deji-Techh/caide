@@ -18,6 +18,12 @@ const WIDE_MIN_WIDTH =
   /min-w-\[(?:4[4-9]\d|[5-9]\d\d|\d{4,})px\]|min-width\s*:\s*(?:4[4-9]\d|[5-9]\d\d|\d{4,})px/i;
 const HORIZONTAL_PAGE_SCROLL =
   /(?:overflow-x-(?:auto|scroll)|overflow-x\s*:\s*(?:auto|scroll))/i;
+const CONSTRAINED_ROOT =
+  /#root\s*\{[^}]*max-width\s*:[^;}]+;?[^}]*margin\s*:\s*0\s+auto|#root\s*\{[^}]*margin\s*:\s*0\s+auto;?[^}]*max-width\s*:/is;
+const CENTERED_DOCUMENT =
+  /body\s*\{[^}]*(?:display\s*:\s*flex[^}]*place-items\s*:\s*center|place-items\s*:\s*center[^}]*display\s*:\s*flex)/is;
+const CONSTRAINED_APP_SHELL =
+  /<(?:main|div)[^>]*className=["'`][^"'`]*(?:min-h-screen|min-h-\[100dvh\]|h-screen)[^"'`]*(?:max-w-(?:xs|sm|md|lg|xl|\[[^\]]+\])[^"'`]*mx-auto|mx-auto[^"'`]*max-w-(?:xs|sm|md|lg|xl|\[[^\]]+\]))/i;
 
 const lineDetails = (content: string, index: number) => {
   const safeIndex = Math.max(0, index);
@@ -108,6 +114,42 @@ export function scanMobileUiSource(file: string, content: string): Problem[] {
         content,
         horizontalScroll,
         "Horizontal page scrolling is not allowed in generated mobile screens. Reflow the content responsively instead.",
+      ),
+    );
+  }
+
+  const constrainedRoot = content.search(CONSTRAINED_ROOT);
+  if (constrainedRoot >= 0) {
+    issues.push(
+      problem(
+        file,
+        content,
+        constrainedRoot,
+        "App viewport is constrained by a centered #root max-width. Remove the Vite demo root constraint so the application fills CAIDE's preview frame.",
+      ),
+    );
+  }
+
+  const centeredDocument = content.search(CENTERED_DOCUMENT);
+  if (centeredDocument >= 0) {
+    issues.push(
+      problem(
+        file,
+        content,
+        centeredDocument,
+        "Document-level centering shrinks the application into a panel. Let body and #root fill the viewport; center only intentional inner content.",
+      ),
+    );
+  }
+
+  const constrainedShell = content.search(CONSTRAINED_APP_SHELL);
+  if (constrainedShell >= 0) {
+    issues.push(
+      problem(
+        file,
+        content,
+        constrainedShell,
+        "The top-level application shell is capped to a narrow centered width. Keep the root full-width and apply max-width only to inner content sections.",
       ),
     );
   }

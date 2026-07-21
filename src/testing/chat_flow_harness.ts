@@ -300,6 +300,7 @@ export async function setupChatFlowHarness(
       },
       selectedChatMode: options.chatMode ?? "build",
       autoApproveChanges: options.autoApprove ?? true,
+      enableAutoFixProblems: false,
       enableNativeGit: options.enableNativeGit ?? true,
       hasRunBefore: true,
       ...options.settings,
@@ -334,7 +335,10 @@ export async function setupChatFlowHarness(
       .returning();
     const [chatRow] = await db
       .insert(chats)
-      .values({ appId: appRow.id })
+      .values({
+        appId: appRow.id,
+        chatMode: options.chatMode ?? "build",
+      })
       .returning();
 
     if (options.registerChatStreamHandlers !== false) {

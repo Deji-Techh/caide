@@ -32,6 +32,7 @@ import {
   type PendingToolConsent,
   agentTodosByChatIdAtom,
   needsFreshPlanChatAtom,
+  doctorRepairRequestAtom,
 } from "@/atoms/chatAtoms";
 import { atom, useAtom, useSetAtom, useAtomValue } from "jotai";
 import { useStreamChat } from "@/hooks/useStreamChat";
@@ -161,6 +162,9 @@ export function ChatInput({ chatId }: { chatId?: number }) {
     resumeQueue,
     clearCompletionFlag,
   } = useStreamChat();
+  const [doctorRepairRequest, setDoctorRepairRequest] = useAtom(
+    doctorRepairRequestAtom,
+  );
   const [showError, setShowError] = useState(true);
   const [isApproving, setIsApproving] = useState(false); // State for approving
   const [isRejecting, setIsRejecting] = useState(false); // State for rejecting
@@ -239,6 +243,43 @@ export function ChatInput({ chatId }: { chatId?: number }) {
   const { checkProblems } = useCheckProblems(appId);
   const { refreshAppIframe } = useRunApp();
   const { navigate } = useRouter();
+
+  useEffect(() => {
+    if (
+      !doctorRepairRequest ||
+      !chatId ||
+      appId === null ||
+      doctorRepairRequest.chatId !== chatId ||
+      doctorRepairRequest.appId !== appId ||
+      isStreaming
+    ) {
+      return;
+    }
+
+    const request = doctorRepairRequest;
+    setDoctorRepairRequest(null);
+    void openPreviewIfSetupRequired(appId);
+    void streamMessage({
+      prompt: request.prompt,
+      chatId,
+      appId,
+      redo: false,
+      requestedChatMode: "local-agent",
+    });
+    posthog.capture("doctor:repair_started", {
+      appId,
+      chatId,
+    });
+  }, [
+    appId,
+    chatId,
+    doctorRepairRequest,
+    isStreaming,
+    openPreviewIfSetupRequired,
+    posthog,
+    setDoctorRepairRequest,
+    streamMessage,
+  ]);
   const setSelectedChatId = useSetAtom(selectedChatIdAtom);
   const { invalidateChats } = useChats(appId);
   const [imageGeneratorOpen, setImageGeneratorOpen] = useState(false);
@@ -435,7 +476,10 @@ export function ChatInput({ chatId }: { chatId?: number }) {
 
   // Track editing state in a ref for unmount cleanup
   const editingQueuedMessageIdRef = useRef(editingQueuedMessageId);
-  editingQueuedMessageIdRef.current = editingQueuedMessageId;
+
+  useEffect(() => {
+    editingQueuedMessageIdRef.current = editingQueuedMessageId;
+  }, [editingQueuedMessageId]);
 
   // Clear editing extras on unmount to avoid leaking state across navigations
   useEffect(() => {

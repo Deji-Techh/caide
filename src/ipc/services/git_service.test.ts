@@ -46,7 +46,7 @@ describe("GitService", () => {
     });
     expect(mocks.gitCommit).toHaveBeenCalledWith({
       path: "/repo",
-      message: "Init Dyad app",
+      message: "Initialize CAIDE app",
     });
     expect(hash).toBe("commit-hash");
   });

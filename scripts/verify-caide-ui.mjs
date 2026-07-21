@@ -354,6 +354,23 @@ try {
       };
     });
 
+    await window.locator("[data-testid=chat-mode-selector]").click();
+    await window.getByText("Doctor", { exact: true }).click();
+    await window.getByRole("heading", { name: "CAIDE Doctor" }).waitFor();
+    await window.getByText("Auditing the entire app").waitFor();
+    await window.waitForTimeout(500);
+    workspace.doctor = await window.evaluate(() => {
+      const dialog = document.querySelector('[data-slot="dialog-content"]');
+      return {
+        width: dialog?.clientWidth ?? 0,
+        scrollWidth: dialog?.scrollWidth ?? 0,
+        stageCount: dialog?.querySelectorAll(".divide-y > div").length ?? 0,
+        hasAnimatedScanner: Boolean(dialog?.querySelector(".animate-spin")),
+      };
+    });
+    await window.screenshot({ path: "/tmp/caide-doctor-running.png" });
+    await window.getByRole("button", { name: "Close", exact: true }).click();
+
     const devicePicker = window.getByRole("button", {
       name: "Preview device",
     });

@@ -14,7 +14,7 @@ export const PROMO_MESSAGES: PromoMessageConfig[] = [
     id: "caide-tools",
     text: "Web research, Smart Context, voice input, and visual editing are ready.",
     cta: "Available",
-    target: { type: "url", url: "https://github.com/dyad-sh/dyad" },
+    target: { type: "url", url: "https://github.com/Deji-Techh/caide" },
     weight: 1,
   },
 ];

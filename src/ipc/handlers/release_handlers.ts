@@ -22,6 +22,7 @@ import { getPackageManagerCommandEnv } from "../utils/socket_firewall";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import { IS_TEST_BUILD } from "../utils/test_utils";
+import { scanMobileUiFiles } from "../utils/mobile_ui_quality";
 
 const logger = log.scope("release_handlers");
 
@@ -54,9 +55,24 @@ async function getAppFiles(appId: number): Promise<string[]> {
       const rel = relative ? `${relative}/${entry}` : entry;
       const stat = await fs.stat(full).catch(() => null);
       if (!stat) continue;
-      if (stat.isDirectory() && !entry.startsWith(".") && entry !== "node_modules") {
+      if (
+        stat.isDirectory() &&
+        !entry.startsWith(".") &&
+        !new Set([
+          "node_modules",
+          "dist",
+          "build",
+          "coverage",
+          "android",
+          "ios",
+        ]).has(entry)
+      ) {
         await walk(full, rel);
-      } else if (stat.isFile() && /\.(ts|tsx|js|jsx|json|css|html)$/i.test(entry)) {
+      } else if (
+        stat.isFile() &&
+        entry !== "package-lock.json" &&
+        /\.(ts|tsx|js|jsx|json|css|html)$/i.test(entry)
+      ) {
         files.push(rel);
       }
     }
@@ -83,8 +99,10 @@ export function registerReleaseHandlers() {
         const syncResult = await syncCapacitor(appPath);
         if (!syncResult.success) return syncResult;
         if (params.target === "android-project") return syncResult;
-        if (params.target === "apk-signed") return buildAndroidApkRelease(appPath);
-        if (params.target === "aab-signed") return buildAndroidAabRelease(appPath);
+        if (params.target === "apk-signed")
+          return buildAndroidApkRelease(appPath);
+        if (params.target === "aab-signed")
+          return buildAndroidAabRelease(appPath);
         return buildAndroidApkDebug(appPath);
       }
       case "ios-project": {
@@ -202,9 +220,7 @@ export function registerReleaseHandlers() {
     const ksPath = path.join(outDir, "caide-upload-keystore.jks");
 
     if (IS_TEST_BUILD) {
-      logger.info(
-        `Test mode: Simulating keystore generation at ${ksPath}`,
-      );
+      logger.info(`Test mode: Simulating keystore generation at ${ksPath}`);
       return {
         keystorePath: ksPath,
         keyAlias: alias,
@@ -240,10 +256,7 @@ export function registerReleaseHandlers() {
   createTypedHandler(releaseContracts.verifyKeystore, async (_, params) => {
     const app = await getApp(params.appId);
     const appPath = getDyadAppPath(app.path);
-    const ksPath = path.join(
-      keystoreDir(appPath),
-      "caide-upload-keystore.jks",
-    );
+    const ksPath = path.join(keystoreDir(appPath), "caide-upload-keystore.jks");
 
     try {
       await fs.access(ksPath);
@@ -303,6 +316,15 @@ export function registerReleaseHandlers() {
     const buildResult = await buildWebApp(appPath);
     logs.push(...buildResult.logs);
     if (!buildResult.success) {
+      const failedLog = [...buildResult.logs]
+        .reverse()
+        .find((item) => item.status === "failed");
+      issues.push({
+        category: "type-errors",
+        severity: "error",
+        message:
+          failedLog?.details || failedLog?.message || "Production build failed",
+      });
       return { passed: false, status: "failed" as const, logs, issues };
     }
 
@@ -317,8 +339,21 @@ export function registerReleaseHandlers() {
     const files = await getAppFiles(params.appId);
     const verification = await verifyApp(appPath, files);
     issues.push(...verification.issues);
+    const mobileUiProblems = await scanMobileUiFiles(appPath, files);
+    issues.push(
+      ...mobileUiProblems.map((item) => ({
+        category: "responsive-layout" as const,
+        severity: "error" as const,
+        message: item.message,
+        file: item.file,
+        line: item.line,
+      })),
+    );
 
-    const passed = verification.passed && buildResult.success;
+    const passed =
+      verification.passed &&
+      buildResult.success &&
+      mobileUiProblems.length === 0;
     return {
       passed,
       status: passed ? ("passed" as const) : ("failed" as const),

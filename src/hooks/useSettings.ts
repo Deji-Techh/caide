@@ -11,16 +11,43 @@ const TELEMETRY_CONSENT_KEY = "dyadTelemetryConsent";
 const TELEMETRY_USER_ID_KEY = "dyadTelemetryUserId";
 const DYAD_PRO_STATUS_KEY = "dyadProStatus";
 
+function readLocalStorage(key: string): string | null {
+  try {
+    const storage = window.localStorage;
+    return typeof storage?.getItem === "function" ? storage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalStorage(key: string, value: string): void {
+  try {
+    const storage = window.localStorage;
+    if (typeof storage?.setItem === "function") storage.setItem(key, value);
+  } catch {
+    // Local telemetry mirrors are optional and must never block the UI.
+  }
+}
+
+function removeLocalStorage(key: string): void {
+  try {
+    const storage = window.localStorage;
+    if (typeof storage?.removeItem === "function") storage.removeItem(key);
+  } catch {
+    // Local telemetry mirrors are optional and must never block the UI.
+  }
+}
+
 export function isTelemetryOptedIn() {
-  return window.localStorage.getItem(TELEMETRY_CONSENT_KEY) === "opted_in";
+  return readLocalStorage(TELEMETRY_CONSENT_KEY) === "opted_in";
 }
 
 export function getTelemetryUserId(): string | null {
-  return window.localStorage.getItem(TELEMETRY_USER_ID_KEY);
+  return readLocalStorage(TELEMETRY_USER_ID_KEY);
 }
 
 export function isDyadProUser(): boolean {
-  return window.localStorage.getItem(DYAD_PRO_STATUS_KEY) === "true";
+  return readLocalStorage(DYAD_PRO_STATUS_KEY) === "true";
 }
 
 let initialLoadTelemetryState: "idle" | "sent" = "idle";
@@ -149,22 +176,16 @@ export function useSettings() {
 
 function processSettingsForTelemetry(settings: UserSettings) {
   if (settings.telemetryConsent) {
-    window.localStorage.setItem(
-      TELEMETRY_CONSENT_KEY,
-      settings.telemetryConsent,
-    );
+    writeLocalStorage(TELEMETRY_CONSENT_KEY, settings.telemetryConsent);
   } else {
-    window.localStorage.removeItem(TELEMETRY_CONSENT_KEY);
+    removeLocalStorage(TELEMETRY_CONSENT_KEY);
   }
   if (settings.telemetryUserId) {
-    window.localStorage.setItem(
-      TELEMETRY_USER_ID_KEY,
-      settings.telemetryUserId,
-    );
+    writeLocalStorage(TELEMETRY_USER_ID_KEY, settings.telemetryUserId);
   } else {
-    window.localStorage.removeItem(TELEMETRY_USER_ID_KEY);
+    removeLocalStorage(TELEMETRY_USER_ID_KEY);
   }
-  window.localStorage.setItem(
+  writeLocalStorage(
     DYAD_PRO_STATUS_KEY,
     hasDyadProKey(settings) ? "true" : "false",
   );

@@ -27,15 +27,19 @@ import { LocalAgentNewChatToast } from "./LocalAgentNewChatToast";
 import { useAtomValue, useSetAtom } from "jotai";
 import {
   chatMessagesByIdAtom,
+  doctorRepairRequestAtom,
   hasManuallySelectedChatModeAtom,
 } from "@/atoms/chatAtoms";
-import { Hammer, Bot, MessageCircle, Lightbulb } from "lucide-react";
-import { useEffect, useRef } from "react";
 import {
-  FREE_PRO_MODEL_FALLBACK_CHAT_MODE,
-  isFreeProBuildModeCombination,
-  isFreeProModel,
-} from "@/lib/freeProModel";
+  Hammer,
+  Bot,
+  MessageCircle,
+  Lightbulb,
+  Stethoscope,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { selectedAppIdAtom } from "@/atoms/appAtoms";
+import { DoctorDialog } from "./DoctorDialog";
 
 export function ChatModeSelector() {
   const { updateSettings } = useSettings();
@@ -55,12 +59,13 @@ export function ChatModeSelector() {
   const setHasManuallySelectedChatMode = useSetAtom(
     hasManuallySelectedChatModeAtom,
   );
+  const setDoctorRepairRequest = useSetAtom(doctorRepairRequestAtom);
+  const selectedAppId = useAtomValue(selectedAppIdAtom);
+  const [doctorOpen, setDoctorOpen] = useState(false);
   const fallbackToastKeyRef = useRef<string | null>(null);
 
   const { servers } = useMcp();
   const enabledMcpServersCount = servers.filter((s) => s.enabled).length;
-  const isDyadFreeSelected = isFreeProModel(settings?.selectedModel);
-  const buildUnavailableForDyadFree = isDyadFreeSelected;
 
   useEffect(() => {
     if (!chatId || !fallbackReason || !storedChatMode) {
@@ -85,24 +90,12 @@ export function ChatModeSelector() {
     });
   }, [chatId, effectiveMode, fallbackReason, storedChatMode]);
 
-  useEffect(() => {
-    if (
-      settings &&
-      isFreeProBuildModeCombination(settings.selectedModel, selectedMode)
-    ) {
-      void setChatMode(FREE_PRO_MODEL_FALLBACK_CHAT_MODE).catch(() => {});
-    }
-  }, [selectedMode, setChatMode, settings]);
-
   const handleModeChange = (value: string) => {
-    const newMode = value as ChatMode;
-    if (
-      settings &&
-      isFreeProBuildModeCombination(settings.selectedModel, newMode)
-    ) {
-      toast.error("The bundled model is not available in Build mode.");
+    if (value === "doctor") {
+      setDoctorOpen(true);
       return;
     }
+    const newMode = value as ChatMode;
     // An explicit pick outside a chat updates settings.selectedChatMode;
     // latch so the home page stops syncing it to the effective default.
     if (!isChatRoute || chatId == null) {
@@ -218,16 +211,14 @@ export function ChatModeSelector() {
               </span>
             </div>
           </SelectItem>
-          <SelectItem value="build" disabled={buildUnavailableForDyadFree}>
+          <SelectItem value="build">
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-1.5">
                 <Hammer size={14} className="text-muted-foreground" />
                 <span className="font-medium">Build</span>
               </div>
               <span className="text-xs text-muted-foreground ml-[22px]">
-                {buildUnavailableForDyadFree
-                  ? "Use Agent, Ask, or Plan with the bundled model"
-                  : "Generate and edit code"}
+                Generate and edit code
               </span>
             </div>
           </SelectItem>
@@ -242,9 +233,38 @@ export function ChatModeSelector() {
               </span>
             </div>
           </SelectItem>
+          <SelectItem value="doctor">
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-1.5">
+                <Stethoscope size={14} className="text-emerald-600" />
+                <span className="font-medium">Doctor</span>
+              </div>
+              <span className="ml-[22px] text-xs text-muted-foreground">
+                Audit UI, UX, flows, security, and builds
+              </span>
+            </div>
+          </SelectItem>
         </SelectContent>
       </Select>
       {selectedMode === "build" && <McpChip count={enabledMcpServersCount} />}
+      <DoctorDialog
+        appId={selectedAppId}
+        open={doctorOpen}
+        onOpenChange={setDoctorOpen}
+        onRepair={(prompt) => {
+          if (!chatId || selectedAppId === null) {
+            toast.error("Open a project chat before starting a repair.");
+            return;
+          }
+          void setChatMode("local-agent");
+          setDoctorRepairRequest({
+            id: Date.now(),
+            appId: selectedAppId,
+            chatId,
+            prompt,
+          });
+        }}
+      />
     </div>
   );
 }

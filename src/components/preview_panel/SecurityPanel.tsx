@@ -183,14 +183,14 @@ function SecurityHeader({
       // Show immediately
       setShouldRender(true);
       // Trigger animation after render
-      setTimeout(() => setIsButtonVisible(true), 10);
-    } else {
-      // Trigger exit animation
-      setIsButtonVisible(false);
-      // Hide after animation completes
-      const timer = setTimeout(() => setShouldRender(false), 300);
-      return () => clearTimeout(timer);
+      const entranceTimer = setTimeout(() => setIsButtonVisible(true), 10);
+      return () => clearTimeout(entranceTimer);
     }
+
+    // Trigger exit animation, then remove the button from layout.
+    setIsButtonVisible(false);
+    const exitTimer = setTimeout(() => setShouldRender(false), 300);
+    return () => clearTimeout(exitTimer);
   }, [selectedCount]);
 
   return (
@@ -210,7 +210,7 @@ function SecurityHeader({
                 className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                 onClick={() =>
                   ipc.system.openExternalUrl(
-                    "https://www.dyad.sh/docs/guides/security-review",
+                    "https://owasp.org/www-project-web-security-testing-guide/",
                   )
                 }
               >

@@ -41,14 +41,7 @@ import {
 } from "@/components/ui/dialog";
 import { providerSettingsRoute } from "@/routes/settings/providers/$provider";
 import { useFreeModelQuota } from "@/hooks/useFreeModelQuota";
-import {
-  FREE_PRO_MODEL_FALLBACK_CHAT_MODE,
-  isFreeProBuildModeCombination,
-  isFreeProLanguageModel,
-  isFreeProModel,
-} from "@/lib/freeProModel";
-import { useRouterState } from "@tanstack/react-router";
-import { useChatMode } from "@/hooks/useChatMode";
+import { isFreeProLanguageModel } from "@/lib/freeProModel";
 
 const SCROLL_AREA_CLASS = "max-h-100 overflow-y-auto scrollbar-on-hover";
 const PINNED_PROVIDER_IDS = ["chatgpt", "deepseek"] as const;
@@ -100,12 +93,6 @@ export function ModelPicker({
   variant?: "compact" | "overview";
 } = {}) {
   const { settings, updateSettings, loading: settingsLoading } = useSettings();
-  const routerState = useRouterState();
-  const isChatRoute = routerState.location.pathname === "/chat";
-  const chatId = routerState.location.search.id as number | undefined;
-  const { selectedMode, setChatMode } = useChatMode(
-    isChatRoute ? chatId : null,
-  );
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const posthog = usePostHog();
@@ -116,15 +103,8 @@ export function ModelPicker({
       provider: model.provider,
       model: model.name,
     });
-    if (isFreeProBuildModeCombination(model, selectedMode)) {
-      await setChatMode(FREE_PRO_MODEL_FALLBACK_CHAT_MODE);
-    }
-
     updateSettings({
       selectedModel: model,
-      ...(isFreeProModel(model) && settings?.defaultChatMode === "build"
-        ? { defaultChatMode: FREE_PRO_MODEL_FALLBACK_CHAT_MODE }
-        : {}),
     });
     // Invalidate token count when model changes since different models have different context windows
     // (technically they have different tokenizers, but we don't keep track of that).

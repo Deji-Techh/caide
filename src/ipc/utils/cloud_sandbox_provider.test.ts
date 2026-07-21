@@ -729,7 +729,7 @@ describe("cloud_sandbox_provider response validation", () => {
     expect(error).toBeInstanceOf(CloudSandboxApiError);
     expect(error).toMatchObject({
       message:
-        "Dyad’s cloud sandbox service is temporarily unavailable. Please try again.",
+        "CAIDE's cloud sandbox service is temporarily unavailable. Please try again.",
       status: 503,
     });
   });

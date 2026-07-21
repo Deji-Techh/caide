@@ -29,7 +29,9 @@ export function ReleaseChannelSelector() {
         action: {
           label: "Download Stable",
           onClick: () => {
-            ipc.system.openExternalUrl("https://dyad.sh/download");
+            ipc.system.openExternalUrl(
+              "https://github.com/Deji-Techh/caide/releases",
+            );
           },
         },
       });

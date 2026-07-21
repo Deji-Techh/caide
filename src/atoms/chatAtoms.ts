@@ -8,7 +8,7 @@ import type { ListedApp } from "@/ipc/types/app";
 import type { SqlConsentMetadata } from "@/shared/sqlConsentMetadata";
 import type { Getter, Setter } from "jotai";
 import { atom } from "jotai";
-import { atomWithStorage } from "jotai/utils";
+import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { planAcceptInNewChatByChatIdAtom } from "@/atoms/planAtoms";
 
 // Chat completion events - used to notify when a stream has completed
@@ -66,6 +66,16 @@ export const chatInputValueAtom = atom(
 export const homeChatInputValueAtom = atom<string>("");
 homeChatInputValueAtom.debugLabel = "homeChatInputValueAtom";
 
+export interface DoctorRepairRequest {
+  id: number;
+  appId: number;
+  chatId: number;
+  prompt: string;
+}
+
+export const doctorRepairRequestAtom = atom<DoctorRepairRequest | null>(null);
+doctorRepairRequestAtom.debugLabel = "doctorRepairRequestAtom";
+
 export const pendingFirstPromptAtom = atom<boolean>(false);
 pendingFirstPromptAtom.debugLabel = "pendingFirstPromptAtom";
 
@@ -100,6 +110,32 @@ export const EMPTY_CHAT_TAB_SESSION: ChatTabSession = {
   closedChatIds: [],
   updatedAt: 0,
 };
+
+const fallbackStorageValues = new Map<string, string>();
+const fallbackStringStorage = {
+  getItem: (key: string) => fallbackStorageValues.get(key) ?? null,
+  setItem: (key: string, value: string) => {
+    fallbackStorageValues.set(key, value);
+  },
+  removeItem: (key: string) => {
+    fallbackStorageValues.delete(key);
+  },
+};
+
+function getBrowserStringStorage() {
+  const storage = typeof window === "undefined" ? null : window.localStorage;
+  return storage &&
+    typeof storage.getItem === "function" &&
+    typeof storage.setItem === "function" &&
+    typeof storage.removeItem === "function"
+    ? storage
+    : fallbackStringStorage;
+}
+
+const chatTabSessionStorage = createJSONStorage<ChatTabSession>(
+  getBrowserStringStorage,
+);
+const groupTabsStorage = createJSONStorage<boolean>(getBrowserStringStorage);
 
 function isNumberArray(value: unknown): value is number[] {
   return (
@@ -142,7 +178,7 @@ function sessionsHaveSameShape(
 export const chatTabSessionStorageAtom = atomWithStorage<ChatTabSession>(
   "chat-tab-session",
   EMPTY_CHAT_TAB_SESSION,
-  undefined,
+  chatTabSessionStorage,
   { getOnInit: true },
 );
 
@@ -152,7 +188,7 @@ export const chatTabSessionStorageAtom = atomWithStorage<ChatTabSession>(
 export const groupTabsByAppAtom = atomWithStorage<boolean>(
   "group-tabs-by-app",
   false,
-  undefined,
+  groupTabsStorage,
   { getOnInit: true },
 );
 

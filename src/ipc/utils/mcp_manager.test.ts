@@ -143,7 +143,7 @@ describe("McpManager lifecycle", () => {
 
     await expect(disposal).resolves.toBeUndefined();
     await expect(initializationResult).resolves.toMatchObject({
-      name: "DyadError",
+      name: "CAIDEError",
       kind: DyadErrorKind.Precondition,
       message: "MCP client initialization cancelled for server 3",
     });

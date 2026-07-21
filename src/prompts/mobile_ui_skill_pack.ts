@@ -12,8 +12,24 @@ import qualityRubric from "./skills/ui-ux-mastery/references/quality-rubric.md?r
 import screenSpec from "./skills/ui-ux-mastery/templates/screen-spec.md?raw";
 import componentContract from "./skills/ui-ux-mastery/templates/component-contract.md?raw";
 import designAudit from "./skills/ui-ux-mastery/templates/design-audit.md?raw";
+import motionInteractionSkill from "./skills/motion-interaction/SKILL.md?raw";
+import productFlowSkill from "./skills/product-flow/SKILL.md?raw";
+import backendProductionSkill from "./skills/backend-production/SKILL.md?raw";
 
-const skillBody = uiUxMasterySkill.replace(/^---[\s\S]*?---\s*/, "").trim();
+const stripFrontmatter = (content: string) =>
+  content.replace(/^---[\s\S]*?---\s*/, "").trim();
+
+const skillBody = stripFrontmatter(uiUxMasterySkill);
+const companionSkills = [
+  { name: "Motion and Interaction", content: motionInteractionSkill },
+  { name: "Product Flow", content: productFlowSkill },
+  { name: "Backend Production", content: backendProductionSkill },
+]
+  .map(
+    (skill) =>
+      `<companion-skill name="${skill.name}">\n${stripFrontmatter(skill.content)}\n</companion-skill>`,
+  )
+  .join("\n\n");
 
 const references = [
   { name: "Product Archetypes", content: productArchetypes },
@@ -44,7 +60,16 @@ export const CAIDE_MOBILE_UI_SKILL_PACK = `
 <mandatory-ui-ux-skill>
 The following CAIDE skill is permanently enabled for every application build and edit. Follow it as a completion contract, not optional inspiration.
 
+## CAIDE preview contract
+- CAIDE already renders the app inside the selected phone, foldable, tablet, or responsive frame. Render only the application screen.
+- Never create a fake device, phone bezel, browser toolbar, status-bar shell, or "Made with" badge inside the generated app.
+- Never wrap the app root in a fixed phone-sized canvas such as 390x780. The document, body, #root, and top-level application shell must fill the available frame with width: 100%, min-width: 0, and min-height: 100dvh where appropriate.
+- Remove starter-template constraints such as #root max-width with margin: 0 auto and body-level flex/place-items centering. Apply max-width only to intentional inner content, never to the application viewport.
+- Verify every screen at compact phone, large phone, tablet, landscape, and responsive widths. There must be no page-level horizontal scrolling, clipped actions, overlapping controls, or unusable empty space.
+
 ${skillBody}
+
+${companionSkills}
 </mandatory-ui-ux-skill>
 
 <ui-ux-references>

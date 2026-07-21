@@ -56,8 +56,8 @@ function escapeHtml(s: string): string {
 
 // Self-contained (no external assets) so it works on the loopback
 // listener. On success, auto-fires the `dyad://mcp-oauth-return`
-// deep link to bring Dyad to the foreground, with a visible "Open
-// Dyad" button as a fallback for browsers that block scripted
+// deep link to bring CAIDE to the foreground, with a visible "Open
+// CAIDE" button as a fallback for browsers that block scripted
 // protocol-handler navigation.
 function renderCallbackPage(opts: {
   kind: "success" | "error";
@@ -69,12 +69,14 @@ function renderCallbackPage(opts: {
   const safeTitle = escapeHtml(opts.title);
   const safeMessage = escapeHtml(opts.message);
   const returnUrl = "dyad://mcp-oauth-return";
+  const safeReturnUrl = escapeHtml(returnUrl);
+  const returnUrlJson = JSON.stringify(returnUrl).replace(/</g, "\\u003c");
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>${safeTitle} — Dyad</title>
+<title>${safeTitle} — CAIDE</title>
 <style>
   :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
@@ -145,14 +147,14 @@ function renderCallbackPage(opts: {
     <p>${safeMessage}</p>
     ${
       isSuccess
-        ? `<a class="btn" href="${returnUrl}">Open Dyad</a>
+        ? `<a class="btn" href="${safeReturnUrl}">Open CAIDE</a>
     <script>
-      // Try to hand focus back to Dyad automatically; the button above
+      // Try to hand focus back to CAIDE automatically; the button above
       // is the fallback for browsers that block scripted navigation
       // to custom protocol handlers.
-      setTimeout(function () { window.location.href = ${JSON.stringify(returnUrl)}; }, 500);
+      setTimeout(function () { window.location.href = ${returnUrlJson}; }, 500);
     </script>`
-        : `<p class="muted">You can close this window and return to Dyad.</p>`
+        : `<p class="muted">You can close this window and return to CAIDE.</p>`
     }
   </div>
 </body>

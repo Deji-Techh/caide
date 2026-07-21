@@ -116,10 +116,9 @@ export function CreateOrEditPromptDialog({
 
   // Trigger resize when dialog opens
   useEffect(() => {
-    if (open) {
-      // Small delay to ensure the dialog is fully rendered
-      setTimeout(adjustTextareaHeight, 0);
-    }
+    if (!open) return;
+    const timer = window.setTimeout(adjustTextareaHeight, 0);
+    return () => window.clearTimeout(timer);
   }, [open]);
 
   const resetDraft = () => {

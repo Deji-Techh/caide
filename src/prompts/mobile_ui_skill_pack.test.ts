@@ -20,18 +20,37 @@ describe("CAIDE UI/UX mastery skill", () => {
     }
   });
 
+  it("permanently wires production motion, product-flow, and backend skills", () => {
+    for (const marker of [
+      '<companion-skill name="Motion and Interaction">',
+      '<companion-skill name="Product Flow">',
+      '<companion-skill name="Backend Production">',
+      "# Motion and Interaction Contract",
+      "# Product Flow Contract",
+      "# Backend Production Contract",
+    ]) {
+      expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain(marker);
+    }
+  });
+
   it("includes all reference documents and templates", () => {
     expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain("<ui-ux-references>");
     expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain("<ui-ux-templates>");
+    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain('name="Product Archetypes"');
     expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain(
-      'name="Product Archetypes"',
+      'name="Anti-Slop and Distinctiveness"',
     );
-    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain('name="Anti-Slop and Distinctiveness"');
     expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain('name="Screen Spec"');
     expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain('name="Design Audit"');
-    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain("# Product Archetype Decision Matrix");
-    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain("# Screen Specification Template");
-    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain("# Anti-Slop and Distinctiveness Reference");
+    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain(
+      "# Product Archetype Decision Matrix",
+    );
+    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain(
+      "# Screen Specification Template",
+    );
+    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain(
+      "# Anti-Slop and Distinctiveness Reference",
+    );
   });
 
   it("is always injected into the standard build agent", () => {

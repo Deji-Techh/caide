@@ -77,9 +77,9 @@ export function EditThemeDialog({
 
   // Trigger resize when dialog opens
   useEffect(() => {
-    if (open) {
-      setTimeout(adjustTextareaHeight, 0);
-    }
+    if (!open) return;
+    const timer = window.setTimeout(adjustTextareaHeight, 0);
+    return () => window.clearTimeout(timer);
   }, [open]);
 
   const handleSave = async () => {

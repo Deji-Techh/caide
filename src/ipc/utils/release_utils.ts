@@ -8,8 +8,6 @@ import type {
   DependencyDiagnostic,
   VerificationResult,
   VerificationIssue,
-  StoreConfig,
-  KeystoreConfig,
 } from "../types/release";
 
 export function appBuildDir(appPath: string): string {
@@ -85,7 +83,11 @@ async function capacitorBuildExists(appPath: string): Promise<boolean> {
 export async function syncCapacitor(appPath: string): Promise<BuildResult> {
   const logs: BuildLog[] = [];
   logs.push(
-    makeLog("android-project", "running", "Syncing Capacitor Android project..."),
+    makeLog(
+      "android-project",
+      "running",
+      "Syncing Capacitor Android project...",
+    ),
   );
 
   try {
@@ -135,13 +137,13 @@ export async function buildAndroidApkDebug(
       "apk",
       "debug",
     );
-    logs.push(
-      makeLog("apk-debug", "success", `Debug APK built at ${apkPath}`),
-    );
+    logs.push(makeLog("apk-debug", "success", `Debug APK built at ${apkPath}`));
     return { success: true, logs, outputPath: apkPath };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    logs.push(makeLog("apk-debug", "failed", "Debug APK build failed", message));
+    logs.push(
+      makeLog("apk-debug", "failed", "Debug APK build failed", message),
+    );
     return { success: false, logs };
   }
 }
@@ -208,11 +210,91 @@ export async function verifyApp(
       continue;
     }
 
-    if (/TOKEN|SECRET|API_KEY|PASSWORD|sk-[a-zA-Z0-9]{32,}/i.test(content)) {
+    if (
+      /\bsk-[a-zA-Z0-9_-]{24,}\b/.test(content) ||
+      /\b(?:api[_-]?key|secret|access[_-]?token|password)\b\s*[:=]\s*["'][^"'\n]{8,}["']/i.test(
+        content,
+      )
+    ) {
       issues.push({
         category: "secret-detection",
         severity: "error",
         message: `Possible secret/API key found in ${file}`,
+        file,
+      });
+    }
+
+    if (/dangerouslySetInnerHTML\s*=/.test(content)) {
+      issues.push({
+        category: "security",
+        severity: "warning",
+        message: "Review dangerouslySetInnerHTML usage for unsanitized content",
+        file,
+      });
+    }
+
+    if (
+      /target=["']_blank["']/i.test(content) &&
+      !/rel=["'][^"']*(?:noopener|noreferrer)/i.test(content)
+    ) {
+      issues.push({
+        category: "security",
+        severity: "warning",
+        message:
+          'External links opened in a new tab need rel="noopener noreferrer"',
+        file,
+      });
+    }
+
+    if (/<img\b(?![^>]*\balt=)[^>]*>/i.test(content)) {
+      issues.push({
+        category: "accessibility",
+        severity: "warning",
+        message: "Image element is missing alternative text",
+        file,
+      });
+    }
+
+    if (/<(?:div|span)\b[^>]*\bonClick\s*=/i.test(content)) {
+      issues.push({
+        category: "ux-flow",
+        severity: "warning",
+        message:
+          "Click handler on a non-interactive element may break keyboard navigation",
+        file,
+      });
+    }
+
+    if (/\btransition-all\b/.test(content)) {
+      issues.push({
+        category: "ui-quality",
+        severity: "info",
+        message:
+          "Avoid transition-all; animate explicit compositor-safe properties",
+        file,
+      });
+    }
+
+    if (/text-\[(?:[0-9]|1[01])px\]/.test(content)) {
+      issues.push({
+        category: "accessibility",
+        severity: "warning",
+        message:
+          "Text below 12px can become unreadable on compact mobile screens",
+        file,
+      });
+    }
+
+    if (
+      /data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]{100000,}/.test(
+        content,
+      )
+    ) {
+      issues.push({
+        category: "performance",
+        severity: "warning",
+        message:
+          "Large inline image increases startup and bundle cost; use an optimized asset",
         file,
       });
     }
