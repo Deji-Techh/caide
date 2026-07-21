@@ -132,8 +132,11 @@ export function DoctorDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-h-[min(760px,calc(100vh-32px))] w-[min(760px,calc(100vw-32px))] max-w-none grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
-        <DialogHeader className="border-b px-6 py-5 pr-14">
+      <DialogContent
+        data-testid="caide-doctor-dialog"
+        className="!grid max-h-[min(760px,calc(100dvh-32px))] !w-[min(760px,calc(100vw-32px))] !max-w-none grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0"
+      >
+        <DialogHeader className="min-w-0 border-b px-5 py-4 pr-14 sm:px-6 sm:py-5">
           <div className="flex items-center gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-muted">
               <Stethoscope className="size-5" />
@@ -148,7 +151,7 @@ export function DoctorDialog({
           </div>
         </DialogHeader>
 
-        <div className="min-h-0 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden px-5 py-4 sm:px-6 sm:py-5">
           {appId === null ? (
             <div className="flex min-h-52 flex-col items-center justify-center text-center">
               <AlertTriangle className="mb-3 size-6 text-muted-foreground" />
@@ -291,7 +294,7 @@ export function DoctorDialog({
           ) : null}
         </div>
 
-        <DialogFooter className="border-t bg-muted/30 px-6 py-4 sm:justify-between">
+        <DialogFooter className="min-w-0 border-t bg-muted/30 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
           <Button
             type="button"
             variant="ghost"
@@ -301,7 +304,7 @@ export function DoctorDialog({
             <RefreshCw className="size-4" />
             Run again
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"

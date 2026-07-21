@@ -54,6 +54,7 @@ import { terminalContracts } from "../types/terminal";
 import { testsContracts, testsEvents } from "../types/tests";
 import { chatgptContracts } from "../types/chatgpt";
 import { notchContracts, notchEvents } from "../types/notch";
+import { releaseContracts } from "../types/release";
 
 // =============================================================================
 // Invoke Channels (derived from all contracts)
@@ -120,6 +121,7 @@ export const VALID_INVOKE_CHANNELS = [
   ...getInvokeChannels(terminalContracts),
   ...getInvokeChannels(testsContracts),
   ...getInvokeChannels(chatgptContracts),
+  ...getInvokeChannels(releaseContracts),
 
   // Notch
   ...getInvokeChannels(notchContracts),

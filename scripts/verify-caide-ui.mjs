@@ -354,7 +354,10 @@ try {
       };
     });
 
-    await window.locator("[data-testid=chat-mode-selector]").click();
+    await window
+      .locator(".caide-agent-panel")
+      .getByTestId("chat-mode-selector")
+      .click();
     await window.getByText("Doctor", { exact: true }).click();
     await window.getByRole("heading", { name: "CAIDE Doctor" }).waitFor();
     await window.getByText("Auditing the entire app").waitFor();
@@ -368,8 +371,22 @@ try {
         hasAnimatedScanner: Boolean(dialog?.querySelector(".animate-spin")),
       };
     });
+    if (
+      workspace.doctor.width < 640 ||
+      workspace.doctor.scrollWidth > workspace.doctor.width ||
+      workspace.doctor.stageCount !== 6 ||
+      !workspace.doctor.hasAnimatedScanner
+    ) {
+      throw new Error(
+        `Doctor dialog failed responsive layout checks: ${JSON.stringify(workspace.doctor)}`,
+      );
+    }
     await window.screenshot({ path: "/tmp/caide-doctor-running.png" });
-    await window.getByRole("button", { name: "Close", exact: true }).click();
+    await window
+      .getByTestId("caide-doctor-dialog")
+      .getByRole("button", { name: "Close", exact: true })
+      .first()
+      .click();
 
     const devicePicker = window.getByRole("button", {
       name: "Preview device",
