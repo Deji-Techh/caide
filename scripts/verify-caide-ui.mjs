@@ -56,7 +56,7 @@ const browser = await chromium.connectOverCDP(
 
 try {
   const context = browser.contexts()[0];
-  const window = context.pages()[0] ?? (await context.waitForEvent("page"));
+  const window = await waitForMainWindow(context);
   const errors = [];
   window.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
   window.on("console", (message) => {
@@ -74,9 +74,15 @@ try {
       .locator("[data-testid=caide-workspace]")
       .waitFor({ timeout: 120_000 })
       .then(() => "workspace"),
+    window
+      .locator("[data-testid=caide-settings]")
+      .waitFor({ timeout: 120_000 })
+      .then(() => "settings"),
   ]);
   if (initialScreen === "workspace") {
     await window.locator(".caide-back").click();
+  } else if (initialScreen === "settings") {
+    await window.getByRole("button", { name: "Back to workspace" }).click();
   }
   await window
     .locator("[data-testid=caide-overview]")
@@ -380,6 +386,30 @@ async function waitForDebuggingPort(port) {
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw new Error("Timed out waiting for Electron debugging port");
+}
+
+async function waitForMainWindow(context) {
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    for (const candidate of context.pages()) {
+      if (candidate.isClosed()) continue;
+      const title = await candidate.title().catch(() => "");
+      const hasCaideRoot = await candidate
+        .locator(
+          "[data-testid=caide-overview], [data-testid=caide-workspace], [data-testid=caide-settings]",
+        )
+        .count()
+        .catch(() => 0);
+      if (title === "CAIDE Mobile Builder" || hasCaideRoot > 0) {
+        return candidate;
+      }
+    }
+    await Promise.race([
+      context.waitForEvent("page", { timeout: 500 }).catch(() => undefined),
+      new Promise((resolve) => setTimeout(resolve, 500)),
+    ]);
+  }
+  throw new Error("Timed out waiting for the CAIDE main window");
 }
 
 async function measure(window, selectors) {
