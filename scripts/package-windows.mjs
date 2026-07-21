@@ -131,22 +131,26 @@ async function installWindowsGit() {
   }
 
   const archive = path.join(temporaryRoot, distribution.name);
-  const response = await fetch(distribution.url, {
-    headers: { "User-Agent": "CAIDE-Windows-Packager" },
-  });
-  if (!response.ok) {
-    throw new Error(
-      `Unable to download Windows Git (${response.status} ${response.statusText})`,
-    );
-  }
-  const contents = Buffer.from(await response.arrayBuffer());
-  const checksum = createHash("sha256").update(contents).digest("hex");
+  run("curl", [
+    "--fail",
+    "--location",
+    "--retry",
+    "5",
+    "--retry-all-errors",
+    "--connect-timeout",
+    "20",
+    "--output",
+    archive,
+    distribution.url,
+  ]);
+  const checksum = createHash("sha256")
+    .update(fs.readFileSync(archive))
+    .digest("hex");
   if (checksum !== distribution.checksum) {
     throw new Error(
       `Windows Git checksum mismatch: expected ${distribution.checksum}, received ${checksum}`,
     );
   }
-  fs.writeFileSync(archive, contents);
   fs.rmSync(dugiteGitPath, { recursive: true, force: true });
   fs.mkdirSync(dugiteGitPath, { recursive: true });
   run("tar", ["-xzf", archive, "-C", dugiteGitPath]);
