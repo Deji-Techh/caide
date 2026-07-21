@@ -146,6 +146,37 @@ try {
     };
   });
   await window.screenshot({ path: "/tmp/caide-overview-light.png" });
+
+  await window.getByRole("button", { name: "Open project backup" }).click();
+  await window.locator(".caide-backup-library").waitFor();
+  await window.waitForTimeout(250);
+  const lightBackup = await window.evaluate(() => {
+    const background = (selector) =>
+      getComputedStyle(document.querySelector(selector)).backgroundColor;
+    return {
+      page: background(".caide-backup-library"),
+      topbar: background(".caide-backup-topbar"),
+      toolbar: background(".caide-backup-toolbar"),
+      projectList: background(".caide-backup-project-list"),
+      bodyOverflowX: document.body.scrollWidth - document.body.clientWidth,
+    };
+  });
+  if (
+    ![
+      lightBackup.page,
+      lightBackup.topbar,
+      lightBackup.toolbar,
+      lightBackup.projectList,
+    ].every(isLightColor)
+  ) {
+    throw new Error(
+      `Light project backup contains a dark shell surface: ${JSON.stringify(lightBackup)}`,
+    );
+  }
+  await window.screenshot({ path: "/tmp/caide-project-backup-light.png" });
+  await window.getByRole("button", { name: "Overview" }).click();
+  await window.locator("[data-testid=caide-overview]").waitFor();
+
   await window.locator(".caide-header-icon[aria-label=Settings]").click();
   await window.locator("[data-testid=caide-settings]").waitFor();
   await window.getByRole("button", { name: "Grey", exact: true }).click();
@@ -334,6 +365,46 @@ try {
     };
     await window.screenshot({ path: "/tmp/caide-device-picker.png" });
     await window.keyboard.press("Escape");
+
+    await window.getByRole("button", { name: "Project settings" }).click();
+    await window.locator("[data-testid=app-details-page]").waitFor();
+    await window.evaluate(() => {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.add("light");
+    });
+    await window.waitForTimeout(250);
+    workspace.lightProjectDetails = await window.evaluate(() => {
+      const background = (selector) =>
+        getComputedStyle(document.querySelector(selector)).backgroundColor;
+      return {
+        page: background(".caide-project-details"),
+        toolbar: background(".caide-details-toolbar"),
+        previewSection: background(".caide-details-preview-section"),
+        facts: background(".caide-details-facts"),
+        operation: background(".caide-details-operation"),
+        bodyOverflowX: document.body.scrollWidth - document.body.clientWidth,
+      };
+    });
+    if (
+      ![
+        workspace.lightProjectDetails.page,
+        workspace.lightProjectDetails.toolbar,
+        workspace.lightProjectDetails.previewSection,
+        workspace.lightProjectDetails.facts,
+        workspace.lightProjectDetails.operation,
+      ].every(isLightColor)
+    ) {
+      throw new Error(
+        `Light project details contain a dark shell surface: ${JSON.stringify(workspace.lightProjectDetails)}`,
+      );
+    }
+    await window.screenshot({ path: "/tmp/caide-project-details-light.png" });
+    await window.getByRole("button", { name: "Projects" }).click();
+    await window.locator("[data-testid=caide-workspace]").waitFor();
+    await window.evaluate(() => {
+      document.documentElement.classList.remove("light");
+      document.documentElement.classList.add("dark");
+    });
   }
 
   await window.setViewportSize({ width: 900, height: 850 });
@@ -360,6 +431,7 @@ try {
         greyTheme,
         lightTheme,
         lightOverview,
+        lightBackup,
         hasProject,
         workspace,
         compact,

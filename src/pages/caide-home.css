@@ -4872,3 +4872,216 @@
   color: #17191d;
   background: #eceef1;
 }
+
+/* Project backup and restore library. */
+.light .caide-backup-library {
+  color: #17191d;
+  background: #f5f6f7;
+}
+.light .caide-backup-topbar {
+  border-color: #d8dade;
+  background: #fafbfc;
+}
+.light .caide-backup-topbar > button,
+.light .caide-backup-import > button,
+.light .caide-backup-toolbar button {
+  color: #4f555f;
+  border-color: #cfd2d7;
+  background: #ffffff;
+}
+.light .caide-backup-topbar > button:hover,
+.light .caide-backup-import > button:hover,
+.light .caide-backup-toolbar button:hover {
+  color: #17191d;
+  border-color: #aeb3bb;
+  background: #eceef1;
+}
+.light .caide-backup-topbar > div:nth-child(2) span,
+.light .caide-backup-heading h1,
+.light .caide-backup-metrics strong {
+  color: #202328;
+}
+.light .caide-backup-topbar > div:nth-child(2) strong,
+.light .caide-backup-heading p,
+.light .caide-backup-metrics small {
+  color: #69707a;
+}
+.light .caide-backup-metrics,
+.light .caide-backup-toolbar,
+.light .caide-backup-project-list {
+  border-color: #d8dade;
+  background: #ffffff;
+}
+.light .caide-backup-metrics > span {
+  border-color: #d8dade;
+}
+.light .caide-backup-toolbar {
+  background: #f7f8f9;
+}
+.light .caide-backup-search {
+  color: #69707a;
+  border-color: #cfd2d7;
+  background: #ffffff;
+}
+.light .caide-backup-search input {
+  color: #202328;
+}
+.light .caide-backup-search input::placeholder,
+.light .caide-backup-search kbd {
+  color: #7a808a;
+}
+.light .caide-backup-project-list > button {
+  color: #34383f !important;
+  border-color: #e0e2e6 !important;
+  background: #ffffff !important;
+}
+.light .caide-backup-project-list > button:hover {
+  background: #f0f2f4 !important;
+}
+.light .caide-backup-project-list > button :where(h2, h3, strong) {
+  color: #202328 !important;
+}
+.light .caide-backup-project-list > button :where(p, small, time, span) {
+  color: #69707a;
+}
+
+/* Project details, integrations, and maintenance. */
+.light .caide-project-details {
+  color: #17191d;
+  background: #f5f6f7;
+}
+.light .caide-details-toolbar {
+  border-color: #d8dade;
+  background: rgb(250 251 252 / 94%);
+}
+.light .caide-details-back {
+  color: #4f555f !important;
+}
+.light .caide-details-toolbar-chat {
+  color: #ffffff;
+  background: #202328;
+}
+.light .caide-details-toolbar-chat:hover {
+  background: #08090b;
+}
+.light .caide-details-title-row {
+  border-color: #d8dade;
+}
+.light .caide-details-title-row h2,
+.light .caide-details-section-heading h3,
+.light .caide-details-preview-empty strong,
+.light .caide-details-facts strong,
+.light .caide-details-facts button,
+.light .caide-details-collection > span,
+.light .caide-details-operation-body :where(h2, h3, h4, label) {
+  color: #202328 !important;
+}
+.light .caide-details-title-row p,
+.light .caide-details-eyebrow,
+.light .caide-details-section-heading > div > span,
+.light .caide-details-section-heading p,
+.light .caide-details-facts span,
+.light .caide-details-facts svg,
+.light .caide-details-operation-body :where(p, small) {
+  color: #69707a !important;
+}
+.light .caide-details-title-divider {
+  background: #cfd2d7;
+}
+.light .caide-details-icon-button,
+.light .caide-details-title-actions button,
+.light .caide-details-section-heading > button,
+.light .caide-details-more-button {
+  color: #626872;
+}
+.light .caide-details-icon-button:hover,
+.light .caide-details-title-actions button:hover,
+.light .caide-details-section-heading > button:hover,
+.light .caide-details-more-button:hover {
+  color: #17191d;
+  background: #e9ebee;
+}
+.light .caide-details-preview-section,
+.light .caide-details-facts,
+.light .caide-details-operation,
+.light .caide-native-release {
+  border-color: #d8dade;
+  background: #ffffff;
+}
+.light .caide-details-section-heading,
+.light .caide-details-collaborators,
+.light .caide-native-release-head {
+  border-color: #dfe1e5;
+}
+.light .caide-details-preview-empty {
+  color: #737983;
+  background: #eef0f2;
+}
+.light .caide-details-facts > div,
+.light .caide-details-facts > div:nth-child(odd):not(.caide-details-fact-wide) {
+  border-color: #e0e2e6;
+}
+.light .caide-details-databases > .rounded-xl,
+.light .caide-details-databases > .rounded-lg,
+.light .caide-details-databases > [class*="rounded-"] {
+  color: #34383f !important;
+  border-color: #d8dade !important;
+  background: #f7f8f9 !important;
+}
+.light .caide-details-integration-note {
+  color: #626872;
+  border-color: #d8dade;
+  background: #f7f8f9;
+}
+.light .caide-details-maintenance [data-testid="no-app-upgrades-needed"] {
+  color: #17643f;
+  border-color: #9dcfb5;
+  background: #edf8f2;
+}
+
+/* Tool panels and the release desk share the shell theme. */
+.light .caide-publish-panel,
+.light .caide-publish-state {
+  color: #34383f;
+  background: #ffffff;
+}
+.light .caide-publish-heading {
+  border-color: #d8dade;
+}
+.light .caide-publish-heading h1,
+.light .caide-publish-state h2,
+.light .caide-native-release-head h2,
+.light .caide-native-setup strong,
+.light .caide-native-actions strong,
+.light .caide-publish-content > .rounded-lg h3 {
+  color: #202328;
+}
+.light .caide-publish-heading p,
+.light .caide-publish-heading > span,
+.light .caide-native-release-head > div > span,
+.light .caide-native-release-head p,
+.light .caide-native-setup p,
+.light .caide-native-actions small,
+.light .caide-publish-state p {
+  color: #69707a;
+}
+.light .caide-publish-content > .rounded-lg,
+.light .caide-native-release {
+  color: #34383f;
+  border-color: #d8dade;
+  background: #ffffff;
+}
+.light .caide-native-actions > button {
+  color: #4f555f;
+  border-color: #cfd2d7;
+  background: #f7f8f9;
+}
+.light .caide-native-actions > button:hover:not(:disabled) {
+  border-color: #aeb3bb;
+  background: #eceef1;
+}
+.light .caide-native-progress {
+  color: #4f555f;
+  border-color: #d8dade;
+  background: #f0f2f4;
+}
