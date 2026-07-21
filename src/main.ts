@@ -485,11 +485,11 @@ export async function onReady() {
   }
 
   await onFirstRunMaybe(settings);
-  createWindow();
+  const windowRef = createWindow();
   createApplicationMenu();
   createNotchWindow();
-  setNotchMainWindow(mainWindow!);
-  setServiceMainWindow(mainWindow!);
+  setNotchMainWindow(windowRef);
+  setServiceMainWindow(windowRef);
 
   sendTelemetryEvent("runtime_source", {
     runtime_source: settings.customNodePath
@@ -595,12 +595,40 @@ let pendingCrashDetected = false;
 let isAppQuitting = false;
 let safeStorageKeychainUnlockRetryScheduled = false;
 
+function getLiveMainWindow(): BrowserWindow | null {
+  if (
+    !mainWindow ||
+    mainWindow.isDestroyed() ||
+    mainWindow.webContents.isDestroyed()
+  ) {
+    return null;
+  }
+  return mainWindow;
+}
+
+function sendToMainWindow(channel: string, payload: unknown): void {
+  const windowRef = getLiveMainWindow();
+  if (!windowRef) return;
+  try {
+    windowRef.webContents.send(channel, payload);
+  } catch (error) {
+    logger.warn(`Could not send ${channel} to the main window:`, error);
+  }
+}
+
+function focusMainWindow(): void {
+  const windowRef = getLiveMainWindow();
+  if (!windowRef) return;
+  if (windowRef.isMinimized()) windowRef.restore();
+  windowRef.focus();
+}
+
 const createWindow = () => {
   const workArea = screen.getPrimaryDisplay().workAreaSize;
   const initialWidth = Math.min(1440, Math.max(960, workArea.width - 40));
   const initialHeight = Math.min(920, Math.max(700, workArea.height - 40));
   // Create the browser window.
-  mainWindow = new BrowserWindow({
+  const windowRef = new BrowserWindow({
     width: initialWidth,
     minWidth: 800,
     height: initialHeight,
@@ -621,24 +649,27 @@ const createWindow = () => {
     // backgroundColor: "#00000001",
     // frame: false,
   });
+  mainWindow = windowRef;
+  windowRef.once("closed", () => {
+    if (mainWindow === windowRef) mainWindow = null;
+  });
   // In development, wait for DevTools to open, then reload the page once so React DevTools initializes correctly
   if (process.env.NODE_ENV === "development") {
-    mainWindow.webContents.once("devtools-opened", () => {
+    windowRef.webContents.once("devtools-opened", () => {
       setTimeout(() => {
-        const windowRef = mainWindow;
-        if (!windowRef?.isDestroyed()) {
-          windowRef?.webContents.reloadIgnoringCache();
+        if (!windowRef.isDestroyed() && !windowRef.webContents.isDestroyed()) {
+          windowRef.webContents.reloadIgnoringCache();
         }
       }, 300);
     });
-    mainWindow.webContents.openDevTools();
+    windowRef.webContents.openDevTools();
   }
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    windowRef.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(
+    windowRef.loadFile(
       path.join(__dirname, "../renderer/main_window/index.html"),
     );
   }
@@ -647,7 +678,7 @@ const createWindow = () => {
   let forceCloseMessageSent = false;
   let devToolsReloadedCount = 0;
 
-  mainWindow.webContents.on("did-finish-load", () => {
+  windowRef.webContents.on("did-finish-load", () => {
     // Must run on first load, else deep links break in dev.
     deepLinkQueue.markReady();
 
@@ -668,9 +699,8 @@ const createWindow = () => {
     if (pendingCrashDetected && !forceCloseMessageSent) {
       forceCloseMessageSent = true;
 
-      const windowRef = mainWindow;
-      if (!windowRef?.isDestroyed()) {
-        windowRef?.webContents.send("force-close-detected", {
+      if (!windowRef.isDestroyed() && !windowRef.webContents.isDestroyed()) {
+        windowRef.webContents.send("force-close-detected", {
           ...(pendingForceCloseData && {
             performanceData: pendingForceCloseData,
           }),
@@ -756,7 +786,7 @@ const createWindow = () => {
   // the next successful renderer load. We deliberately do nothing here besides
   // writing the record: triggering reloads/dialogs is out of scope for the
   // telemetry hook.
-  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+  windowRef.webContents.on("render-process-gone", (_event, details) => {
     if (isAppQuitting) {
       return;
     }
@@ -781,7 +811,7 @@ const createWindow = () => {
   });
 
   // Enable native context menu on right-click
-  mainWindow.webContents.on("context-menu", (event, params) => {
+  windowRef.webContents.on("context-menu", (event, params) => {
     // Prevent any default behavior and show our own menu
     event.preventDefault();
 
@@ -802,7 +832,12 @@ const createWindow = () => {
             label: suggestion,
             click: () => {
               try {
-                mainWindow?.webContents.replaceMisspelling(suggestion);
+                if (
+                  !windowRef.isDestroyed() &&
+                  !windowRef.webContents.isDestroyed()
+                ) {
+                  windowRef.webContents.replaceMisspelling(suggestion);
+                }
               } catch (error) {
                 logger.error("Failed to replace misspelling:", error);
               }
@@ -830,15 +865,24 @@ const createWindow = () => {
         { type: "separator" },
         {
           label: "Inspect Element",
-          click: () =>
-            mainWindow?.webContents.inspectElement(params.x, params.y),
+          click: () => {
+            if (
+              !windowRef.isDestroyed() &&
+              !windowRef.webContents.isDestroyed()
+            ) {
+              windowRef.webContents.inspectElement(params.x, params.y);
+            }
+          },
         },
       );
     }
 
     const menu = Menu.buildFromTemplate(template);
-    menu.popup({ window: mainWindow! });
+    if (!windowRef.isDestroyed()) {
+      menu.popup({ window: windowRef });
+    }
   });
+  return windowRef;
 };
 
 /**
@@ -945,10 +989,7 @@ if (IS_TEST_BUILD) {
   } else {
     app.on("second-instance", (_event, commandLine, _workingDirectory) => {
       // Someone tried to run a second instance, we should focus our window.
-      if (mainWindow) {
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.focus();
-      }
+      focusMainWindow();
       // the commandLine is array of strings in which last element is deep link url
       const url = commandLine.at(-1);
       if (url) {
@@ -1035,7 +1076,7 @@ async function handleDeepLinkReturn(url: string) {
       return;
     }
     // Send message to renderer to trigger re-render
-    mainWindow?.webContents.send("deep-link-received", {
+    sendToMainWindow("deep-link-received", {
       type: parsed.hostname,
     });
     return;
@@ -1058,7 +1099,7 @@ async function handleDeepLinkReturn(url: string) {
       return;
     }
     // Send message to renderer to trigger re-render
-    mainWindow?.webContents.send("deep-link-received", {
+    sendToMainWindow("deep-link-received", {
       type: parsed.hostname,
     });
     return;
@@ -1079,7 +1120,7 @@ async function handleDeepLinkReturn(url: string) {
       return;
     }
     // Send message to renderer to trigger re-render
-    mainWindow?.webContents.send("deep-link-received", {
+    sendToMainWindow("deep-link-received", {
       type: parsed.hostname,
     });
     return;
@@ -1088,10 +1129,7 @@ async function handleDeepLinkReturn(url: string) {
   // after consent. Tokens land via the loopback listener; focusing
   // the window is the only side-effect needed here.
   if (parsed.hostname === "mcp-oauth-return") {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
+    focusMainWindow();
     return;
   }
   // dyad://add-mcp-server?name=Chrome%20DevTools&config=eyJjb21tYW5kIjpudWxsLCJ0eXBlIjoic3RkaW8ifQ%3D%3D
@@ -1108,7 +1146,7 @@ async function handleDeepLinkReturn(url: string) {
       const decodedConfig = JSON.parse(decodedConfigJson);
       const parsedConfig = AddMcpServerConfigSchema.parse(decodedConfig);
 
-      mainWindow?.webContents.send("deep-link-received", {
+      sendToMainWindow("deep-link-received", {
         type: parsed.hostname,
         payload: {
           name,
@@ -1137,7 +1175,7 @@ async function handleDeepLinkReturn(url: string) {
       const decoded = JSON.parse(decodedJson);
       const parsedData = AddPromptDataSchema.parse(decoded);
 
-      mainWindow?.webContents.send("deep-link-received", {
+      sendToMainWindow("deep-link-received", {
         type: parsed.hostname,
         payload: parsedData as AddPromptPayload,
       });

@@ -59,6 +59,9 @@ import {
 
 const logger = log.scope("app_runtime_service");
 const pnpmVersionMigrationNotifiedAppIds = new Set<number>();
+const unexpectedRestartHistory = new Map<number, number[]>();
+const UNEXPECTED_RESTART_WINDOW_MS = 60_000;
+const MAX_UNEXPECTED_RESTARTS = 2;
 
 // Needed, otherwise Electron on macOS/Linux may not find node/pnpm.
 fixPath();
@@ -541,6 +544,8 @@ Details: ${details || "n/a"}
     appPath,
     isNeon,
     event,
+    installCommand,
+    startCommand,
     onPnpmIgnoredBuildsFailure:
       command.isCustom && !ignoredBuildsSelfHealAttempted
         ? async (output) => {
@@ -699,6 +704,8 @@ function listenToProcess({
   appPath,
   isNeon,
   event,
+  installCommand,
+  startCommand,
   onPnpmIgnoredBuildsFailure,
 }: {
   process: ChildProcess;
@@ -706,6 +713,8 @@ function listenToProcess({
   appPath?: string;
   isNeon: boolean;
   event: Electron.IpcMainInvokeEvent;
+  installCommand?: string | null;
+  startCommand?: string | null;
   onPnpmIgnoredBuildsFailure?: (output: string) => Promise<boolean>;
 }) {
   // Rolling tail, kept only while a self-heal callback could still use it:
@@ -762,6 +771,7 @@ function listenToProcess({
 
       const urlMatch = message.match(/(https?:\/\/localhost:\d+\/?)/);
       if (urlMatch) {
+        unexpectedRestartHistory.delete(appId);
         const originalUrl = urlMatch[1];
         // The dev-server URL appearing means the install phase completed
         // successfully — the one point in the `install && dev` chain where
@@ -814,6 +824,7 @@ function listenToProcess({
           removeAppIfCurrentProcess(appId, spawnedProcess);
           return;
         }
+        const stopRequested = currentAppInfo.stopRequested === true;
 
         if (
           code !== 0 &&
@@ -843,6 +854,16 @@ function listenToProcess({
           timestamp: Date.now(),
         });
         removeAppIfCurrentProcess(appId, spawnedProcess);
+        if (!stopRequested && appPath) {
+          scheduleUnexpectedLocalRestart({
+            appId,
+            appPath,
+            event,
+            isNeon,
+            installCommand,
+            startCommand,
+          });
+        }
       } catch (error) {
         // The close handler is a critical lifecycle point; never let an
         // unexpected error leave a stale runningApps entry behind.
@@ -861,6 +882,67 @@ function listenToProcess({
     );
     removeAppIfCurrentProcess(appId, spawnedProcess);
   });
+}
+
+function scheduleUnexpectedLocalRestart({
+  appId,
+  appPath,
+  event,
+  isNeon,
+  installCommand,
+  startCommand,
+}: {
+  appId: number;
+  appPath: string;
+  event: Electron.IpcMainInvokeEvent;
+  isNeon: boolean;
+  installCommand?: string | null;
+  startCommand?: string | null;
+}): void {
+  const now = Date.now();
+  const recentRestarts = (unexpectedRestartHistory.get(appId) ?? []).filter(
+    (timestamp) => now - timestamp < UNEXPECTED_RESTART_WINDOW_MS,
+  );
+  if (recentRestarts.length >= MAX_UNEXPECTED_RESTARTS) {
+    unexpectedRestartHistory.set(appId, recentRestarts);
+    safeSend(event.sender, "app:output", {
+      type: "stderr",
+      message:
+        "[caide] The preview stopped repeatedly. Automatic recovery paused; review the runtime error and use Refresh after fixing it.",
+      appId,
+    });
+    return;
+  }
+
+  recentRestarts.push(now);
+  unexpectedRestartHistory.set(appId, recentRestarts);
+  safeSend(event.sender, "app:output", {
+    type: "stdout",
+    message: `[caide] Preview process stopped unexpectedly. Reconnecting automatically (${recentRestarts.length}/${MAX_UNEXPECTED_RESTARTS})...`,
+    appId,
+  });
+
+  setTimeout(() => {
+    if (runningApps.has(appId) || event.sender.isDestroyed()) return;
+    void executeAppLocalNode({
+      appPath,
+      appId,
+      event,
+      isNeon,
+      installCommand,
+      startCommand,
+    }).catch((error) => {
+      logger.error(
+        `Automatic preview recovery failed for app ${appId}:`,
+        error,
+      );
+      safeSend(event.sender, "app:output", {
+        type: "stderr",
+        message: `[caide] Automatic preview recovery failed: ${error instanceof Error ? error.message : String(error)}`,
+        appId,
+      });
+    });
+  }, 900);
 }
 
 async function selfHealDeniedPnpmBuilds({

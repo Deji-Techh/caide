@@ -36,6 +36,8 @@ export interface RunningAppInfo {
   proxyWorker?: Worker;
   /** Listen host for the proxy server (default: "localhost") */
   proxyListenHost?: string;
+  /** Prevents an intentional stop from being mistaken for a runtime crash. */
+  stopRequested?: boolean;
 }
 
 // Store running app processes
@@ -163,6 +165,7 @@ export async function stopAppByInfo(
   appId: number,
   appInfo: RunningAppInfo,
 ): Promise<void> {
+  appInfo.stopRequested = true;
   stopCloudSandboxFileSync(appId);
 
   if (appInfo.mode === "cloud") {
