@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { ipc } from "@/ipc/types";
+import { normalizeProviderError } from "./chat_error_utils";
 
 export function ChatErrorBox({
   onDismiss,
@@ -69,25 +70,4 @@ export function ChatErrorBox({
       </div>
     </div>
   );
-}
-
-function normalizeProviderError(error: string) {
-  const fallbackPrefix = "Fallbacks=[{";
-  const normalized = error.includes(fallbackPrefix)
-    ? error.split(fallbackPrefix)[0]
-    : error;
-
-  if (
-    normalized.includes("FREE_AGENT_QUOTA_EXCEEDED") ||
-    normalized.includes("FREE_MODEL_QUOTA_EXCEEDED") ||
-    normalized.includes("ExceededBudget:")
-  ) {
-    return "The selected provider or model has reached its usage limit. Choose another configured model or update that provider credential.";
-  }
-
-  if (normalized.includes("LiteLLM Virtual Key expected")) {
-    return "The selected gateway credential is invalid. Connect a provider key in Settings and choose one of its available models.";
-  }
-
-  return normalized;
 }

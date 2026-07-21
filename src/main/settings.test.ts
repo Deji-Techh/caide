@@ -28,10 +28,14 @@ import {
 import { ZodError } from "zod";
 
 const mockSend = vi.fn();
+const mockWebContentsIsDestroyed = vi.fn(() => false);
+const mockWindowIsDestroyed = vi.fn(() => false);
 const mockWebContents = {
   send: mockSend,
+  isDestroyed: mockWebContentsIsDestroyed,
 } as unknown as Parameters<typeof notifyRendererErrorToastListenerReady>[0];
 const mockWindow = {
+  isDestroyed: mockWindowIsDestroyed,
   webContents: mockWebContents,
 };
 
@@ -79,6 +83,8 @@ describe("readSettings", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockWebContentsIsDestroyed.mockReturnValue(false);
+    mockWindowIsDestroyed.mockReturnValue(false);
     mockGetUserDataPath.mockReturnValue(mockUserDataPath);
     mockPath.join.mockReturnValue(mockSettingsPath);
     mockSafeStorage.isEncryptionAvailable.mockReturnValue(true);
@@ -106,7 +112,7 @@ describe("readSettings", () => {
           "autoExpandPreviewPanel": true,
           "disablePreviewNodeAutoInstall": false,
           "enableAppBlueprint": true,
-          "enableAutoFixProblems": false,
+          "enableAutoFixProblems": true,
           "enableAutoUpdate": true,
           "enableCodeExplorer": true,
           "enableContextCompaction": true,
@@ -523,7 +529,7 @@ describe("readSettings", () => {
           "autoExpandPreviewPanel": true,
           "disablePreviewNodeAutoInstall": false,
           "enableAppBlueprint": true,
-          "enableAutoFixProblems": false,
+          "enableAutoFixProblems": true,
           "enableAutoUpdate": true,
           "enableCodeExplorer": true,
           "enableContextCompaction": true,
@@ -779,7 +785,7 @@ describe("writeSettings", () => {
       expect.objectContaining({
         action: {
           label: "Read restore docs",
-          url: "https://www.dyad.sh/docs/guides/migrate-restore#restoring-settings-from-backup",
+          url: "https://caide.app/docs/guides/migrate-restore#restoring-settings-from-backup",
         },
         message: expect.not.stringContaining("https://"),
       }),

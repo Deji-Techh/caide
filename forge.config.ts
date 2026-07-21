@@ -202,12 +202,12 @@ const config: ForgeConfig = {
         ? {
             windowsSign,
             iconUrl:
-              "https://raw.githubusercontent.com/Deji-Tech/dyad-x-caide/main/assets/icon/logo.ico",
+              "https://raw.githubusercontent.com/Deji-Techh/caide/main/assets/icon/logo.ico",
             setupIcon: "./assets/icon/logo.ico",
           }
         : {
             iconUrl:
-              "https://raw.githubusercontent.com/Deji-Tech/dyad-x-caide/main/assets/icon/logo.ico",
+              "https://raw.githubusercontent.com/Deji-Techh/caide/main/assets/icon/logo.ico",
             setupIcon: "./assets/icon/logo.ico",
           },
     ),
@@ -233,8 +233,8 @@ const config: ForgeConfig = {
       name: "@electron-forge/publisher-github",
       config: {
         repository: {
-          owner: "Deji-Tech",
-          name: "dyad-x-caide",
+          owner: "Deji-Techh",
+          name: "caide",
         },
         draft: true,
         force: true,

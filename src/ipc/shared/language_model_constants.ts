@@ -555,11 +555,14 @@ export const MODEL_OPTIONS: Record<string, ModelOption[]> = {
   ],
 };
 
-export const FREE_OPENROUTER_MODEL_NAMES = MODEL_OPTIONS.openrouter
-  .filter(
-    (model) => model.name.endsWith(":free") || model.name.endsWith("/free"),
-  )
-  .map((model) => model.name);
+export const FREE_OPENROUTER_MODEL_NAMES = MODEL_OPTIONS.openrouter.reduce<
+  string[]
+>((names, model) => {
+  if (model.name.endsWith(":free") || model.name.endsWith("/free")) {
+    names.push(model.name);
+  }
+  return names;
+}, []);
 
 export const PROVIDER_TO_ENV_VAR: Record<string, string> = {
   deepseek: "DEEPSEEK_API_KEY",
@@ -628,7 +631,7 @@ export const CLOUD_PROVIDERS: Record<
   },
   auto: {
     displayName: "CAIDE Engine",
-    websiteUrl: "https://academy.dyad.sh/subscription",
+    websiteUrl: "https://github.com/Deji-Techh/caide",
     gatewayPrefix: "dyad/",
   },
   azure: {

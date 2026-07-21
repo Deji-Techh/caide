@@ -32,6 +32,7 @@ import {
   getRecoveryStats,
   recoverLegacySafeStorageSecret,
 } from "./safe_storage_legacy";
+import { safeSendToBrowserWindow } from "@/ipc/utils/safe_window_send";
 
 const logger = log.scope("settings");
 
@@ -986,6 +987,9 @@ function notifyRendererError(payload: RendererErrorToast): void {
 export function notifyRendererErrorToastListenerReady(
   webContents: WebContents,
 ): void {
+  if (webContents.isDestroyed()) {
+    return;
+  }
   rendererErrorToastReadyWebContents.add(webContents);
   const window = BrowserWindow.fromWebContents(webContents);
   if (window) {
@@ -1009,7 +1013,12 @@ function sendRendererErrorToast(
   payload: RendererErrorToast,
 ): void {
   for (const window of windows) {
-    window.webContents.send("toast:error", payload);
+    safeSendToBrowserWindow(window, "toast:error", payload, (error) => {
+      logger.warn(
+        "Could not send a queued settings error to the renderer:",
+        error,
+      );
+    });
   }
 }
 

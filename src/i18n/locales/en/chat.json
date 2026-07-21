@@ -241,7 +241,7 @@
     "invalidProKey": "The configured provider key is not valid.",
     "today": "today.",
     "creditsUsed": "The selected provider has reached its usage limit.",
-    "reloadOrUpgrade": "Reload or upgrade your subscription",
+    "reloadOrUpgrade": "Reload or choose another provider",
     "getMoreCredits": "and get more AI credits",
     "readDocs": "Read docs"
   },
@@ -252,11 +252,11 @@
     "saveOnCosts": "Save up to 3x on AI costs with",
     "debuggingLoop": "Getting stuck in a debugging loop? Try a different model.",
     "joinBuilders": "Join 600+ builders in the",
-    "dyadSubreddit": "Dyad subreddit",
+    "dyadSubreddit": "CAIDE subreddit",
     "foundBug": "Found a bug? Click Help > Report a Bug",
     "reportBadResponse": "Want to report a bad AI response? Upload the chat by clicking Help",
     "watch": "Watch",
-    "creatorBuildApp": "the creator of Dyad build a Bible app step-by-step",
+    "creatorBuildApp": "the creator of CAIDE build a Bible app step-by-step",
     "gettingStuck": "Getting stuck? Read our",
     "debuggingTips": "debugging tips",
     "advancedTip": "Advanced tip: Customize your",
@@ -264,7 +264,7 @@
     "keepFocused": "Want to keep the AI focused? Start a new chat.",
     "whatsNext": "Want to know what's next? Check out our",
     "roadmap": "roadmap",
-    "likeDyad": "Like Dyad? Star it on",
+    "likeDyad": "Like CAIDE? Star it on",
     "gitHub": "GitHub"
   },
   "consent": {

@@ -38,7 +38,7 @@ import { HelpBotDialog } from "./HelpBotDialog";
 import { useSettings } from "@/hooks/useSettings";
 import { BugScreenshotDialog } from "./BugScreenshotDialog";
 import { type UserSettings } from "@/lib/schemas";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, domAnimation, LazyMotion, m } from "framer-motion";
 import { formatUpdaterLogsForIssueBody } from "@/lib/debugLogFormatting";
 
 // =============================================================================
@@ -71,7 +71,7 @@ const screenTransition = {
 // =============================================================================
 
 const GITHUB_ISSUES_BASE =
-  "https://github.com/dyad-sh/dyad/issues/new" as const;
+  "https://github.com/Deji-Techh/caide/issues/new" as const;
 
 function formatSettingsLines(settings: UserSettings | null): string {
   if (!settings) return "Settings not available";
@@ -151,7 +151,7 @@ function AnimatedScreen({
   children: ReactNode;
 }) {
   return (
-    <motion.div
+    <m.div
       key={screenKey}
       custom={direction}
       variants={screenVariants}
@@ -162,7 +162,7 @@ function AnimatedScreen({
       className={className}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -211,13 +211,14 @@ function CopyButton({ text }: { text: string }) {
 
   return (
     <button
+      type="button"
       onClick={handleCopy}
       className="shrink-0 p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
       aria-label="Copy session ID"
     >
       <AnimatePresence mode="wait" initial={false}>
         {copied ? (
-          <motion.div
+          <m.div
             key="check"
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -225,9 +226,9 @@ function CopyButton({ text }: { text: string }) {
             transition={{ duration: 0.15 }}
           >
             <CheckIcon className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-          </motion.div>
+          </m.div>
         ) : (
-          <motion.div
+          <m.div
             key="copy"
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -235,7 +236,7 @@ function CopyButton({ text }: { text: string }) {
             transition={{ duration: 0.15 }}
           >
             <CopyIcon className="h-3.5 w-3.5 text-muted-foreground" />
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </button>
@@ -502,7 +503,7 @@ ${formatLogsSection(debugInfo)}
           <Button
             variant="default"
             onClick={() => setIsHelpBotOpen(true)}
-            className="w-full py-6 border-primary/50 shadow-sm shadow-primary/10 transition-all hover:shadow-md hover:shadow-primary/15"
+            className="w-full py-6 border-primary/50 shadow-sm shadow-primary/10 transition-shadow hover:shadow-md hover:shadow-primary/15"
           >
             <SparklesIcon className="mr-2 h-5 w-5" /> Chat with the CAIDE help
             bot
@@ -511,7 +512,7 @@ ${formatLogsSection(debugInfo)}
           <Button
             variant="outline"
             onClick={() =>
-              ipc.system.openExternalUrl("https://www.dyad.sh/docs")
+              ipc.system.openExternalUrl("https://github.com/Deji-Techh/caide")
             }
             className="w-full py-6 bg-(--background-lightest)"
           >
@@ -612,7 +613,7 @@ ${formatLogsSection(debugInfo)}
           included.
         </DialogDescription>
 
-        <div className="space-y-2 overflow-y-auto flex-grow mt-4">
+        <div className="space-y-2 overflow-y-auto grow mt-4">
           <ReviewDetailsSection title="Chat Messages" mono={false}>
             {debugBundle.chat.messages.map((msg) => (
               <div key={msg.id} className="mb-2">
@@ -753,7 +754,7 @@ ${formatLogsSection(debugInfo)}
   const isCrashPreloading = helpDialog.uploadChatId != null;
 
   return (
-    <>
+    <LazyMotion features={domAnimation}>
       <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent
           className={
@@ -782,6 +783,6 @@ ${formatLogsSection(debugInfo)}
         handleReportBug={handleReportBug}
         isLoading={isLoading}
       />
-    </>
+    </LazyMotion>
   );
 }

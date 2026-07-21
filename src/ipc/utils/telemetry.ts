@@ -6,6 +6,7 @@ import {
 } from "@/errors/dyad_error";
 import { isGenericFetchFailedError } from "@/lib/posthogTelemetry";
 import { TelemetryEventPayload } from "@/ipc/types";
+import { safeSendToBrowserWindow } from "@/ipc/utils/safe_window_send";
 
 const logger = log.scope("telemetry");
 const FILTERED_EXCEPTION_MESSAGES = new Set([
@@ -22,8 +23,12 @@ export function sendTelemetryEvent(
 ): void {
   try {
     const windows = BrowserWindow.getAllWindows();
-    if (windows.length > 0) {
-      windows[0].webContents.send("telemetry:event", {
+    const window = windows.find(
+      (candidate) =>
+        !candidate.isDestroyed() && !candidate.webContents.isDestroyed(),
+    );
+    if (window) {
+      safeSendToBrowserWindow(window, "telemetry:event", {
         eventName,
         properties,
       } satisfies TelemetryEventPayload);

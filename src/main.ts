@@ -39,6 +39,7 @@ import {
 } from "./main/safe_storage_legacy";
 import { recordUpdaterError } from "./main/updater_state";
 import { sendTelemetryEvent } from "./ipc/utils/telemetry";
+import { safeSendToBrowserWindow } from "./ipc/utils/safe_window_send";
 import { handleSupabaseOAuthReturn } from "./supabase_admin/supabase_return_handler";
 import { handleDyadProReturn } from "./main/pro";
 import { IS_TEST_BUILD } from "./ipc/utils/test_utils";
@@ -608,12 +609,9 @@ function getLiveMainWindow(): BrowserWindow | null {
 
 function sendToMainWindow(channel: string, payload: unknown): void {
   const windowRef = getLiveMainWindow();
-  if (!windowRef) return;
-  try {
-    windowRef.webContents.send(channel, payload);
-  } catch (error) {
+  safeSendToBrowserWindow(windowRef, channel, payload, (error) => {
     logger.warn(`Could not send ${channel} to the main window:`, error);
-  }
+  });
 }
 
 function focusMainWindow(): void {
@@ -699,16 +697,14 @@ const createWindow = () => {
     if (pendingCrashDetected && !forceCloseMessageSent) {
       forceCloseMessageSent = true;
 
-      if (!windowRef.isDestroyed() && !windowRef.webContents.isDestroyed()) {
-        windowRef.webContents.send("force-close-detected", {
-          ...(pendingForceCloseData && {
-            performanceData: pendingForceCloseData,
-          }),
-          ...(pendingActiveChatId != null && {
-            activeChatId: pendingActiveChatId,
-          }),
-        });
-      }
+      safeSendToBrowserWindow(windowRef, "force-close-detected", {
+        ...(pendingForceCloseData && {
+          performanceData: pendingForceCloseData,
+        }),
+        ...(pendingActiveChatId != null && {
+          activeChatId: pendingActiveChatId,
+        }),
+      });
 
       const nativeCrash = pendingNativeBrowserCrash;
       pendingNativeBrowserCrash = null;
