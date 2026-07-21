@@ -57,7 +57,18 @@ jobs:
       - name: Verify workers
         run: npm run ts:workers
 
-      - name: Build desktop package
+      - name: Build Linux AppImage
+        if: runner.os == 'Linux'
+        run: |
+          npm run package
+          npx electron-forge make --skip-package --targets=AppImage
+        env:
+          DYAD_SKIP_NATIVE_REBUILD: "false"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Build Windows installer
+        if: runner.os == 'Windows'
         run: npm run make
         env:
           DYAD_SKIP_NATIVE_REBUILD: "false"
