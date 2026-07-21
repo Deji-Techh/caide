@@ -4534,3 +4534,341 @@
   border-color: #d8dade !important;
   background: #ffffff !important;
 }
+
+/* Builder workspace: keep the generated application isolated inside its
+   device frame while the editor chrome follows CAIDE's light theme. */
+.light .caide-workspace {
+  color: #17191d;
+  background: #eef0f2;
+}
+.light .caide-project-header {
+  border-color: #d8dade;
+  background: #fafbfc;
+}
+.light .caide-back,
+.light .caide-project-actions button {
+  color: #555b65;
+  border-color: #cfd2d7;
+  background: #ffffff;
+}
+.light .caide-back:hover,
+.light .caide-project-actions button:hover {
+  color: #17191d;
+  border-color: #aeb3bb;
+  background: #f0f2f4;
+}
+.light .caide-project-mark strong,
+.light .caide-project-identity strong,
+.light .caide-map-heading strong,
+.light .caide-inspector-heading strong {
+  color: #202328;
+}
+.light .caide-project-identity {
+  border-color: #d8dade;
+}
+.light .caide-project-identity span,
+.light .caide-save-state {
+  color: #69707a;
+}
+.light .caide-project-actions .caide-ship {
+  color: #ffffff;
+  border-color: #202328;
+  background: #202328;
+}
+.light .caide-project-actions .caide-ship:hover {
+  color: #ffffff;
+  border-color: #08090b;
+  background: #08090b;
+}
+.light .caide-tool-rail {
+  border-color: #d8dade;
+  background: #f7f8f9;
+}
+.light .caide-tool-rail button {
+  color: #69707a;
+}
+.light .caide-tool-rail button:hover,
+.light .caide-tool-rail button.active {
+  color: #17191d;
+  border-color: #cfd2d7;
+  background: #e6e8eb;
+}
+.light .caide-screen-map,
+.light .caide-properties {
+  border-color: #d8dade;
+  background: #ffffff;
+}
+.light .caide-map-heading button {
+  color: #555b65;
+  border-color: #cfd2d7;
+  background: #f7f8f9;
+}
+.light .caide-map-heading button:hover {
+  color: #17191d;
+  background: #e9ebee;
+}
+.light .caide-map-search {
+  color: #737983;
+  border-color: #d8dade;
+  background: #fafbfc;
+}
+.light .caide-map-search input {
+  color: #202328;
+}
+.light .caide-map-search input::placeholder {
+  color: #858b95;
+}
+.light .caide-screen-map-list button,
+.light .caide-map-section button {
+  color: #626872;
+}
+.light .caide-screen-map-list button:hover,
+.light .caide-screen-map-list button.active,
+.light .caide-map-section button:hover {
+  color: #17191d;
+  border-color: #cfd2d7;
+  background: #eceef1;
+}
+.light .caide-screen-map-list button span,
+.light .caide-map-section > span,
+.light .caide-map-empty {
+  color: #7a808a;
+}
+.light .caide-map-section,
+.light .caide-runtime-state {
+  border-color: #d8dade;
+}
+.light .caide-builder-stage {
+  background: #eef0f2;
+}
+.light .caide-builder-toolbar {
+  border-color: #d8dade;
+  background: #fafbfc;
+}
+.light .caide-tool-modes button,
+.light .caide-device-controls button {
+  color: #626872;
+}
+.light .caide-tool-modes button:hover,
+.light .caide-tool-modes button.active,
+.light
+  .caide-device-controls
+  button:not(.caide-immersive-preview-toggle):hover {
+  color: #17191d;
+  border-color: #cfd2d7;
+  background: #e9ebee;
+}
+.light .caide-device-controls label,
+.light .caide-device-picker-trigger {
+  color: #34383f;
+  border-color: #cfd2d7;
+  background: #ffffff;
+}
+.light .caide-device-picker-trigger:hover,
+.light .caide-device-picker-trigger[data-open],
+.light .caide-device-picker-trigger[data-popup-open] {
+  color: #17191d;
+  border-color: #aeb3bb;
+  background: #f4f5f7;
+}
+.light .caide-device-picker-trigger > svg,
+.light .caide-device-picker-trigger small,
+.light .caide-device-picker-trigger .caide-device-picker-chevron,
+.light .caide-device-controls span {
+  color: #69707a;
+}
+.light .caide-device-controls input {
+  accent-color: #34383f;
+}
+.light .caide-device-controls .caide-immersive-preview-toggle {
+  color: #ffffff;
+  border-color: #202328;
+  background: #202328;
+}
+.light .caide-device-controls .caide-immersive-preview-toggle:hover,
+.light
+  .caide-device-controls
+  .caide-immersive-preview-toggle[aria-pressed="true"] {
+  color: #ffffff;
+  border-color: #08090b;
+  background: #08090b;
+}
+.light .caide-canvas-surface {
+  background:
+    linear-gradient(#1118270a 1px, transparent 1px),
+    linear-gradient(90deg, #1118270a 1px, transparent 1px), #e9ebee;
+  background-size: 22px 22px;
+}
+.light .caide-canvas-meta span,
+.light .caide-canvas-meta strong {
+  color: #69707a;
+}
+.light .caide-runtime-hud > button {
+  color: #626872;
+  border-color: #cfd2d7;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 7px 22px rgb(31 35 41 / 8%);
+}
+.light .caide-runtime-hud > button strong {
+  color: #34383f;
+}
+.light .caide-runtime-log {
+  color: #4f555f;
+  border-color: #cfd2d7;
+  background: rgb(255 255 255 / 97%);
+  box-shadow: 0 18px 48px rgb(31 35 41 / 16%);
+}
+.light .caide-runtime-log > div {
+  border-color: #e0e2e6;
+}
+.light .caide-runtime-log span {
+  color: #737983;
+}
+.light .caide-preview-label {
+  color: #34383f;
+  border-color: #c4c8ce;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgb(31 35 41 / 9%);
+}
+.light .caide-preview-label:hover {
+  color: #17191d;
+  border-color: #9298a2;
+}
+.light .caide-preview-label span {
+  color: #69707a;
+}
+.light .caide-preview-device {
+  box-shadow:
+    0 0 0 1px #aeb3bb,
+    0 24px 60px rgb(31 35 41 / 22%);
+}
+.light .caide-command-tray {
+  border-color: #c4c8ce;
+  background: #f7f8f9;
+  box-shadow: 0 -14px 36px rgb(31 35 41 / 8%);
+}
+.light .caide-command-label {
+  color: #69707a;
+  border-color: #d8dade;
+}
+.light .caide-command-label strong {
+  color: #34383f;
+}
+.light .caide-command-tray > div:last-child,
+.light .caide-command-tray [data-testid="chat-input-container"] {
+  color: #34383f;
+  background: #f7f8f9 !important;
+}
+.light .caide-command-tray [data-testid="chat-input-container"] > div {
+  color: #202328 !important;
+  border-color: #cfd2d7 !important;
+  background: #ffffff !important;
+}
+.light .caide-command-tray [contenteditable="true"] {
+  color: #202328 !important;
+}
+.light .caide-command-tray [contenteditable="true"] + div,
+.light .caide-command-tray [class*="text-muted"] {
+  color: #737983 !important;
+}
+.light .caide-inspector-tabs {
+  border-color: #d8dade;
+  background: #fafbfc;
+}
+.light .caide-inspector-tabs button {
+  color: #69707a;
+}
+.light .caide-inspector-tabs button.active {
+  color: #17191d;
+  border-bottom-color: #202328;
+  background: #ffffff;
+}
+.light .caide-inspector-heading svg,
+.light .caide-inspector-path,
+.light .caide-design-inspector label,
+.light .caide-color-section > span,
+.light .caide-inspector-note {
+  color: #69707a;
+}
+.light .caide-inspector-path,
+.light .caide-color-section {
+  border-color: #d8dade;
+}
+.light .caide-design-inspector input,
+.light .caide-design-inspector select {
+  color: #202328;
+  border-color: #cfd2d7;
+  background: #ffffff;
+}
+.light .caide-design-inspector input[type="range"] {
+  accent-color: #34383f;
+}
+.light .caide-inspector-actions button {
+  color: #4f555f;
+  border-color: #cfd2d7;
+  background: #f7f8f9;
+}
+.light .caide-inspector-actions button:hover {
+  color: #17191d;
+  border-color: #aeb3bb;
+  background: #eceef1;
+}
+.light .caide-color-section i {
+  border-color: #c7cbd1;
+}
+.light .caide-agent-panel .caide-chat-header,
+.light .caide-agent-panel [data-testid="chat-input-container"] {
+  border-color: #d8dade;
+  background: #fafbfc;
+}
+.light .caide-agent-panel [data-message-role="user"] .caide-chat-message-body {
+  border-color: #d8dade;
+  background: #eef0f2;
+}
+.light .caide-agent-panel .caide-chat-message-body .prose {
+  color: #34383f;
+}
+.light
+  .caide-agent-panel
+  .caide-chat-message-body
+  .prose
+  :where(strong, h1, h2, h3) {
+  color: #17191d;
+}
+.light .caide-agent-panel .caide-chat-message-body .prose a {
+  color: #195f9b;
+  text-decoration-color: #7fa8ca;
+}
+.light
+  .caide-agent-panel
+  [data-testid="chat-input-container"]
+  > div:last-child {
+  border-color: #cfd2d7;
+  background: #ffffff;
+}
+.light .caide-stage-tool-panel,
+.light .caide-flow-editor {
+  color: #34383f;
+  border-color: #cfd2d7;
+  background: rgb(255 255 255 / 97%);
+  box-shadow: 0 22px 54px rgb(31 35 41 / 16%);
+}
+.light .caide-flow-editor-heading {
+  color: #69707a;
+  border-color: #d8dade;
+}
+.light .caide-flow-editor-heading span,
+.light .caide-flow-step > button strong {
+  color: #202328;
+}
+.light .caide-flow-step > button {
+  color: #4f555f;
+  border-color: #cfd2d7;
+  background: #f7f8f9;
+}
+.light .caide-flow-step > button:hover,
+.light .caide-flow-step > button.active,
+.light .caide-flow-add:hover {
+  color: #17191d;
+  background: #eceef1;
+}

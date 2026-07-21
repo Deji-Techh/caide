@@ -175,6 +175,49 @@ try {
       ".caide-properties",
     ]);
     workspace.previewPortrait = await measurePreviewFit(window);
+
+    await window.evaluate(() => {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.add("light");
+    });
+    await window.waitForTimeout(250);
+    workspace.lightTheme = await window.evaluate(() => {
+      const background = (selector) =>
+        getComputedStyle(document.querySelector(selector)).backgroundColor;
+      const color = (selector) =>
+        getComputedStyle(document.querySelector(selector)).color;
+      return {
+        header: background(".caide-project-header"),
+        toolRail: background(".caide-tool-rail"),
+        screenMap: background(".caide-screen-map"),
+        toolbar: background(".caide-builder-toolbar"),
+        canvas: background(".caide-canvas-surface"),
+        properties: background(".caide-properties"),
+        commandTray: background(".caide-command-tray"),
+        inspectorText: color(".caide-inspector-heading strong"),
+      };
+    });
+    const lightWorkspaceSurfaces = [
+      workspace.lightTheme.header,
+      workspace.lightTheme.toolRail,
+      workspace.lightTheme.screenMap,
+      workspace.lightTheme.toolbar,
+      workspace.lightTheme.canvas,
+      workspace.lightTheme.properties,
+      workspace.lightTheme.commandTray,
+    ];
+    if (!lightWorkspaceSurfaces.every(isLightColor)) {
+      throw new Error(
+        `Light workspace contains a dark shell surface: ${JSON.stringify(workspace.lightTheme)}`,
+      );
+    }
+    await window.screenshot({ path: "/tmp/caide-workspace-light.png" });
+    await window.evaluate(() => {
+      document.documentElement.classList.remove("light");
+      document.documentElement.classList.add("dark");
+    });
+    await window.waitForTimeout(250);
+
     await window
       .getByRole("button", { name: /Use landscape orientation/i })
       .click();
@@ -398,4 +441,13 @@ async function selectDevice(window, label) {
     .filter({ hasText: label })
     .first()
     .click();
+}
+
+function isLightColor(value) {
+  const channels = value
+    .match(/[\d.]+/g)
+    ?.slice(0, 3)
+    .map(Number);
+  if (!channels || channels.length !== 3) return false;
+  return channels.reduce((sum, channel) => sum + channel, 0) / 3 >= 180;
 }
