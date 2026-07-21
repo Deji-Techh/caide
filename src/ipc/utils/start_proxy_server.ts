@@ -17,6 +17,8 @@ export async function startProxy(
     port: number;
     onStarted?: (proxyUrl: string) => void;
     onError?: (error: DyadError) => void;
+    onWorkerError?: (error: Error) => void;
+    onExit?: (exitCode: number) => void;
     fixedHeaders?: Record<string, string>;
     listenHost?: string;
   },
@@ -26,7 +28,15 @@ export async function startProxy(
       "startProxy: targetOrigin must be absolute http/https URL",
       DyadErrorKind.Validation,
     );
-  const { port, onStarted, onError, fixedHeaders, listenHost } = opts;
+  const {
+    port,
+    onStarted,
+    onError,
+    onWorkerError,
+    onExit,
+    fixedHeaders,
+    listenHost,
+  } = opts;
   const fallbackPortStart = getProxyFallbackPortStart();
   logger.info("Starting proxy on port", port);
 
@@ -59,8 +69,14 @@ export async function startProxy(
       );
     }
   });
-  worker.on("error", (e) => logger.error("[proxy] error:", e));
-  worker.on("exit", (c) => logger.info("[proxy] exit", c));
+  worker.on("error", (e) => {
+    logger.error("[proxy] error:", e);
+    onWorkerError?.(e);
+  });
+  worker.on("exit", (c) => {
+    logger.info("[proxy] exit", c);
+    onExit?.(c);
+  });
 
   return worker; // let the caller keep a handle if desired
 }

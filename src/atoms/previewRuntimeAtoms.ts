@@ -25,7 +25,7 @@ export const EMPTY_APP_URL: AppUrlState = {
   mode: null,
 };
 
-export type PreviewRunOperation = "run" | "restart" | "stop";
+export type PreviewRunOperation = "run" | "restart" | "stop" | "reconnect";
 
 export interface PreviewRunState {
   operation: PreviewRunOperation;
@@ -40,7 +40,7 @@ export interface PreviewAppExit {
 
 export interface PreviewErrorMessage {
   message: string;
-  source: "preview-app" | "dyad-app" | "dyad-sync";
+  source: "preview-app" | "dyad-app" | "dyad-sync" | "preview-proxy";
 }
 
 export type PackageManagerWarningKind = "release-age" | "pnpm-migration";

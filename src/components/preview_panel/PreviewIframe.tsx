@@ -5,6 +5,7 @@ import {
   currentPreviewErrorAtom,
   previewCurrentUrlAtom,
   setPreviewErrorForAppAtom,
+  type PreviewErrorMessage,
   type PreviewErrorUpdate,
 } from "@/atoms/previewRuntimeAtoms";
 import { useAtomValue, useSetAtom, useAtom } from "jotai";
@@ -108,23 +109,25 @@ import {
 } from "./previewAddressPath";
 
 interface ErrorBannerProps {
-  error:
-    | {
-        message: string;
-        source: "preview-app" | "dyad-app" | "dyad-sync";
-      }
-    | undefined;
+  error: PreviewErrorMessage | undefined;
   onDismiss: () => void;
   onAIFix: () => void;
+  onRetry: () => void;
 }
 
-const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
+const ErrorBanner = ({
+  error,
+  onDismiss,
+  onAIFix,
+  onRetry,
+}: ErrorBannerProps) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const { isStreaming } = useStreamChat();
   if (!error) return null;
   const isDockerError = error.message.includes("Cannot connect to the Docker");
   const isInternalDyadError = error.source === "dyad-app";
   const isSyncError = error.source === "dyad-sync";
+  const isProxyError = error.source === "preview-proxy";
 
   const getTruncatedError = () => {
     const firstLine = error.message.split("\n")[0];
@@ -149,9 +152,13 @@ const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
         <X size={14} className="text-red-500 dark:text-red-400" />
       </button>
 
-      {(isInternalDyadError || isSyncError) && (
+      {(isInternalDyadError || isSyncError || isProxyError) && (
         <div className="absolute top-1 right-1 p-1 bg-red-100 dark:bg-red-900 rounded-md text-xs font-medium text-red-700 dark:text-red-300">
-          {isSyncError ? "Cloud sync issue" : "Internal CAIDE error"}
+          {isSyncError
+            ? "Cloud sync issue"
+            : isProxyError
+              ? "Preview disconnected"
+              : "Internal CAIDE error"}
         </div>
       )}
 
@@ -159,7 +166,7 @@ const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
       <div
         className={cn(
           "px-6 py-1 text-sm",
-          (isInternalDyadError || isSyncError) && "pt-6",
+          (isInternalDyadError || isSyncError || isProxyError) && "pt-6",
         )}
       >
         <div
@@ -187,9 +194,11 @@ const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
               ? "Make sure Docker Desktop is running and try restarting the app."
               : isSyncError
                 ? "CAIDE could not upload your latest local changes to the cloud sandbox. Check your network connection or wait for sync to recover."
-                : isInternalDyadError
-                  ? "Try restarting CAIDE or restarting your computer to see if that fixes the error."
-                  : "Check if restarting the app fixes the error."}
+                : isProxyError
+                  ? "The app is still available. Restart the preview connection to continue testing it."
+                  : isInternalDyadError
+                    ? "Try restarting CAIDE or restarting your computer to see if that fixes the error."
+                    : "Check if restarting the app fixes the error."}
           </span>
         </div>
       </div>
@@ -205,6 +214,17 @@ const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
           >
             <Sparkles size={14} />
             <span>Fix error with AI</span>
+          </button>
+        </div>
+      )}
+      {isProxyError && (
+        <div className="mt-3 px-6 flex justify-end">
+          <button
+            onClick={onRetry}
+            className="inline-flex min-h-9 items-center gap-2 rounded border border-red-300 bg-background px-3 text-sm font-medium text-foreground hover:bg-red-100 dark:border-red-800 dark:hover:bg-red-900"
+          >
+            <RefreshCw size={14} />
+            Restart preview
           </button>
         </div>
       )}
@@ -1395,7 +1415,7 @@ export const PreviewIframe = ({
   }, [visualEditingSelectedComponent]);
 
   // Function to activate component selector in the iframe
-  const handleActivateComponentSelector = () => {
+  const handleActivateComponentSelector = useCallback(() => {
     if (iframeRef.current?.contentWindow) {
       const newIsPicking = !isPicking;
       if (!newIsPicking) {
@@ -1416,7 +1436,7 @@ export const PreviewIframe = ({
         "*",
       );
     }
-  };
+  }, [isPicking, setVisualEditingSelectedComponent]);
 
   // Function to handle annotator button click
   const handleAnnotatorClick = () => {
@@ -1857,7 +1877,10 @@ export const PreviewIframe = ({
                   <DeviceLab
                     selectedPreset={deviceLab.selectedPreset}
                     onPresetChange={(preset) =>
-                      setDeviceLab((prev) => ({ ...prev, selectedPreset: preset }))
+                      setDeviceLab((prev) => ({
+                        ...prev,
+                        selectedPreset: preset,
+                      }))
                     }
                     orientation={deviceLab.orientation}
                     onOrientationChange={(o) =>
@@ -2252,6 +2275,7 @@ export const PreviewIframe = ({
           <ErrorBanner
             error={errorMessage}
             onDismiss={() => setErrorMessage(undefined)}
+            onRetry={() => void restartApp()}
             onAIFix={() => {
               if (selectedChatId) {
                 streamMessage({

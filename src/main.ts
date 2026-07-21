@@ -87,11 +87,6 @@ import {
   getDyadAppPath,
   getUserDataPath,
 } from "./paths/paths";
-import {
-  createNotchWindow,
-  setMainWindow as setNotchMainWindow,
-} from "./notch/notch";
-import { setMainWindow as setServiceMainWindow } from "./ipc/services/notch_service";
 import { createDeepLinkQueue } from "./main/deep_link_queue";
 import { registerDyadProtocolLinux } from "./main/linux_protocol_registration";
 import {
@@ -486,11 +481,8 @@ export async function onReady() {
   }
 
   await onFirstRunMaybe(settings);
-  const windowRef = createWindow();
+  createWindow();
   createApplicationMenu();
-  createNotchWindow();
-  setNotchMainWindow(windowRef);
-  setServiceMainWindow(windowRef);
 
   sendTelemetryEvent("runtime_source", {
     runtime_source: settings.customNodePath
@@ -649,7 +641,12 @@ const createWindow = () => {
   });
   mainWindow = windowRef;
   windowRef.once("closed", () => {
-    if (mainWindow === windowRef) mainWindow = null;
+    if (mainWindow === windowRef) {
+      mainWindow = null;
+    }
+    if (process.platform !== "darwin" && !isAppQuitting) {
+      app.quit();
+    }
   });
   // In development, wait for DevTools to open, then reload the page once so React DevTools initializes correctly
   if (process.env.NODE_ENV === "development") {
@@ -881,6 +878,18 @@ const createWindow = () => {
   return windowRef;
 };
 
+function restoreOrCreateMainWindow(): BrowserWindow {
+  const existingWindow = getLiveMainWindow();
+  if (existingWindow) {
+    if (existingWindow.isMinimized()) existingWindow.restore();
+    existingWindow.show();
+    existingWindow.focus();
+    return existingWindow;
+  }
+
+  return createWindow();
+}
+
 /**
  * Create application menu with Edit shortcuts (Undo, Redo, Cut, Copy, Paste, etc.)
  * This enables standard keyboard shortcuts like Cmd/Ctrl+C, Cmd/Ctrl+V, etc.
@@ -984,10 +993,8 @@ if (IS_TEST_BUILD) {
     app.quit();
   } else {
     app.on("second-instance", (_event, commandLine, _workingDirectory) => {
-      // Someone tried to run a second instance, we should focus our window.
-      focusMainWindow();
-      // the commandLine is array of strings in which last element is deep link url
-      const url = commandLine.at(-1);
+      restoreOrCreateMainWindow();
+      const url = commandLine.find((arg) => arg.startsWith("dyad://"));
       if (url) {
         deepLinkQueue.handle(url);
       }
@@ -1226,11 +1233,7 @@ app.on("will-quit", () => {
 });
 
 app.on("activate", () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+  restoreOrCreateMainWindow();
 });
 
 // In this file you can include the rest of your app's specific main process

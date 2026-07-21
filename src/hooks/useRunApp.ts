@@ -179,13 +179,6 @@ export function useAppOutputSubscription() {
     [bumpPreviewReloadToken, setAppUrl, setPreviewRunState],
   );
 
-  const onHotModuleReload = useCallback(
-    (appId: number) => {
-      bumpPreviewReloadToken(appId);
-    },
-    [bumpPreviewReloadToken],
-  );
-
   const processAppOutput = useCallback(
     (output: AppOutput) => {
       if (output.type === "input-requested") {
@@ -257,6 +250,26 @@ export function useAppOutputSubscription() {
         return null;
       }
 
+      if (output.type === "proxy-reconnecting") {
+        setAppUrl({
+          appId: output.appId,
+          appUrl: { appUrl: null, appId: null, originalUrl: null, mode: null },
+        });
+        setPreviewRunState({
+          appId: output.appId,
+          state: { operation: "reconnect", startedAt: Date.now() },
+        });
+        setPreviewError({ appId: output.appId, error: undefined });
+      }
+
+      if (output.type === "proxy-failed") {
+        setPreviewRunState({ appId: output.appId, state: undefined });
+        setPreviewError({
+          appId: output.appId,
+          error: { message: output.message, source: "preview-proxy" },
+        });
+      }
+
       if (
         output.type === "package-manager-warning" &&
         (output.warningKind === "pnpm-migration" ||
@@ -270,13 +283,6 @@ export function useAppOutputSubscription() {
             message: output.message,
           },
         });
-      }
-
-      if (
-        output.message.includes("hmr update") &&
-        output.message.includes("[vite]")
-      ) {
-        onHotModuleReload(output.appId);
       }
 
       processProxyServerOutput(output);
@@ -301,11 +307,12 @@ export function useAppOutputSubscription() {
       return logEntry;
     },
     [
-      onHotModuleReload,
       processProxyServerOutput,
+      setAppUrl,
       setPackageManagerWarning,
       setPreviewAppExit,
       setPreviewError,
+      setPreviewRunState,
     ],
   );
 

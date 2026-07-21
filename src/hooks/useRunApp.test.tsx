@@ -295,6 +295,89 @@ describe("useAppOutputSubscription", () => {
     unmount();
   });
 
+  it("lets Vite handle HMR without remounting the preview iframe", () => {
+    const { store, Wrapper } = makeWrapper(1);
+    const { unmount } = renderHook(() => useAppOutputSubscription(), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      for (const listener of appOutputListeners) {
+        listener({
+          type: "stdout",
+          appId: 1,
+          message: "[vite] hmr update /src/pages/Home.tsx",
+        });
+      }
+    });
+
+    expect(store.get(currentPreviewReloadTokenAtom)).toBe(0);
+    unmount();
+  });
+
+  it("shows proxy recovery and restores the preview when reconnection succeeds", () => {
+    const { store, Wrapper } = makeWrapper(1);
+    const { unmount } = renderHook(() => useAppOutputSubscription(), {
+      wrapper: Wrapper,
+    });
+    const emit = (output: Record<string, unknown>) => {
+      act(() => {
+        for (const listener of appOutputListeners) listener(output);
+      });
+    };
+
+    emit({
+      type: "stdout",
+      appId: 1,
+      message:
+        "[dyad-proxy-server]started=[http://localhost:42101] original=[http://localhost:32101] mode=[host]",
+    });
+    emit({
+      type: "proxy-reconnecting",
+      appId: 1,
+      message: "Preview connection interrupted. Reconnecting...",
+    });
+
+    expect(store.get(currentAppUrlAtom).appUrl).toBeNull();
+    expect(store.get(currentPreviewLoadingAtom)).toBe(true);
+
+    emit({
+      type: "stdout",
+      appId: 1,
+      message:
+        "[dyad-proxy-server]started=[http://localhost:42101] original=[http://localhost:32101] mode=[host]",
+    });
+
+    expect(store.get(currentAppUrlAtom).appUrl).toBe("http://localhost:42101");
+    expect(store.get(currentPreviewLoadingAtom)).toBe(false);
+    expect(store.get(currentPreviewReloadTokenAtom)).toBe(2);
+    unmount();
+  });
+
+  it("surfaces a terminal proxy recovery failure", () => {
+    const { store, Wrapper } = makeWrapper(1);
+    const { unmount } = renderHook(() => useAppOutputSubscription(), {
+      wrapper: Wrapper,
+    });
+
+    act(() => {
+      for (const listener of appOutputListeners) {
+        listener({
+          type: "proxy-failed",
+          appId: 1,
+          message: "CAIDE could not reconnect the preview.",
+        });
+      }
+    });
+
+    expect(store.get(currentPreviewLoadingAtom)).toBe(false);
+    expect(store.get(currentPreviewErrorAtom)).toEqual({
+      message: "CAIDE could not reconnect the preview.",
+      source: "preview-proxy",
+    });
+    unmount();
+  });
+
   it("stores pnpm warning state for the current preview app", () => {
     settingsMock.current = {
       enablePnpmMinimumReleaseAgeWarning: true,

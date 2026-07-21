@@ -14,6 +14,7 @@ import {
   currentConsoleEntriesAtom,
   currentPreviewAppExitAtom,
   currentPreviewRunStartedAtAtom,
+  currentPreviewRunStateAtom,
   type PreviewAppExit,
 } from "@/atoms/previewRuntimeAtoms";
 import { selectedAppIdAtom } from "@/atoms/appAtoms";
@@ -160,6 +161,7 @@ export function PreviewLoadingScreen({
   const consoleEntries = useAtomValue(currentConsoleEntriesAtom);
   const previewAppExit = useAtomValue(currentPreviewAppExitAtom);
   const previewRunStartedAt = useAtomValue(currentPreviewRunStartedAtAtom);
+  const previewRunState = useAtomValue(currentPreviewRunStateAtom);
   const selectedAppId = useAtomValue(selectedAppIdAtom);
   const selectedChatId = useAtomValue(selectedChatIdAtom);
   const { streamMessage, isStreaming } = useStreamChat();
@@ -303,7 +305,9 @@ export function PreviewLoadingScreen({
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-[var(--background-darkest)] flex-shrink-0">
           <Loader2 className="size-4 animate-spin text-primary flex-shrink-0" />
           <span className="text-sm font-medium text-foreground flex-shrink-0">
-            Preparing preview
+            {previewRunState?.operation === "reconnect"
+              ? "Reconnecting preview"
+              : "Preparing preview"}
           </span>
           {latestServerLine && (
             <>

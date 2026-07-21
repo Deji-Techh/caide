@@ -62,6 +62,9 @@ const pnpmVersionMigrationNotifiedAppIds = new Set<number>();
 const unexpectedRestartHistory = new Map<number, number[]>();
 const UNEXPECTED_RESTART_WINDOW_MS = 60_000;
 const MAX_UNEXPECTED_RESTARTS = 2;
+const proxyRestartHistory = new Map<number, number[]>();
+const PROXY_RESTART_WINDOW_MS = 60_000;
+const PROXY_RESTART_DELAYS_MS = [250, 750, 2_000] as const;
 
 // Needed, otherwise Electron on macOS/Linux may not find node/pnpm.
 fixPath();
@@ -350,6 +353,19 @@ export function emitProxyServerStarted({
   });
 }
 
+function emitProxyStatus(input: {
+  appId: number;
+  event: Electron.IpcMainInvokeEvent;
+  type: "proxy-reconnecting" | "proxy-failed";
+  message: string;
+}) {
+  safeSend(input.event.sender, "app:output", {
+    type: input.type,
+    message: input.message,
+    appId: input.appId,
+  });
+}
+
 export async function ensureProxyForRunningApp({
   appId,
   event,
@@ -371,27 +387,30 @@ export async function ensureProxyForRunningApp({
   const proxyAuthToken =
     mode === "cloud" ? appInfo.cloudPreviewAuthToken : undefined;
 
-  // If the proxy is already running with the same config, reuse it.
+  // If the proxy is running or still starting with the same config, reuse it.
   if (
     appInfo.proxyWorker &&
     appInfo.originalUrl === originalUrl &&
     appInfo.proxyAuthToken === proxyAuthToken &&
-    appInfo.proxyUrl &&
     (listenHost ?? "localhost") === (appInfo.proxyListenHost ?? "localhost")
   ) {
-    emitProxyServerStarted({
-      appId,
-      event,
-      proxyUrl: appInfo.proxyUrl,
-      originalUrl,
-      mode,
-    });
+    if (appInfo.proxyUrl) {
+      emitProxyServerStarted({
+        appId,
+        event,
+        proxyUrl: appInfo.proxyUrl,
+        originalUrl,
+        mode,
+      });
+    }
     return;
   }
 
   if (appInfo.proxyWorker) {
-    await appInfo.proxyWorker.terminate();
+    const previousWorker = appInfo.proxyWorker;
     appInfo.proxyWorker = undefined;
+    appInfo.proxyUrl = undefined;
+    await previousWorker.terminate();
   }
 
   // Prefer the deterministic port so the iframe origin stays stable across
@@ -420,6 +439,11 @@ export async function ensureProxyForRunningApp({
         originalUrl,
         mode,
       });
+      setTimeout(() => {
+        if (runningApps.get(appId)?.proxyWorker === proxyWorker) {
+          proxyRestartHistory.delete(appId);
+        }
+      }, PROXY_RESTART_WINDOW_MS);
     },
     onError: (error) => {
       logger.error(`Failed to start proxy for app ${appId}:`, error);
@@ -428,6 +452,63 @@ export async function ensureProxyForRunningApp({
         message: `[dyad-proxy-server] ${error.message}`,
         appId,
       });
+    },
+    onWorkerError: (error) => {
+      logger.error(`Preview proxy worker error for app ${appId}:`, error);
+    },
+    onExit: (exitCode) => {
+      const latestAppInfo = runningApps.get(appId);
+      if (!latestAppInfo || latestAppInfo.proxyWorker !== proxyWorker) return;
+
+      latestAppInfo.proxyWorker = undefined;
+      latestAppInfo.proxyUrl = undefined;
+      if (latestAppInfo.stopRequested || exitCode === 0) return;
+
+      const now = Date.now();
+      const recentRestarts = (proxyRestartHistory.get(appId) ?? []).filter(
+        (timestamp) => now - timestamp < PROXY_RESTART_WINDOW_MS,
+      );
+      if (recentRestarts.length >= PROXY_RESTART_DELAYS_MS.length) {
+        proxyRestartHistory.delete(appId);
+        emitProxyStatus({
+          appId,
+          event,
+          type: "proxy-failed",
+          message:
+            "CAIDE could not reconnect the preview. Use Refresh to restart it.",
+        });
+        return;
+      }
+
+      recentRestarts.push(now);
+      proxyRestartHistory.set(appId, recentRestarts);
+      emitProxyStatus({
+        appId,
+        event,
+        type: "proxy-reconnecting",
+        message: "Preview connection interrupted. Reconnecting...",
+      });
+      const delay = PROXY_RESTART_DELAYS_MS[recentRestarts.length - 1];
+      setTimeout(() => {
+        const currentAppInfo = runningApps.get(appId);
+        if (!currentAppInfo || currentAppInfo.stopRequested) return;
+        void ensureProxyForRunningApp({
+          appId,
+          event,
+          originalUrl,
+          mode,
+          listenHost,
+        }).catch((error) => {
+          logger.error(`Failed to reconnect preview for app ${appId}:`, error);
+          emitProxyStatus({
+            appId,
+            event,
+            type: "proxy-failed",
+            message:
+              "CAIDE could not reconnect the preview. Use Refresh to restart it.",
+          });
+        });
+      }, delay);
     },
     fixedHeaders:
       mode === "cloud" && proxyAuthToken

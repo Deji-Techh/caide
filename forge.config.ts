@@ -274,25 +274,11 @@ const config: ForgeConfig = {
           config: "vite.sandbox-worker.config.mts",
           target: "main",
         },
-        {
-          entry: "src/notch/notch.ts",
-          config: "vite.notch.config.mts",
-          target: "main",
-        },
-        {
-          entry: "src/notch/preload.ts",
-          config: "vite.notch-preload.config.mts",
-          target: "preload",
-        },
       ],
       renderer: [
         {
           name: "main_window",
           config: "vite.renderer.config.mts",
-        },
-        {
-          name: "notch_window",
-          config: "vite.notch-renderer.config.mts",
         },
       ],
     }),

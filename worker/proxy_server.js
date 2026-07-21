@@ -368,6 +368,10 @@ function rewriteSetCookieHeaders(headers) {
 /* ----------------------------------------------------------------------- */
 
 const server = http.createServer((clientReq, clientRes) => {
+  // Browsers routinely abandon requests during HMR and full-page reloads.
+  // Treat those disconnects as request-local events, never worker failures.
+  clientReq.on("error", () => {});
+  clientRes.on("error", () => {});
   // Special handling for Service Worker file
   if (clientReq.url === "/dyad-sw.js") {
     if (dyadSwContent) {
@@ -424,6 +428,9 @@ const server = http.createServer((clientReq, clientRes) => {
   };
 
   const upReq = lib.request(upOpts, (upRes) => {
+    upRes.on("error", () => {
+      if (!clientRes.destroyed) clientRes.destroy();
+    });
     const wantsInjection = needsInjection(target.pathname);
     // Only inject when upstream indicates HTML content
     const contentTypeHeader = upRes.headers["content-type"];
@@ -437,13 +444,18 @@ const server = http.createServer((clientReq, clientRes) => {
 
     if (!inject) {
       rewriteSetCookieHeaders(upRes.headers);
-      clientRes.writeHead(upRes.statusCode, upRes.headers);
+      if (clientRes.destroyed || clientRes.writableEnded) {
+        upRes.destroy();
+        return;
+      }
+      clientRes.writeHead(upRes.statusCode || 502, upRes.headers);
       return void upRes.pipe(clientRes);
     }
 
     const chunks = [];
     upRes.on("data", (c) => chunks.push(c));
     upRes.on("end", () => {
+      if (clientRes.destroyed || clientRes.writableEnded) return;
       try {
         const merged = Buffer.concat(chunks);
         const patched = injectHTML(merged);
@@ -458,20 +470,37 @@ const server = http.createServer((clientReq, clientRes) => {
         delete hdrs["etag"];
         rewriteSetCookieHeaders(hdrs);
 
-        clientRes.writeHead(upRes.statusCode, hdrs);
+        clientRes.writeHead(upRes.statusCode || 502, hdrs);
         clientRes.end(patched);
       } catch (e) {
-        clientRes.writeHead(500, { "content-type": "text/plain" });
-        clientRes.end("Injection failed: " + e.message);
+        if (!clientRes.headersSent) {
+          clientRes.writeHead(500, { "content-type": "text/plain" });
+          clientRes.end("Injection failed: " + e.message);
+        } else {
+          clientRes.destroy();
+        }
       }
     });
   });
 
-  clientReq.pipe(upReq);
-  upReq.on("error", (e) => {
-    clientRes.writeHead(502, { "content-type": "text/plain" });
-    clientRes.end("Upstream error: " + e.message);
+  clientReq.on("aborted", () => upReq.destroy());
+  clientRes.on("close", () => {
+    if (!clientRes.writableEnded) upReq.destroy();
   });
+  upReq.on("error", (e) => {
+    if (clientRes.destroyed || clientRes.writableEnded) return;
+    if (!clientRes.headersSent) {
+      clientRes.writeHead(502, { "content-type": "text/plain" });
+      clientRes.end("Upstream error: " + e.message);
+    } else {
+      clientRes.destroy();
+    }
+  });
+  clientReq.pipe(upReq);
+});
+
+server.on("clientError", (_error, socket) => {
+  if (!socket.destroyed) socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
 });
 
 /* ----------------------------------------------------------------------- */
@@ -479,6 +508,7 @@ const server = http.createServer((clientReq, clientRes) => {
 /* ----------------------------------------------------------------------- */
 
 server.on("upgrade", (req, socket, _head) => {
+  socket.on("error", () => {});
   let target;
   try {
     target = buildTargetURL(req);
@@ -501,6 +531,15 @@ server.on("upgrade", (req, socket, _head) => {
   });
 
   upReq.on("upgrade", (upRes, upSocket, upHead) => {
+    upSocket.on("error", () => {
+      if (!socket.destroyed) socket.destroy();
+    });
+    socket.on("close", () => {
+      if (!upSocket.destroyed) upSocket.destroy();
+    });
+    upSocket.on("close", () => {
+      if (!socket.destroyed) socket.destroy();
+    });
     socket.write(
       "HTTP/1.1 101 Switching Protocols\r\n" +
         Object.entries(upRes.headers)
@@ -513,7 +552,9 @@ server.on("upgrade", (req, socket, _head) => {
     upSocket.pipe(socket).pipe(upSocket);
   });
 
-  upReq.on("error", () => socket.destroy());
+  upReq.on("error", () => {
+    if (!socket.destroyed) socket.destroy();
+  });
   upReq.end();
 });
 

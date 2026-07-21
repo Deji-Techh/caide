@@ -427,6 +427,8 @@ export const AppOutputSchema = z.object({
     "sync-error",
     "sync-recovered",
     "app-exit",
+    "proxy-reconnecting",
+    "proxy-failed",
   ]),
   message: z.string(),
   appId: z.number(),

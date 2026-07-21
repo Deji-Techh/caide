@@ -938,4 +938,122 @@ describe("executeApp", () => {
       }),
     );
   });
+
+  it("restarts a proxy worker after an unexpected exit", async () => {
+    vi.useFakeTimers();
+    try {
+      const workers = [{ terminate: vi.fn() }, { terminate: vi.fn() }];
+      const options: Array<Record<string, (...args: never[]) => void>> = [];
+      startProxyMock.mockImplementation(async (_originalUrl, opts) => {
+        options.push(opts);
+        return workers[options.length - 1];
+      });
+      runningApps.set(71, {
+        process: null,
+        processId: 1,
+        mode: "host",
+        lastViewedAt: Date.now(),
+      });
+
+      const event = createEvent();
+      await ensureProxyForRunningApp({
+        appId: 71,
+        event,
+        originalUrl: "http://localhost:32171",
+        mode: "host",
+      });
+
+      options[0].onExit(1 as never);
+      expect(runningApps.get(71)?.proxyWorker).toBeUndefined();
+      expect(safeSendMock).toHaveBeenCalledWith(
+        expect.anything(),
+        "app:output",
+        expect.objectContaining({ type: "proxy-reconnecting", appId: 71 }),
+      );
+
+      await vi.advanceTimersByTimeAsync(250);
+      expect(startProxyMock).toHaveBeenCalledTimes(2);
+      expect(runningApps.get(71)?.proxyWorker).toBe(workers[1]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not restart a proxy during intentional shutdown", async () => {
+    vi.useFakeTimers();
+    try {
+      const worker = { terminate: vi.fn() };
+      let onExit: ((code: number) => void) | undefined;
+      startProxyMock.mockImplementation(async (_originalUrl, opts) => {
+        onExit = opts.onExit;
+        return worker;
+      });
+      runningApps.set(72, {
+        process: null,
+        processId: 1,
+        mode: "host",
+        lastViewedAt: Date.now(),
+      });
+      await ensureProxyForRunningApp({
+        appId: 72,
+        event: createEvent(),
+        originalUrl: "http://localhost:32172",
+        mode: "host",
+      });
+
+      runningApps.get(72)!.stopRequested = true;
+      onExit?.(1);
+      await vi.runAllTimersAsync();
+
+      expect(startProxyMock).toHaveBeenCalledTimes(1);
+      expect(safeSendMock).not.toHaveBeenCalledWith(
+        expect.anything(),
+        "app:output",
+        expect.objectContaining({ type: "proxy-reconnecting" }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stops retrying after three proxy reconnect attempts", async () => {
+    vi.useFakeTimers();
+    try {
+      const options: Array<{ onExit: (code: number) => void }> = [];
+      startProxyMock.mockImplementation(async (_originalUrl, opts) => {
+        options.push(opts);
+        return { terminate: vi.fn() };
+      });
+      runningApps.set(73, {
+        process: null,
+        processId: 1,
+        mode: "host",
+        lastViewedAt: Date.now(),
+      });
+      await ensureProxyForRunningApp({
+        appId: 73,
+        event: createEvent(),
+        originalUrl: "http://localhost:32173",
+        mode: "host",
+      });
+
+      options[0].onExit(1);
+      await vi.advanceTimersByTimeAsync(250);
+      options[1].onExit(1);
+      await vi.advanceTimersByTimeAsync(750);
+      options[2].onExit(1);
+      await vi.advanceTimersByTimeAsync(2_000);
+      options[3].onExit(1);
+      await vi.runAllTimersAsync();
+
+      expect(startProxyMock).toHaveBeenCalledTimes(4);
+      expect(safeSendMock).toHaveBeenCalledWith(
+        expect.anything(),
+        "app:output",
+        expect.objectContaining({ type: "proxy-failed", appId: 73 }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
