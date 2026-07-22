@@ -56,6 +56,7 @@ type ApiKeyValidationDialogState = {
 
 const VALIDATED_API_KEY_PROVIDERS = new Set<string>([
   "deepseek",
+  "opencode-zen",
   "google",
   "openrouter",
   "auto",

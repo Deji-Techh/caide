@@ -63,6 +63,7 @@ export const AppSearchResultsSchema = z.array(AppSearchResultSchema);
 const providers = [
   "chatgpt",
   "deepseek",
+  "opencode-zen",
   "openai",
   "anthropic",
   "google",

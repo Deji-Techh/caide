@@ -13,6 +13,7 @@ import {
   PROVIDER_TO_ENV_VAR,
 } from "./language_model_constants";
 import { getBuiltinLanguageModelCatalog } from "./remote_language_model_catalog";
+import { getOpenCodeZenFreeModels } from "./opencode_zen_models";
 import { listChatGPTModels, readChatGPTTokens } from "@/main/chatgpt_auth";
 
 const logger = log.scope("language_model_helpers");
@@ -184,34 +185,38 @@ export async function getLanguageModels({
   // If it's a cloud provider, also get the hardcoded models
   let hardcodedModels: LanguageModel[] = [];
   if (provider.type === "cloud") {
-    const builtinCatalog = await getBuiltinLanguageModelCatalog();
-    logger.debug("Loading cloud models from builtin catalog", {
-      providerId,
-      source: builtinCatalog.source,
-      version: builtinCatalog.version,
-      hasProviderModels: providerId in builtinCatalog.modelsByProvider,
-    });
-    if (providerId in builtinCatalog.modelsByProvider) {
-      hardcodedModels = builtinCatalog.modelsByProvider[providerId] || [];
-    } else if (providerId in MODEL_OPTIONS) {
-      // Fall back to hardcoded MODEL_OPTIONS for providers not in the remote
-      // catalog (e.g. auto, azure, bedrock).
-      hardcodedModels = MODEL_OPTIONS[providerId].map((model) => ({
-        apiName: model.name,
-        displayName: model.displayName,
-        description: model.description,
-        tag: model.tag,
-        tagColor: model.tagColor,
-        maxOutputTokens: model.maxOutputTokens,
-        contextWindow: model.contextWindow,
-        temperature: model.temperature,
-        dollarSigns: model.dollarSigns,
-        type: "cloud" as const,
-      }));
+    if (providerId === "opencode-zen") {
+      hardcodedModels = await getOpenCodeZenFreeModels();
     } else {
-      console.warn(
-        `Provider "${providerId}" is cloud type but not found in builtin catalog or MODEL_OPTIONS.`,
-      );
+      const builtinCatalog = await getBuiltinLanguageModelCatalog();
+      logger.debug("Loading cloud models from builtin catalog", {
+        providerId,
+        source: builtinCatalog.source,
+        version: builtinCatalog.version,
+        hasProviderModels: providerId in builtinCatalog.modelsByProvider,
+      });
+      if (providerId in builtinCatalog.modelsByProvider) {
+        hardcodedModels = builtinCatalog.modelsByProvider[providerId] || [];
+      } else if (providerId in MODEL_OPTIONS) {
+        // Fall back to hardcoded MODEL_OPTIONS for providers not in the remote
+        // catalog (e.g. auto, azure, bedrock).
+        hardcodedModels = MODEL_OPTIONS[providerId].map((model) => ({
+          apiName: model.name,
+          displayName: model.displayName,
+          description: model.description,
+          tag: model.tag,
+          tagColor: model.tagColor,
+          maxOutputTokens: model.maxOutputTokens,
+          contextWindow: model.contextWindow,
+          temperature: model.temperature,
+          dollarSigns: model.dollarSigns,
+          type: "cloud" as const,
+        }));
+      } else {
+        console.warn(
+          `Provider "${providerId}" is cloud type but not found in builtin catalog or MODEL_OPTIONS.`,
+        );
+      }
     }
   }
 

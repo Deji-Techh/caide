@@ -16,7 +16,10 @@ import type {
 } from "../../lib/schemas";
 import { getEnvVar } from "./read_env";
 import log from "electron-log";
-import { FREE_OPENROUTER_MODEL_NAMES } from "../shared/language_model_constants";
+import {
+  FREE_OPENROUTER_MODEL_NAMES,
+  OPENCODE_ZEN_API_BASE_URL,
+} from "../shared/language_model_constants";
 import { getLanguageModelProviders } from "../shared/language_model_helpers";
 import { resolveBuiltinModelAlias } from "../shared/remote_language_model_catalog";
 import { LanguageModelProvider } from "@/ipc/types";
@@ -407,6 +410,21 @@ function getRegularModelClient(
       const provider = createOpenAICompatible({
         name: "deepseek",
         baseURL: "https://api.deepseek.com",
+        apiKey,
+        ...getModelClientFetchOption(),
+      });
+      return {
+        modelClient: {
+          model: provider(model.name),
+          builtinProviderId: providerId,
+        },
+        backupModelClients: [],
+      };
+    }
+    case "opencode-zen": {
+      const provider = createOpenAICompatible({
+        name: "opencode-zen",
+        baseURL: OPENCODE_ZEN_API_BASE_URL,
         apiKey,
         ...getModelClientFetchOption(),
       });

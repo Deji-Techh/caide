@@ -4,6 +4,7 @@ import { UserSettingsSchema } from "../../lib/schemas";
 
 export const ProviderApiKeyValidationProviderSchema = z.enum([
   "deepseek",
+  "opencode-zen",
   "google",
   "openrouter",
   "auto",

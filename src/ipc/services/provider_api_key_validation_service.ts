@@ -18,6 +18,10 @@ import { IS_TEST_BUILD } from "@/ipc/utils/test_utils";
 import { getDyadEngineBaseUrl } from "@/ipc/utils/dyad_engine_url";
 import { getTestFetchOption } from "@/ipc/utils/test_fetch_override";
 import { getOpenRouterAppAttributionHeaders } from "@/ipc/utils/openrouter_attribution";
+import {
+  OPENCODE_ZEN_API_BASE_URL,
+  OPENCODE_ZEN_FREE_MODEL_IDS,
+} from "@/ipc/shared/language_model_constants";
 
 const logger = log.scope("provider_api_key_validation");
 
@@ -28,6 +32,7 @@ const VALIDATION_TIMEOUT_MS = 20_000;
 const PROVIDER_DISPLAY_NAMES: Record<ProviderApiKeyValidationProvider, string> =
   {
     deepseek: "DeepSeek",
+    "opencode-zen": "OpenCode Zen",
     google: "Google",
     openrouter: "OpenRouter",
     auto: "CAIDE Engine",
@@ -121,6 +126,15 @@ async function createValidationModel(
         ...getTestFetchOption(),
       });
       return deepseek("deepseek-v4-flash");
+    }
+    case "opencode-zen": {
+      const zen = createOpenAICompatible({
+        name: "opencode-zen",
+        apiKey,
+        baseURL: OPENCODE_ZEN_API_BASE_URL,
+        ...getTestFetchOption(),
+      });
+      return zen(OPENCODE_ZEN_FREE_MODEL_IDS[0]);
     }
     case "google": {
       const google = createGoogle({
