@@ -12,7 +12,7 @@ const ConfigSchema = z.object({
   CAIDE_DOWNLOAD_WINDOWS: z.string().url(),
   CAIDE_DOWNLOAD_LINUX: z.string().url(),
   CAIDE_DOWNLOAD_MACOS: z.string().url(),
-  S3_ENDPOINT: z.string().url().optional(),
+  S3_ENDPOINT: z.string().url(),
   S3_REGION: z.string().default("auto"),
   S3_BUCKET: z.string().min(1),
   S3_ACCESS_KEY_ID: z.string().min(1),
