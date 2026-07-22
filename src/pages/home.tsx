@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Clock3,
   Command,
+  Figma,
   FolderClock,
   FolderOpen,
   Home,
@@ -30,6 +31,7 @@ import { isPreviewOpenAtom } from "@/atoms/viewAtoms";
 import { ImportAppButton } from "@/components/ImportAppButton";
 import { ModelPicker } from "@/components/ModelPicker";
 import { SetupBanner } from "@/components/SetupBanner";
+import { FigmaToCodeDialog } from "@/components/FigmaToCodeDialog";
 import {
   Dialog,
   DialogContent,
@@ -94,6 +96,7 @@ export default function HomePage() {
   const [isOpeningProject, setIsOpeningProject] = useState<number | null>(null);
   const [isAiSetupOpen, setIsAiSetupOpen] = useState(false);
   const [resumeWhenProvidersLoad, setResumeWhenProvidersLoad] = useState(false);
+  const [isFigmaDialogOpen, setIsFigmaDialogOpen] = useState(false);
   const resumeAttempted = useRef(false);
   const briefRef = useRef<HTMLTextAreaElement>(null);
 
@@ -512,6 +515,19 @@ export default function HomePage() {
                 </span>
                 <ArrowRight size={15} />
               </button>
+              <button
+                type="button"
+                onClick={() => setIsFigmaDialogOpen(true)}
+              >
+                <Figma size={17} />
+                <span>
+                  <strong>Figma to Code</strong>
+                  <small>
+                    Convert a Figma design into a working mobile screen.
+                  </small>
+                </span>
+                <ArrowRight size={15} />
+              </button>
             </section>
           </div>
         ) : (
@@ -550,6 +566,11 @@ export default function HomePage() {
           <SetupBanner variant="dialog" forceShow />
         </DialogContent>
       </Dialog>
+
+      <FigmaToCodeDialog
+        open={isFigmaDialogOpen}
+        onOpenChange={setIsFigmaDialogOpen}
+      />
 
       {(settingsLoading || providersLoading) && (
         <div className="caide-status-line" role="status">
