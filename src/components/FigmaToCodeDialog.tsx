@@ -84,7 +84,7 @@ export function FigmaToCodeDialog({
     setError(null);
     const parsed = parseFigmaUrl(url);
     if (!parsed) {
-      setError("Invalid Figma URL. Paste a link like figma.com/file/...");
+      setError("Invalid Figma URL. Paste a link like figma.com/design/...");
       return;
     }
 
