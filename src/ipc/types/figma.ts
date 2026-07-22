@@ -1,6 +1,15 @@
 import { z } from "zod";
 import { defineContract, createClient } from "../contracts/core";
 
+export const ConvertFigmaNodesInputSchema = z.object({
+  nodes: z.array(z.any()),
+  componentName: z.string().optional().default("FigmaScreen"),
+});
+
+export const ConvertFigmaNodesOutputSchema = z.object({
+  code: z.string(),
+});
+
 export const FigmaFileNodeSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -98,6 +107,12 @@ export const figmaContracts = {
     channel: "figma:get-token",
     input: z.void(),
     output: z.object({ token: z.string().nullable() }),
+  }),
+
+  convertNodes: defineContract({
+    channel: "figma:convert-nodes",
+    input: ConvertFigmaNodesInputSchema,
+    output: ConvertFigmaNodesOutputSchema,
   }),
 } as const;
 

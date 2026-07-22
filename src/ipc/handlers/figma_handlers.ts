@@ -7,6 +7,8 @@ import {
 } from "../types/figma";
 import { readEffectiveSettings, writeSettings } from "../../main/settings";
 import { DyadError, DyadErrorKind } from "../../errors/dyad_error";
+import { processFigmaNode } from "../../figma/conversion";
+import { generateRNCode } from "../../figma/rn/index";
 
 const FIGMA_API_BASE = "https://api.figma.com/v1";
 
@@ -82,5 +84,13 @@ export function registerFigmaHandlers() {
   createTypedHandler(figmaContracts.getToken, async () => {
     const settings = await readEffectiveSettings();
     return { token: settings.figmaAccessToken?.value ?? null };
+  });
+
+  createTypedHandler(figmaContracts.convertNodes, async (_, params) => {
+    const processed = params.nodes
+      .map((node: any) => processFigmaNode(node))
+      .filter(Boolean);
+    const code = generateRNCode(processed);
+    return { code };
   });
 }
