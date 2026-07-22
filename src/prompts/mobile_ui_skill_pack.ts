@@ -15,6 +15,7 @@ import designAudit from "./skills/ui-ux-mastery/templates/design-audit.md?raw";
 import motionInteractionSkill from "./skills/motion-interaction/SKILL.md?raw";
 import productFlowSkill from "./skills/product-flow/SKILL.md?raw";
 import backendProductionSkill from "./skills/backend-production/SKILL.md?raw";
+import antiAiSlopSkill from "./skills/anti-ai-slop/SKILL.md?raw";
 
 const stripFrontmatter = (content: string) =>
   content.replace(/^---[\s\S]*?---\s*/, "").trim();
@@ -24,6 +25,7 @@ const companionSkills = [
   { name: "Motion and Interaction", content: motionInteractionSkill },
   { name: "Product Flow", content: productFlowSkill },
   { name: "Backend Production", content: backendProductionSkill },
+  { name: "Anti AI Slop", content: antiAiSlopSkill },
 ]
   .map(
     (skill) =>
