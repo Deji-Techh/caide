@@ -121,7 +121,7 @@ function generateViewStyle(
       props.push(`paddingLeft: ${node.paddingLeft}`);
     }
     if (node.itemSpacing !== 0) {
-      props.push(node.layoutMode === "row" ? `columnGap: ${node.itemSpacing}` : `rowGap: ${node.itemSpacing}`);
+      props.push(node.layoutMode === "horizontal" ? `columnGap: ${node.itemSpacing}` : `rowGap: ${node.itemSpacing}`);
     }
   }
 

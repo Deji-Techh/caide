@@ -182,6 +182,7 @@ export function FigmaToCodeDialog({
 
       const { code } = await ipc.figma.convertNodes({
         nodes: nodeDocs,
+        componentName: "FigmaScreen",
       });
 
       onOpenChange(false);

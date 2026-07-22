@@ -63,7 +63,8 @@ function collectTextSegments(node: FigmaJsonNode): TextSegment[] | undefined {
               : textColor,
           });
         } else {
-          segments.push({ characters: chars, ...segment });
+          const { characters: _oldChars, ...segmentRest } = segment;
+          segments.push({ characters: chars, ...segmentRest });
         }
         currentStart = i;
         currentOverrideId = overrideId;
@@ -244,7 +245,7 @@ export function processFigmaNode(
         ? "line-through"
         : undefined,
     textSegments,
-    layoutMode: layoutModeToFlexDirection(node.layoutMode) ?? "none",
+    layoutMode: node.layoutMode === "HORIZONTAL" ? "horizontal" : node.layoutMode === "VERTICAL" ? "vertical" : "none",
     paddingTop: node.paddingTop ?? 0,
     paddingRight: node.paddingRight ?? 0,
     paddingBottom: node.paddingBottom ?? 0,

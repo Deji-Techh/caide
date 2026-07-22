@@ -9,6 +9,7 @@ import { readEffectiveSettings, writeSettings } from "../../main/settings";
 import { DyadError, DyadErrorKind } from "../../errors/dyad_error";
 import { processFigmaNode } from "../../figma/conversion";
 import { generateRNCode } from "../../figma/rn/index";
+import type { ProcessedNode } from "../../figma/types";
 
 const FIGMA_API_BASE = "https://api.figma.com/v1";
 
@@ -89,7 +90,7 @@ export function registerFigmaHandlers() {
   createTypedHandler(figmaContracts.convertNodes, async (_, params) => {
     const processed = params.nodes
       .map((node: any) => processFigmaNode(node))
-      .filter(Boolean);
+      .filter((n): n is ProcessedNode => n !== null);
     const code = generateRNCode(processed);
     return { code };
   });
