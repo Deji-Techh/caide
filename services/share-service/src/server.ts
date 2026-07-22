@@ -9,7 +9,12 @@ import helmet from "helmet";
 import { z } from "zod";
 import { config } from "./config.js";
 import { findShareByPublicTokenHash, pool, publicMetadata } from "./db.js";
-import { landingPage } from "./landing.js";
+import {
+  landingPage,
+  serviceHomePage,
+  shareCardSvg,
+  unavailableSharePage,
+} from "./landing.js";
 import {
   bearerToken,
   createToken,
@@ -32,6 +37,8 @@ app.use(
       directives: {
         defaultSrc: ["'none'"],
         styleSrc: ["'unsafe-inline'"],
+        scriptSrc: ["'unsafe-inline'"],
+        imgSrc: ["'self'", "data:"],
         baseUri: ["'none'"],
         formAction: ["'none'"],
         frameAncestors: ["'none'"],
@@ -70,6 +77,17 @@ function apiRateLimit(req: Request, res: Response, next: NextFunction) {
 }
 
 app.use(["/v1", "/s"], apiRateLimit);
+
+app.get("/", (_req, res) => {
+  res.type("html").send(serviceHomePage());
+});
+
+app.get("/assets/caide-share-card.svg", (_req, res) => {
+  res
+    .set("Cache-Control", "public, max-age=86400, immutable")
+    .type("image/svg+xml")
+    .send(shareCardSvg());
+});
 
 const ShareTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
 const ShareIdSchema = z.string().uuid();
@@ -299,12 +317,22 @@ app.get("/s/:token", async (req, res, next) => {
   try {
     const token = routeShareToken(req.params.token);
     if (!token) {
-      res.status(404).send("Share not found");
+      res.status(404).type("html").send(
+        unavailableSharePage(
+          "Share not found",
+          "This CAIDE project link is invalid or no longer exists.",
+        ),
+      );
       return;
     }
     const row = await findShareByPublicTokenHash(hashToken(token));
     if (!row) {
-      res.status(404).send("Share not found");
+      res.status(404).type("html").send(
+        unavailableSharePage(
+          "Share not found",
+          "This CAIDE project link is invalid or no longer exists.",
+        ),
+      );
       return;
     }
     res.type("html").send(landingPage(row, token));
@@ -315,8 +343,14 @@ app.get("/s/:token", async (req, res, next) => {
 
 app.get("/healthz", async (_req, res, next) => {
   try {
-    await pool.query("SELECT 1");
-    res.json({ ok: true });
+    const query = await pool.query<{ project_shares: string | null }>(
+      "SELECT to_regclass('public.project_shares') AS project_shares",
+    );
+    if (!query.rows[0]?.project_shares) {
+      res.status(503).json({ ok: false, error: "project_shares table missing" });
+      return;
+    }
+    res.json({ ok: true, service: "caide-share-service" });
   } catch (error) {
     next(error);
   }

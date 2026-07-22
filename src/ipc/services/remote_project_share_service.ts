@@ -14,7 +14,7 @@ import type {
 import { projectPackageService } from "./project_package_service";
 import { sha256File } from "./project_package_archive";
 
-const DEFAULT_SHARE_API_URL = "https://share.caide.app";
+const DEFAULT_SHARE_API_URL = "https://caide.onrender.com";
 const REQUEST_TIMEOUT_MS = 30_000;
 const TRANSFER_TIMEOUT_MS = 30 * 60_000;
 const MAX_REMOTE_PACKAGE_BYTES = 500 * 1024 * 1024;
