@@ -61,7 +61,7 @@ export const figmaContracts = {
   validateToken: defineContract({
     channel: "figma:validate-token",
     input: z.object({ token: z.string() }),
-    output: z.object({ ok: z.boolean() }),
+    output: z.object({ ok: z.boolean(), error: z.string().optional() }),
   }),
 
   getFile: defineContract({

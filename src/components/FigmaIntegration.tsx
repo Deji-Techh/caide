@@ -24,9 +24,9 @@ export function FigmaIntegration() {
     setIsSaving(true);
     setTestResult(null);
     try {
-      const { ok } = await ipc.figma.validateToken({ token: token.trim() });
+      const { ok, error } = await ipc.figma.validateToken({ token: token.trim() });
       if (!ok) {
-        showError("Token is invalid. Please check and try again.");
+        showError(error || "Token is invalid. Please check and try again.");
         setTestResult("fail");
         return;
       }
@@ -48,12 +48,12 @@ export function FigmaIntegration() {
     setIsTesting(true);
     setTestResult(null);
     try {
-      const { ok } = await ipc.figma.validateToken({
+      const { ok, error } = await ipc.figma.validateToken({
         token: settings.figmaAccessToken.value,
       });
       setTestResult(ok ? "ok" : "fail");
       if (ok) showSuccess("Figma token is valid");
-      else showError("Figma token is invalid");
+      else showError(error || "Figma token is invalid");
     } catch {
       setTestResult("fail");
       showError("Failed to validate Figma token");

@@ -5,6 +5,7 @@ import {
   type FigmaFileNodesResponse,
   type FigmaImagesResponse,
 } from "../types/figma";
+import fetch from "node-fetch";
 import { readEffectiveSettings, writeSettings } from "../../main/settings";
 import { DyadError, DyadErrorKind } from "../../errors/dyad_error";
 import { processFigmaNode } from "../../figma/conversion";
@@ -49,8 +50,9 @@ export function registerFigmaHandlers() {
     try {
       await figmaFetch<{ me: unknown }>("/me", token);
       return { ok: true };
-    } catch {
-      return { ok: false };
+    } catch (err) {
+      console.error("Figma token validation failed:", err);
+      return { ok: false, error: err instanceof DyadError ? err.message : "Network error connecting to Figma API" };
     }
   });
 
