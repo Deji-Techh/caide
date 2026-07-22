@@ -20,7 +20,7 @@ async function figmaFetch<T>(
   signal?: AbortSignal,
 ): Promise<T> {
   const response = await fetch(`${FIGMA_API_BASE}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { "X-Figma-Token": token },
     signal,
   });
 
