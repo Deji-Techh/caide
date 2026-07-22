@@ -363,10 +363,98 @@ function pageShell({
         margin: 0 auto;
       }
 
+      .service-home {
+        width: min(980px, 100%);
+        margin: 0 auto;
+      }
+
+      .service-home .primary {
+        padding: 46px;
+      }
+
+      .service-home .side {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 100%;
+        padding: 34px;
+      }
+
+      .service-kicker {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 26px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .service-title {
+        max-width: 650px;
+        margin-bottom: 18px;
+        font-size: clamp(3rem, 6vw, 5.2rem);
+        line-height: 0.98;
+      }
+
+      .service-title span {
+        color: #9aa3af;
+      }
+
+      .service-copy {
+        max-width: 54ch;
+        font-size: 17px;
+        line-height: 1.75;
+      }
+
+      .endpoint-stack {
+        display: grid;
+        gap: 10px;
+        margin-top: 22px;
+      }
+
+      .endpoint-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .endpoint-row:last-child {
+        border-bottom: 0;
+      }
+
+      .endpoint-label {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .endpoint-value {
+        color: var(--text);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .service-note {
+        margin-top: 28px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
       @media (max-width: 900px) {
         .card { grid-template-columns: 1fr; }
         .side { border-left: 0; border-top: 1px solid var(--line); }
         .meta-grid { grid-template-columns: 1fr; }
+        .service-home .primary { padding: 34px; }
+        .service-home .side { padding: 28px 34px 34px; }
+        .service-title { font-size: clamp(2.8rem, 10vw, 4.4rem); }
       }
 
       @media (max-width: 640px) {
@@ -377,9 +465,13 @@ function pageShell({
         }
         .card { border-radius: 22px; }
         .primary, .side { padding: 20px; }
+        .service-home .primary { padding: 24px; }
+        .service-home .side { padding: 22px 24px 24px; }
         .brand { margin-bottom: 22px; }
         .brand-badge { width: 40px; height: 40px; border-radius: 12px; }
         h1 { font-size: clamp(2rem, 11vw, 2.75rem); }
+        .service-title { font-size: clamp(2.55rem, 13vw, 3.5rem); }
+        .service-copy { font-size: 15px; }
         .lede { font-size: 15px; line-height: 1.65; }
         .meta-item { padding: 14px; border-radius: 16px; }
         .warning { padding: 14px 15px; border-radius: 16px; font-size: 14px; }
@@ -468,7 +560,7 @@ export function serviceHomePage(): string {
   return pageShell({
     title: "CAIDE Share Service",
     description: "CAIDE project sharing service is online.",
-    body: `<main class="shell"><section class="card status-card"><div class="primary"><div class="brand"><div class="brand-badge">${brandIcon()}</div><div class="brand-text"><span class="eyebrow">Service status</span><span class="brand-name">CAIDE Share Service</span></div></div><div class="pill"><span class="bullet"></span>Online</div><h1>Project sharing is live.</h1><p class="lede">This service powers CAIDE share links, share metadata, and download handoff for desktop clients. Shared project pages are available under <code>/s/&lt;token&gt;</code>.</p><div class="meta-grid"><div class="meta-item"><div class="meta-label">Health</div><div class="meta-value"><a style="color:inherit" href="/healthz">/healthz</a></div></div><div class="meta-item"><div class="meta-label">Landing page</div><div class="meta-value">/s/&lt;token&gt;</div></div><div class="meta-item"><div class="meta-label">API base</div><div class="meta-value">/v1</div></div></div><div class="footer-note">If you are trying to open a shared project, use the full CAIDE share link you received from the sender.</div></div></section></main>`,
+    body: `<main class="shell"><section class="card service-home"><div class="primary"><div class="brand"><div class="brand-badge">${brandIcon()}</div><div class="brand-text"><span class="eyebrow">CAIDE infrastructure</span><span class="brand-name">Share Service</span></div></div><div class="service-kicker"><span class="bullet"></span>All systems operational</div><h1 class="service-title">Share projects.<br><span>Open them anywhere.</span></h1><p class="lede service-copy">This service handles CAIDE share links, project metadata, and secure download handoff. A valid shared project opens through its full <code>/s/&lt;token&gt;</code> URL.</p><div class="actions"><a class="button primary" href="/healthz"><span>View service health</span><span aria-hidden="true">↗</span></a><a class="button secondary" href="${escapeHtml(config.CAIDE_DOWNLOAD_WINDOWS)}">Get CAIDE</a></div></div><aside class="side"><div><div class="eyebrow">Endpoints</div><div class="endpoint-stack"><div class="endpoint-row"><span class="endpoint-label">Health check</span><a class="endpoint-value" href="/healthz">/healthz</a></div><div class="endpoint-row"><span class="endpoint-label">Share page</span><span class="endpoint-value">/s/&lt;token&gt;</span></div><div class="endpoint-row"><span class="endpoint-label">API base</span><span class="endpoint-value">/v1</span></div></div></div><p class="service-note">Trying to open a project? Use the complete share link sent by the project owner. The root page is only a service status screen.</p></aside></section></main>`,
   });
 }
 
