@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useSetAtom } from "jotai";
 import { usePostHog } from "posthog-js/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -9,7 +9,6 @@ import {
   ExternalLink,
   Figma,
   LoaderCircle,
-  Settings,
 } from "lucide-react";
 import {
   Dialog,
@@ -21,8 +20,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/hooks/useSettings";
 import { useSelectChat } from "@/hooks/useSelectChat";
-import { useStreamChat } from "@/hooks/useStreamChat";
 import { useLanguageModelProviders } from "@/hooks/useLanguageModelProviders";
+import { useStreamChat } from "@/hooks/useStreamChat";
 import { ipc } from "@/ipc/types";
 import { isPreviewOpenAtom } from "@/atoms/viewAtoms";
 import { generateCuteAppName } from "@/lib/utils";
@@ -59,6 +58,7 @@ export function FigmaToCodeDialog({
   const { isAnyProviderSetup } = useLanguageModelProviders();
   const setIsPreviewOpen = useSetAtom(isPreviewOpenAtom);
   const { selectChat } = useSelectChat();
+  const { streamMessage } = useStreamChat({ hasChatId: false });
 
   const [step, setStep] = useState<Step>("input");
   const [url, setUrl] = useState("");
@@ -215,6 +215,22 @@ export function FigmaToCodeDialog({
         frameCount: nodeDocs.length,
       });
 
+      const frameNames = frames
+        .filter((f) => selectedIds.has(f.id))
+        .map((f) => f.name)
+        .join(", ");
+
+      streamMessage({
+        prompt: `I've converted a Figma design into a React Native screen. The Figma file "${nodeDocs[0]?.name ?? "Untitled"}" was used as a reference. The following frames were converted: ${frameNames}. The generated code is at app/screens/FigmaScreen.tsx. Please review it and refine it to be production-ready. Focus on:
+1. Verifying the layout matches the design
+2. Adding proper navigation and interactions
+3. Making components reusable
+4. Ensuring responsive behavior`,
+        chatId,
+        appId,
+        requestedChatMode: settings?.selectedChatMode ?? "build",
+      });
+
       selectChat({ chatId, appId });
     } catch (err: any) {
       showError(err.message || "Failed to convert Figma design");
@@ -231,6 +247,8 @@ export function FigmaToCodeDialog({
     setIsPreviewOpen,
     posthog,
     selectChat,
+    frames,
+    streamMessage,
   ]);
 
   const handleBack = () => {
