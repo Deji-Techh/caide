@@ -29,6 +29,7 @@ import {
   removeAppIfCurrentProcess,
   stopAppByInfo,
   removeDockerVolumesForApp,
+  getCurrentlySelectedAppId,
   setCurrentlySelectedAppId,
   startAppGarbageCollection,
 } from "../utils/process_manager";
@@ -1881,16 +1882,42 @@ export function registerAppHandlers() {
   });
 
   // Handler for selecting an app for preview (updates lastViewedAt to prevent GC)
-  createTypedHandler(appContracts.selectAppForPreview, async (_, params) => {
-    const { appId } = params;
-    if (appId !== null) {
-      logger.debug(`App ${appId} selected for preview`);
-      setCurrentlySelectedAppId(appId);
-    } else {
-      logger.debug("No app selected for preview");
-      setCurrentlySelectedAppId(null);
-    }
-  });
+  createTypedHandler(
+    appContracts.selectAppForPreview,
+    async (event, params) => {
+      const { appId } = params;
+      const previousAppId = getCurrentlySelectedAppId();
+      if (previousAppId !== null && previousAppId !== appId) {
+        const previousApp = runningApps.get(previousAppId);
+        if (
+          previousApp?.proxyListenHost === "0.0.0.0" &&
+          previousApp.originalUrl
+        ) {
+          try {
+            await ensureProxyForRunningApp({
+              appId: previousAppId,
+              event,
+              originalUrl: previousApp.originalUrl,
+              mode: previousApp.mode,
+              listenHost: "localhost",
+            });
+          } catch (error) {
+            logger.warn(
+              `Failed to disable mobile preview for app ${previousAppId} while switching apps:`,
+              error,
+            );
+          }
+        }
+      }
+      if (appId !== null) {
+        logger.debug(`App ${appId} selected for preview`);
+        setCurrentlySelectedAppId(appId);
+      } else {
+        logger.debug("No app selected for preview");
+        setCurrentlySelectedAppId(null);
+      }
+    },
+  );
 
   // Screenshot handlers
   createTypedHandler(appContracts.getCurrentCommitHash, async (_, params) => {
@@ -2059,15 +2086,13 @@ export function registerAppHandlers() {
 
       if (!originalUrl) return null;
 
-      await ensureProxyForRunningApp({
+      return ensureProxyForRunningApp({
         appId,
         event,
         originalUrl,
         mode: appInfo.mode,
         listenHost,
       });
-
-      return appInfo.proxyUrl ?? null;
     },
   );
 

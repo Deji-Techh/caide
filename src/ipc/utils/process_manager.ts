@@ -34,6 +34,10 @@ export interface RunningAppInfo {
   originalUrl?: string;
   /** Proxy worker dedicated to this running app */
   proxyWorker?: Worker;
+  /** Resolves when the current proxy worker is listening and ready to use. */
+  proxyReadyPromise?: Promise<string>;
+  /** Rejects callers waiting for a proxy worker that is being replaced. */
+  proxyReadyReject?: (error: Error) => void;
   /** Listen host for the proxy server (default: "localhost") */
   proxyListenHost?: string;
   /** Prevents an intentional stop from being mistaken for a runtime crash. */
@@ -179,9 +183,12 @@ export async function stopAppByInfo(
     await killProcess(appInfo.process);
   }
 
-  if (appInfo.proxyWorker) {
-    await appInfo.proxyWorker.terminate();
+  if (appInfo.proxyWorker || appInfo.proxyReadyPromise) {
+    appInfo.proxyReadyReject?.(new Error("The app preview was stopped."));
+    await appInfo.proxyWorker?.terminate();
     appInfo.proxyWorker = undefined;
+    appInfo.proxyReadyPromise = undefined;
+    appInfo.proxyReadyReject = undefined;
   }
 
   appInfo.cloudLogAbortController?.abort();
@@ -201,9 +208,14 @@ export function removeAppIfCurrentProcess(
 ): void {
   const currentAppInfo = runningApps.get(appId);
   if (currentAppInfo && currentAppInfo.process === process) {
-    if (currentAppInfo.proxyWorker) {
-      void currentAppInfo.proxyWorker.terminate();
+    if (currentAppInfo.proxyWorker || currentAppInfo.proxyReadyPromise) {
+      currentAppInfo.proxyReadyReject?.(
+        new Error("The app preview process exited."),
+      );
+      void currentAppInfo.proxyWorker?.terminate();
       currentAppInfo.proxyWorker = undefined;
+      currentAppInfo.proxyReadyPromise = undefined;
+      currentAppInfo.proxyReadyReject = undefined;
     }
     currentAppInfo.cloudLogAbortController?.abort();
     currentAppInfo.cloudLogAbortController = undefined;
@@ -385,9 +397,12 @@ export function stopAllAppsSync(): void {
     const appInfo = runningApps.get(appId);
     if (!appInfo) continue;
 
-    if (appInfo.proxyWorker) {
-      void appInfo.proxyWorker.terminate();
+    if (appInfo.proxyWorker || appInfo.proxyReadyPromise) {
+      appInfo.proxyReadyReject?.(new Error("CAIDE is shutting down."));
+      void appInfo.proxyWorker?.terminate();
       appInfo.proxyWorker = undefined;
+      appInfo.proxyReadyPromise = undefined;
+      appInfo.proxyReadyReject = undefined;
     }
 
     if (appInfo.mode === "cloud") {

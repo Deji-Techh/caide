@@ -889,12 +889,14 @@ describe("executeApp", () => {
     });
 
     const event = createEvent();
-    await ensureProxyForRunningApp({
-      appId: 42,
-      event,
-      originalUrl: "http://localhost:32142",
-      mode: "host",
-    });
+    await expect(
+      ensureProxyForRunningApp({
+        appId: 42,
+        event,
+        originalUrl: "http://localhost:32142",
+        mode: "host",
+      }),
+    ).resolves.toBe("http://localhost:42142");
 
     expect(startProxyMock).toHaveBeenCalledWith(
       "http://localhost:32142",
@@ -921,12 +923,14 @@ describe("executeApp", () => {
     });
 
     const event = createEvent();
-    await ensureProxyForRunningApp({
-      appId: 42,
-      event,
-      originalUrl: "http://localhost:32142",
-      mode: "host",
-    });
+    await expect(
+      ensureProxyForRunningApp({
+        appId: 42,
+        event,
+        originalUrl: "http://localhost:32142",
+        mode: "host",
+      }),
+    ).rejects.toThrow("all ports in use");
 
     expect(safeSendMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -946,6 +950,7 @@ describe("executeApp", () => {
       const options: Array<Record<string, (...args: never[]) => void>> = [];
       startProxyMock.mockImplementation(async (_originalUrl, opts) => {
         options.push(opts);
+        opts.onStarted?.("http://localhost:42171");
         return workers[options.length - 1];
       });
       runningApps.set(71, {
@@ -986,6 +991,7 @@ describe("executeApp", () => {
       let onExit: ((code: number) => void) | undefined;
       startProxyMock.mockImplementation(async (_originalUrl, opts) => {
         onExit = opts.onExit;
+        opts.onStarted?.("http://localhost:42172");
         return worker;
       });
       runningApps.set(72, {
@@ -1022,6 +1028,7 @@ describe("executeApp", () => {
       const options: Array<{ onExit: (code: number) => void }> = [];
       startProxyMock.mockImplementation(async (_originalUrl, opts) => {
         options.push(opts);
+        opts.onStarted?.("http://localhost:42173");
         return { terminate: vi.fn() };
       });
       runningApps.set(73, {
@@ -1055,5 +1062,150 @@ describe("executeApp", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("waits for the proxy worker to report that it is listening", async () => {
+    let onStarted: ((proxyUrl: string) => void) | undefined;
+    startProxyMock.mockImplementation(async (_originalUrl, opts) => {
+      onStarted = opts.onStarted;
+      return { terminate: vi.fn() };
+    });
+    runningApps.set(74, {
+      process: null,
+      processId: 1,
+      mode: "host",
+      lastViewedAt: Date.now(),
+    });
+
+    let resolved = false;
+    const ready = ensureProxyForRunningApp({
+      appId: 74,
+      event: createEvent(),
+      originalUrl: "http://localhost:32174",
+      mode: "host",
+      listenHost: "0.0.0.0",
+    }).then((proxyUrl) => {
+      resolved = true;
+      return proxyUrl;
+    });
+    await Promise.resolve();
+    expect(resolved).toBe(false);
+
+    onStarted?.("http://0.0.0.0:42174");
+    await expect(ready).resolves.toBe("http://localhost:42174");
+    expect(runningApps.get(74)?.proxyUrl).toBe("http://localhost:42174");
+    expect(runningApps.get(74)?.proxyListenHost).toBe("0.0.0.0");
+  });
+
+  it("shares one readiness promise between concurrent proxy requests", async () => {
+    let onStarted: ((proxyUrl: string) => void) | undefined;
+    startProxyMock.mockImplementation(async (_originalUrl, opts) => {
+      onStarted = opts.onStarted;
+      return { terminate: vi.fn() };
+    });
+    runningApps.set(75, {
+      process: null,
+      processId: 1,
+      mode: "host",
+      lastViewedAt: Date.now(),
+    });
+    const input = {
+      appId: 75,
+      event: createEvent(),
+      originalUrl: "http://localhost:32175",
+      mode: "host" as const,
+      listenHost: "0.0.0.0",
+    };
+
+    const first = ensureProxyForRunningApp(input);
+    await Promise.resolve();
+    const second = ensureProxyForRunningApp(input);
+    onStarted?.("http://0.0.0.0:42175");
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      "http://localhost:42175",
+      "http://localhost:42175",
+    ]);
+    expect(startProxyMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects when proxy readiness times out", async () => {
+    vi.useFakeTimers();
+    try {
+      const terminate = vi.fn();
+      startProxyMock.mockResolvedValue({ terminate });
+      runningApps.set(76, {
+        process: null,
+        processId: 1,
+        mode: "host",
+        lastViewedAt: Date.now(),
+      });
+
+      const ready = ensureProxyForRunningApp({
+        appId: 76,
+        event: createEvent(),
+        originalUrl: "http://localhost:32176",
+        mode: "host",
+      });
+      const assertion = expect(ready).rejects.toThrow(
+        "did not become ready within 15 seconds",
+      );
+      await vi.advanceTimersByTimeAsync(15_000);
+      await assertion;
+      expect(terminate).toHaveBeenCalledOnce();
+      expect(runningApps.get(76)?.proxyReadyPromise).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("ignores a stale worker callback after the proxy configuration changes", async () => {
+    const terminateFirst = vi.fn();
+    const terminateSecond = vi.fn();
+    const starts: Array<{ onStarted?: (proxyUrl: string) => void }> = [];
+    startProxyMock
+      .mockImplementationOnce(async (_originalUrl, options) => {
+        starts.push(options);
+        return { terminate: terminateFirst };
+      })
+      .mockImplementationOnce(async (_originalUrl, options) => {
+        starts.push(options);
+        return { terminate: terminateSecond };
+      });
+    runningApps.set(77, {
+      process: null,
+      processId: 1,
+      mode: "host",
+      lastViewedAt: Date.now(),
+    });
+
+    const first = ensureProxyForRunningApp({
+      appId: 77,
+      event: createEvent(),
+      originalUrl: "http://localhost:32177",
+      mode: "host",
+    });
+    const firstAssertion = expect(first).rejects.toThrow(
+      "configuration changed",
+    );
+    await Promise.resolve();
+
+    const second = ensureProxyForRunningApp({
+      appId: 77,
+      event: createEvent(),
+      originalUrl: "http://localhost:32177",
+      mode: "host",
+      listenHost: "0.0.0.0",
+    });
+    await firstAssertion;
+    expect(terminateFirst).toHaveBeenCalledOnce();
+
+    starts[1].onStarted?.("http://0.0.0.0:42177");
+    await expect(second).resolves.toBe("http://localhost:42177");
+
+    starts[0].onStarted?.("http://localhost:49999");
+    expect(runningApps.get(77)?.proxyUrl).toBe("http://localhost:42177");
+    expect(runningApps.get(77)?.proxyListenHost).toBe("0.0.0.0");
+    expect(terminateSecond).not.toHaveBeenCalled();
   });
 });

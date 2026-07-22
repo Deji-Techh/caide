@@ -33,6 +33,18 @@ describe("CAIDE UI/UX mastery skill", () => {
     }
   });
 
+  it("requires distinct phone, landscape, and tablet compositions", () => {
+    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain(
+      "Responsive does not mean stretching or centering the same narrow phone column",
+    );
+    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain("844x390 phone landscape");
+    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain("768x1024 tablet portrait");
+    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain("1024x768 tablet landscape");
+    expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain(
+      "Do not finish a build or edit until responsive behavior is implemented",
+    );
+  });
+
   it("includes all reference documents and templates", () => {
     expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain("<ui-ux-references>");
     expect(CAIDE_MOBILE_UI_SKILL_PACK).toContain("<ui-ux-templates>");

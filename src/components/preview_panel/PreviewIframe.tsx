@@ -39,11 +39,6 @@ import {
 import { selectedChatIdAtom } from "@/atoms/chatAtoms";
 import { CopyErrorMessage } from "@/components/CopyErrorMessage";
 import { ipc } from "@/ipc/types";
-import QRCode from "qrcode";
-import {
-  mobilePreviewEnabledAtom,
-  mobilePreviewLanUrlAtom,
-} from "@/atoms/previewRuntimeAtoms";
 
 import { useParseRouter } from "@/hooks/useParseRouter";
 import {
@@ -84,6 +79,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { useRunApp } from "@/hooks/useRunApp";
+import { useMobilePreview } from "@/hooks/useMobilePreview";
 import { useSettings } from "@/hooks/useSettings";
 import { useShortcut } from "@/hooks/useShortcut";
 import { cn } from "@/lib/utils";
@@ -349,62 +345,15 @@ export const PreviewIframe = ({
   // check compares against the current selection, not a stale render closure.
   const selectedAppIdRef = useRef<number | null>(selectedAppId);
 
-  // Mobile preview (QR code) state
-  const [isMobilePreviewEnabled, setIsMobilePreviewEnabled] = useAtom(
-    mobilePreviewEnabledAtom,
-  );
-  const [mobilePreviewLanUrl, setMobilePreviewLanUrl] = useAtom(
-    mobilePreviewLanUrlAtom,
-  );
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
-  const [isQrPopoverOpen, setIsQrPopoverOpen] = useState(false);
-
-  const toggleMobilePreview = useCallback(async () => {
-    if (selectedAppId === null) return;
-
-    const newEnabled = !isMobilePreviewEnabled;
-    try {
-      const proxyUrl = await ipc.app.setAppMobilePreview({
-        appId: selectedAppId,
-        enabled: newEnabled,
-      });
-
-      if (newEnabled && proxyUrl) {
-        const lanIp = await ipc.system.getNetworkAddress();
-        if (lanIp) {
-          const lanUrl = proxyUrl.replace(/localhost|127\.0\.0\.1/, lanIp);
-          setMobilePreviewLanUrl(lanUrl);
-          const dataUrl = await QRCode.toDataURL(lanUrl, {
-            width: 256,
-            margin: 2,
-            color: { dark: "#000000", light: "#ffffff" },
-          });
-          setQrCodeDataUrl(dataUrl);
-          setIsQrPopoverOpen(true);
-        } else {
-          showError(
-            "Could not detect a local network address. Make sure you are connected to a Wi-Fi or LAN network.",
-          );
-        }
-      } else {
-        setMobilePreviewLanUrl(null);
-        setQrCodeDataUrl(null);
-        setIsQrPopoverOpen(false);
-      }
-      setIsMobilePreviewEnabled(newEnabled);
-    } catch (error) {
-      showError(
-        error instanceof Error
-          ? error.message
-          : "Failed to toggle mobile preview",
-      );
-    }
-  }, [
-    selectedAppId,
+  const {
     isMobilePreviewEnabled,
-    setIsMobilePreviewEnabled,
-    setMobilePreviewLanUrl,
-  ]);
+    mobilePreviewLanUrl,
+    qrCodeDataUrl,
+    isMobilePreviewPending,
+    isQrPopoverOpen,
+    setIsQrPopoverOpen,
+    toggleMobilePreview,
+  } = useMobilePreview(selectedAppId);
   // Track which apps have already had the on-load fallback attempted this
   // session so the check doesn't re-run on every HMR/reload.
   const fallbackAttemptedAppIdsRef = useRef<Set<number>>(new Set());
@@ -2051,16 +2000,21 @@ export const PreviewIframe = ({
                     <PopoverTrigger
                       data-testid="preview-mobile-preview-button"
                       aria-label={
-                        isMobilePreviewEnabled
-                          ? "Disable mobile preview"
-                          : "Mobile preview"
+                        isMobilePreviewPending
+                          ? "Enabling mobile preview"
+                          : isMobilePreviewEnabled
+                            ? "Disable mobile preview"
+                            : "Mobile preview"
                       }
                       onClick={(e) => {
                         e.preventDefault();
                         toggleMobilePreview();
                       }}
                       disabled={
-                        isCloudMode || !originalUrl || selectedAppId === null
+                        isMobilePreviewPending ||
+                        isCloudMode ||
+                        !originalUrl ||
+                        selectedAppId === null
                       }
                       className={cn(
                         "flex-shrink-0 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-300 transition-colors",
@@ -2075,7 +2029,9 @@ export const PreviewIframe = ({
                 <TooltipContent>
                   {isMobilePreviewEnabled
                     ? "Disable mobile preview"
-                    : "Preview on mobile"}
+                    : isMobilePreviewPending
+                      ? "Enabling mobile preview"
+                      : "Preview on mobile"}
                 </TooltipContent>
               </Tooltip>
               <PopoverContent
@@ -2101,7 +2057,9 @@ export const PreviewIframe = ({
                       Make sure your phone is on the same Wi-Fi network
                     </p>
                     <button
+                      type="button"
                       onClick={toggleMobilePreview}
+                      disabled={isMobilePreviewPending}
                       className="text-xs text-red-600 dark:text-red-400 hover:underline"
                     >
                       Disable mobile preview

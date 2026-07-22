@@ -65,6 +65,7 @@ const MAX_UNEXPECTED_RESTARTS = 2;
 const proxyRestartHistory = new Map<number, number[]>();
 const PROXY_RESTART_WINDOW_MS = 60_000;
 const PROXY_RESTART_DELAYS_MS = [250, 750, 2_000] as const;
+const PROXY_START_TIMEOUT_MS = 15_000;
 
 // Needed, otherwise Electron on macOS/Linux may not find node/pnpm.
 fixPath();
@@ -366,6 +367,14 @@ function emitProxyStatus(input: {
   });
 }
 
+function getDesktopProxyUrl(proxyUrl: string): string {
+  const url = new URL(proxyUrl);
+  if (url.hostname === "0.0.0.0" || url.hostname === "::") {
+    url.hostname = "localhost";
+  }
+  return url.origin;
+}
+
 export async function ensureProxyForRunningApp({
   appId,
   event,
@@ -378,10 +387,10 @@ export async function ensureProxyForRunningApp({
   originalUrl: string;
   mode: RuntimeMode2;
   listenHost?: string;
-}): Promise<void> {
+}): Promise<string | null> {
   const appInfo = runningApps.get(appId);
   if (!appInfo) {
-    return;
+    return null;
   }
 
   const proxyAuthToken =
@@ -389,7 +398,7 @@ export async function ensureProxyForRunningApp({
 
   // If the proxy is running or still starting with the same config, reuse it.
   if (
-    appInfo.proxyWorker &&
+    (appInfo.proxyWorker || appInfo.proxyReadyPromise) &&
     appInfo.originalUrl === originalUrl &&
     appInfo.proxyAuthToken === proxyAuthToken &&
     (listenHost ?? "localhost") === (appInfo.proxyListenHost ?? "localhost")
@@ -402,15 +411,21 @@ export async function ensureProxyForRunningApp({
         originalUrl,
         mode,
       });
+      return appInfo.proxyUrl;
     }
-    return;
+    return appInfo.proxyReadyPromise ?? null;
   }
 
-  if (appInfo.proxyWorker) {
+  if (appInfo.proxyWorker || appInfo.proxyReadyPromise) {
     const previousWorker = appInfo.proxyWorker;
+    appInfo.proxyReadyReject?.(
+      new Error("The preview proxy configuration changed before it was ready."),
+    );
     appInfo.proxyWorker = undefined;
+    appInfo.proxyReadyPromise = undefined;
+    appInfo.proxyReadyReject = undefined;
     appInfo.proxyUrl = undefined;
-    await previousWorker.terminate();
+    await previousWorker?.terminate();
   }
 
   // Prefer the deterministic port so the iframe origin stays stable across
@@ -421,85 +436,110 @@ export async function ensureProxyForRunningApp({
   // killing whatever holds the port.
   const proxyPort = getAppProxyPort(appId);
 
-  const proxyWorker = await startProxy(originalUrl, {
-    port: proxyPort,
-    listenHost,
-    onStarted: (proxyUrl) => {
-      const latestAppInfo = runningApps.get(appId);
-      if (latestAppInfo) {
-        latestAppInfo.proxyUrl = proxyUrl;
+  let proxyWorker: Awaited<ReturnType<typeof startProxy>> | undefined;
+  let readinessSettled = false;
+  let resolveReady!: (proxyUrl: string) => void;
+  let rejectReady!: (error: Error) => void;
+  const readyPromise = new Promise<string>((resolve, reject) => {
+    resolveReady = resolve;
+    rejectReady = reject;
+  });
+  const settleReady = (settle: () => void) => () => {
+    if (readinessSettled) return;
+    readinessSettled = true;
+    clearTimeout(startTimeout);
+    const latestAppInfo = runningApps.get(appId);
+    if (latestAppInfo?.proxyReadyPromise === readyPromise) {
+      latestAppInfo.proxyReadyReject = undefined;
+    }
+    settle();
+  };
+  const resolveProxyReady = (proxyUrl: string) =>
+    settleReady(() => resolveReady(proxyUrl))();
+  const rejectProxyReady = (error: Error) =>
+    settleReady(() => rejectReady(error))();
+  const startTimeout = setTimeout(() => {
+    const error = new Error(
+      `Preview proxy did not become ready within ${PROXY_START_TIMEOUT_MS / 1_000} seconds.`,
+    );
+    rejectProxyReady(error);
+    const latestAppInfo = runningApps.get(appId);
+    if (latestAppInfo?.proxyReadyPromise === readyPromise) {
+      latestAppInfo.proxyWorker = undefined;
+      latestAppInfo.proxyReadyPromise = undefined;
+      latestAppInfo.proxyUrl = undefined;
+    }
+    void proxyWorker?.terminate();
+  }, PROXY_START_TIMEOUT_MS);
+
+  appInfo.proxyReadyPromise = readyPromise;
+  appInfo.proxyReadyReject = rejectProxyReady;
+  appInfo.originalUrl = originalUrl;
+  appInfo.proxyAuthToken = proxyAuthToken;
+  appInfo.proxyListenHost = listenHost ?? "localhost";
+
+  try {
+    proxyWorker = await startProxy(originalUrl, {
+      port: proxyPort,
+      listenHost,
+      onStarted: (proxyUrl) => {
+        const desktopProxyUrl = getDesktopProxyUrl(proxyUrl);
+        const latestAppInfo = runningApps.get(appId);
+        if (latestAppInfo?.proxyReadyPromise !== readyPromise) return;
+        latestAppInfo.proxyUrl = desktopProxyUrl;
         latestAppInfo.originalUrl = originalUrl;
         latestAppInfo.proxyAuthToken = proxyAuthToken;
         latestAppInfo.proxyListenHost = listenHost ?? "localhost";
-      }
-      emitProxyServerStarted({
-        appId,
-        event,
-        proxyUrl,
-        originalUrl,
-        mode,
-      });
-      setTimeout(() => {
-        if (runningApps.get(appId)?.proxyWorker === proxyWorker) {
-          proxyRestartHistory.delete(appId);
-        }
-      }, PROXY_RESTART_WINDOW_MS);
-    },
-    onError: (error) => {
-      logger.error(`Failed to start proxy for app ${appId}:`, error);
-      safeSend(event.sender, "app:output", {
-        type: "stderr",
-        message: `[dyad-proxy-server] ${error.message}`,
-        appId,
-      });
-    },
-    onWorkerError: (error) => {
-      logger.error(`Preview proxy worker error for app ${appId}:`, error);
-    },
-    onExit: (exitCode) => {
-      const latestAppInfo = runningApps.get(appId);
-      if (!latestAppInfo || latestAppInfo.proxyWorker !== proxyWorker) return;
-
-      latestAppInfo.proxyWorker = undefined;
-      latestAppInfo.proxyUrl = undefined;
-      if (latestAppInfo.stopRequested || exitCode === 0) return;
-
-      const now = Date.now();
-      const recentRestarts = (proxyRestartHistory.get(appId) ?? []).filter(
-        (timestamp) => now - timestamp < PROXY_RESTART_WINDOW_MS,
-      );
-      if (recentRestarts.length >= PROXY_RESTART_DELAYS_MS.length) {
-        proxyRestartHistory.delete(appId);
-        emitProxyStatus({
+        emitProxyServerStarted({
           appId,
           event,
-          type: "proxy-failed",
-          message:
-            "CAIDE could not reconnect the preview. Use Refresh to restart it.",
-        });
-        return;
-      }
-
-      recentRestarts.push(now);
-      proxyRestartHistory.set(appId, recentRestarts);
-      emitProxyStatus({
-        appId,
-        event,
-        type: "proxy-reconnecting",
-        message: "Preview connection interrupted. Reconnecting...",
-      });
-      const delay = PROXY_RESTART_DELAYS_MS[recentRestarts.length - 1];
-      setTimeout(() => {
-        const currentAppInfo = runningApps.get(appId);
-        if (!currentAppInfo || currentAppInfo.stopRequested) return;
-        void ensureProxyForRunningApp({
-          appId,
-          event,
+          proxyUrl: desktopProxyUrl,
           originalUrl,
           mode,
-          listenHost,
-        }).catch((error) => {
-          logger.error(`Failed to reconnect preview for app ${appId}:`, error);
+        });
+        setTimeout(() => {
+          if (runningApps.get(appId)?.proxyWorker === proxyWorker) {
+            proxyRestartHistory.delete(appId);
+          }
+        }, PROXY_RESTART_WINDOW_MS);
+        resolveProxyReady(desktopProxyUrl);
+      },
+      onError: (error) => {
+        logger.error(`Failed to start proxy for app ${appId}:`, error);
+        safeSend(event.sender, "app:output", {
+          type: "stderr",
+          message: `[dyad-proxy-server] ${error.message}`,
+          appId,
+        });
+        rejectProxyReady(error);
+      },
+      onWorkerError: (error) => {
+        logger.error(`Preview proxy worker error for app ${appId}:`, error);
+        rejectProxyReady(error);
+      },
+      onExit: (exitCode) => {
+        const latestAppInfo = runningApps.get(appId);
+        if (!latestAppInfo || latestAppInfo.proxyWorker !== proxyWorker) return;
+
+        latestAppInfo.proxyWorker = undefined;
+        latestAppInfo.proxyReadyPromise = undefined;
+        latestAppInfo.proxyReadyReject = undefined;
+        latestAppInfo.proxyUrl = undefined;
+        if (!readinessSettled) {
+          rejectProxyReady(
+            new Error(
+              `Preview proxy exited before it was ready (code ${exitCode}).`,
+            ),
+          );
+        }
+        if (latestAppInfo.stopRequested || exitCode === 0) return;
+
+        const now = Date.now();
+        const recentRestarts = (proxyRestartHistory.get(appId) ?? []).filter(
+          (timestamp) => now - timestamp < PROXY_RESTART_WINDOW_MS,
+        );
+        if (recentRestarts.length >= PROXY_RESTART_DELAYS_MS.length) {
+          proxyRestartHistory.delete(appId);
           emitProxyStatus({
             appId,
             event,
@@ -507,26 +547,78 @@ export async function ensureProxyForRunningApp({
             message:
               "CAIDE could not reconnect the preview. Use Refresh to restart it.",
           });
+          return;
+        }
+
+        recentRestarts.push(now);
+        proxyRestartHistory.set(appId, recentRestarts);
+        emitProxyStatus({
+          appId,
+          event,
+          type: "proxy-reconnecting",
+          message: "Preview connection interrupted. Reconnecting...",
         });
-      }, delay);
-    },
-    fixedHeaders:
-      mode === "cloud" && proxyAuthToken
-        ? {
-            Authorization: `Bearer ${proxyAuthToken}`,
-          }
-        : undefined,
-  });
+        const delay = PROXY_RESTART_DELAYS_MS[recentRestarts.length - 1];
+        setTimeout(() => {
+          const currentAppInfo = runningApps.get(appId);
+          if (!currentAppInfo || currentAppInfo.stopRequested) return;
+          void ensureProxyForRunningApp({
+            appId,
+            event,
+            originalUrl,
+            mode,
+            listenHost,
+          }).catch((error) => {
+            logger.error(
+              `Failed to reconnect preview for app ${appId}:`,
+              error,
+            );
+            emitProxyStatus({
+              appId,
+              event,
+              type: "proxy-failed",
+              message:
+                "CAIDE could not reconnect the preview. Use Refresh to restart it.",
+            });
+          });
+        }, delay);
+      },
+      fixedHeaders:
+        mode === "cloud" && proxyAuthToken
+          ? {
+              Authorization: `Bearer ${proxyAuthToken}`,
+            }
+          : undefined,
+    });
+  } catch (error) {
+    const normalizedError =
+      error instanceof Error ? error : new Error(String(error));
+    rejectProxyReady(normalizedError);
+    const latestAppInfo = runningApps.get(appId);
+    if (latestAppInfo?.proxyReadyPromise === readyPromise) {
+      latestAppInfo.proxyReadyPromise = undefined;
+      latestAppInfo.proxyUrl = undefined;
+    }
+    return readyPromise;
+  }
 
   const latestAppInfo = runningApps.get(appId);
   if (latestAppInfo) {
+    if (readinessSettled && !latestAppInfo.proxyUrl) {
+      latestAppInfo.proxyReadyPromise = undefined;
+      await proxyWorker.terminate();
+      return readyPromise;
+    }
     latestAppInfo.proxyWorker = proxyWorker;
-    latestAppInfo.originalUrl = originalUrl;
-    latestAppInfo.proxyAuthToken = proxyAuthToken;
-    latestAppInfo.proxyListenHost = listenHost ?? "localhost";
   } else {
+    rejectProxyReady(
+      new Error("The app stopped before its preview was ready."),
+    );
     await proxyWorker.terminate();
+    return null;
   }
+
+  return readyPromise;
 }
 
 async function executeAppLocalNode({

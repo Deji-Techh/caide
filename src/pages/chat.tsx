@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import {
   Activity,
   ArrowLeft,
@@ -58,23 +58,26 @@ import { isPreviewOpenAtom, selectedFileAtom } from "@/atoms/viewAtoms";
 import { ChatPanel } from "@/components/ChatPanel";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { DevicePresetPicker } from "@/components/DevicePresetPicker";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { PreviewPanel } from "@/components/preview_panel/PreviewPanel";
 import { useChats } from "@/hooks/useChats";
 import { useLoadApp } from "@/hooks/useLoadApp";
 import { useParseRouter } from "@/hooks/useParseRouter";
 import { usePlanImplementation } from "@/hooks/usePlanImplementation";
 import { useRunApp } from "@/hooks/useRunApp";
+import { useMobilePreview } from "@/hooks/useMobilePreview";
 import { useSettings } from "@/hooks/useSettings";
 import { ipc } from "@/ipc/types";
-import { showError } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import QRCode from "qrcode";
-import {
-  mobilePreviewEnabledAtom,
-  mobilePreviewLanUrlAtom,
-} from "@/atoms/previewRuntimeAtoms";
 import {
   devicePresets,
   isDevicePresetId,
@@ -176,62 +179,15 @@ export default function ChatPage() {
     height: number;
   } | null>(null);
 
-  // Mobile preview (QR code)
-  const [isMobilePreviewEnabled, setIsMobilePreviewEnabled] = useAtom(
-    mobilePreviewEnabledAtom,
-  );
-  const [mobilePreviewLanUrl, setMobilePreviewLanUrl] = useAtom(
-    mobilePreviewLanUrlAtom,
-  );
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
-  const [isQrPopoverOpen, setIsQrPopoverOpen] = useState(false);
-
-  const toggleMobilePreview = useCallback(async () => {
-    if (selectedAppId === null) return;
-
-    const newEnabled = !isMobilePreviewEnabled;
-    try {
-      const proxyUrl = await ipc.app.setAppMobilePreview({
-        appId: selectedAppId,
-        enabled: newEnabled,
-      });
-
-      if (newEnabled && proxyUrl) {
-        const lanIp = await ipc.system.getNetworkAddress();
-        if (lanIp) {
-          const lanUrl = proxyUrl.replace(/localhost|127\.0\.0\.1/, lanIp);
-          setMobilePreviewLanUrl(lanUrl);
-          const dataUrl = await QRCode.toDataURL(lanUrl, {
-            width: 256,
-            margin: 2,
-            color: { dark: "#000000", light: "#ffffff" },
-          });
-          setQrCodeDataUrl(dataUrl);
-          setIsQrPopoverOpen(true);
-        } else {
-          showError(
-            "Could not detect a local network address. Make sure you are connected to a Wi-Fi or LAN network.",
-          );
-        }
-      } else {
-        setMobilePreviewLanUrl(null);
-        setQrCodeDataUrl(null);
-        setIsQrPopoverOpen(false);
-      }
-      setIsMobilePreviewEnabled(newEnabled);
-    } catch (error) {
-      showError(
-        error instanceof Error
-          ? error.message
-          : "Failed to toggle mobile preview",
-      );
-    }
-  }, [
-    selectedAppId,
+  const {
     isMobilePreviewEnabled,
-    setIsMobilePreviewEnabled,
-    setMobilePreviewLanUrl,
-  ]);
+    mobilePreviewLanUrl,
+    qrCodeDataUrl,
+    isMobilePreviewPending,
+    isQrPopoverOpen,
+    setIsQrPopoverOpen,
+    toggleMobilePreview,
+  } = useMobilePreview(selectedAppId);
 
   usePlanImplementation();
 
@@ -708,15 +664,21 @@ export default function ChatPage() {
                       <PopoverTrigger
                         data-testid="caide-mobile-preview-button"
                         aria-label={
-                          isMobilePreviewEnabled
-                            ? "Disable mobile preview"
-                            : "Mobile preview"
+                          isMobilePreviewPending
+                            ? "Enabling mobile preview"
+                            : isMobilePreviewEnabled
+                              ? "Disable mobile preview"
+                              : "Mobile preview"
                         }
                         onClick={(e) => {
                           e.preventDefault();
                           void toggleMobilePreview();
                         }}
-                        disabled={!currentAppUrl || selectedAppId === null}
+                        disabled={
+                          isMobilePreviewPending ||
+                          !currentAppUrl ||
+                          selectedAppId === null
+                        }
                         className={cn(
                           "p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-300 transition-colors",
                           isMobilePreviewEnabled &&
@@ -730,7 +692,9 @@ export default function ChatPage() {
                   <TooltipContent>
                     {isMobilePreviewEnabled
                       ? "Disable mobile preview"
-                      : "Preview on mobile"}
+                      : isMobilePreviewPending
+                        ? "Enabling mobile preview"
+                        : "Preview on mobile"}
                   </TooltipContent>
                 </Tooltip>
                 <PopoverContent
@@ -756,7 +720,9 @@ export default function ChatPage() {
                         Make sure your phone is on the same Wi-Fi network
                       </p>
                       <button
+                        type="button"
                         onClick={toggleMobilePreview}
+                        disabled={isMobilePreviewPending}
                         className="text-xs text-red-600 dark:text-red-400 hover:underline"
                       >
                         Disable mobile preview

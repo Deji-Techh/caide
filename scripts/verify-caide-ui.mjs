@@ -24,10 +24,12 @@ for (const file of ["user-settings.json", "chatgpt-session.json"]) {
 }
 const sourceDatabase = path.join(sourceUserData, "sqlite.db");
 if (fs.existsSync(sourceDatabase)) {
+  const verificationDatabase = path.join(verificationUserData, "sqlite.db");
   execFileSync("sqlite3", [
     sourceDatabase,
-    `.backup '${path.join(verificationUserData, "sqlite.db")}'`,
+    `.backup '${verificationDatabase}'`,
   ]);
+  isolateLatestProject(verificationDatabase, verificationUserData);
 }
 
 const debuggingPort = 39_321;
@@ -212,6 +214,70 @@ try {
       ".caide-properties",
     ]);
     workspace.previewPortrait = await measurePreviewFit(window);
+
+    const mobilePreviewButton = window.getByTestId(
+      "caide-mobile-preview-button",
+    );
+    await mobilePreviewButton.waitFor({ state: "visible", timeout: 120_000 });
+    await expectEnabled(mobilePreviewButton, 120_000);
+    await mobilePreviewButton.click();
+    const qrCode = window.getByAltText("QR code for mobile preview");
+    await qrCode.waitFor({ state: "visible", timeout: 30_000 });
+    const mobilePreviewUrl = await qrCode.evaluate((image) => {
+      const container = image.parentElement;
+      const candidate = [...(container?.querySelectorAll("p") ?? [])].find(
+        (paragraph) => paragraph.textContent?.trim().startsWith("http"),
+      );
+      return candidate?.textContent?.trim() ?? "";
+    });
+    const parsedMobilePreviewUrl = new URL(mobilePreviewUrl);
+    if (
+      ["localhost", "127.0.0.1", "0.0.0.0"].includes(
+        parsedMobilePreviewUrl.hostname,
+      )
+    ) {
+      throw new Error(
+        `Mobile preview did not expose a LAN address: ${mobilePreviewUrl}`,
+      );
+    }
+    const mobileResponse = await fetch(mobilePreviewUrl, {
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!mobileResponse.ok) {
+      throw new Error(
+        `Mobile preview URL returned ${mobileResponse.status}: ${mobilePreviewUrl}`,
+      );
+    }
+    const desktopIframeUrl = await window
+      .locator(".caide-preview-viewport iframe")
+      .getAttribute("src");
+    if (
+      desktopIframeUrl &&
+      !["localhost", "127.0.0.1"].includes(new URL(desktopIframeUrl).hostname)
+    ) {
+      throw new Error(
+        `Desktop preview changed away from localhost: ${desktopIframeUrl}`,
+      );
+    }
+    workspace.mobilePreview = {
+      url: mobilePreviewUrl,
+      responseStatus: mobileResponse.status,
+      desktopIframeUrl,
+      qrImageWidth: await qrCode.evaluate((image) => image.clientWidth),
+    };
+    await window.screenshot({ path: "/tmp/caide-mobile-preview.png" });
+    await qrCode
+      .locator("xpath=..")
+      .getByRole("button", { name: "Disable mobile preview", exact: true })
+      .click();
+    await qrCode.waitFor({ state: "detached", timeout: 30_000 });
+    await expectEnabled(mobilePreviewButton, 30_000);
+    if (
+      (await mobilePreviewButton.getAttribute("aria-label")) !==
+      "Mobile preview"
+    ) {
+      throw new Error("Mobile preview did not return to its disabled state");
+    }
 
     await window.evaluate(() => {
       document.documentElement.classList.remove("dark");
@@ -477,7 +543,7 @@ try {
   );
 } finally {
   await browser.close();
-  app.kill("SIGTERM");
+  await stopChildProcess(app);
 }
 
 async function waitForDebuggingPort(port) {
@@ -492,6 +558,34 @@ async function waitForDebuggingPort(port) {
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw new Error("Timed out waiting for Electron debugging port");
+}
+
+function isolateLatestProject(databasePath, targetRoot) {
+  const latest = execFileSync("sqlite3", [
+    "-separator",
+    "\t",
+    databasePath,
+    "select id, path from apps order by updated_at desc limit 1;",
+  ])
+    .toString()
+    .trim();
+  if (!latest) return;
+
+  const [appId, storedPath] = latest.split("\t");
+  const sourcePath = path.isAbsolute(storedPath)
+    ? storedPath
+    : path.join(os.homedir(), "dyad-apps", storedPath);
+  const isolatedPath = path.join(targetRoot, "smoke-project");
+  fs.cpSync(sourcePath, isolatedPath, {
+    recursive: true,
+    filter: (entry) =>
+      ![".git", "dist", "node_modules"].includes(path.basename(entry)),
+  });
+  const escapedPath = isolatedPath.replaceAll("'", "''");
+  execFileSync("sqlite3", [
+    databasePath,
+    `update apps set path = '${escapedPath}' where id = ${Number(appId)};`,
+  ]);
 }
 
 async function waitForMainWindow(context) {
@@ -516,6 +610,22 @@ async function waitForMainWindow(context) {
     ]);
   }
   throw new Error("Timed out waiting for the CAIDE main window");
+}
+
+async function stopChildProcess(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  child.kill("SIGTERM");
+  await Promise.race([
+    new Promise((resolve) => child.once("exit", resolve)),
+    new Promise((resolve) => setTimeout(resolve, 3_000)),
+  ]);
+  if (child.exitCode === null && child.signalCode === null) {
+    child.kill("SIGKILL");
+    await Promise.race([
+      new Promise((resolve) => child.once("exit", resolve)),
+      new Promise((resolve) => setTimeout(resolve, 3_000)),
+    ]);
+  }
 }
 
 async function measure(window, selectors) {
@@ -577,6 +687,15 @@ async function selectDevice(window, label) {
     .filter({ hasText: label })
     .first()
     .click();
+}
+
+async function expectEnabled(locator, timeout) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (await locator.isEnabled().catch(() => false)) return;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error("Timed out waiting for control to become enabled");
 }
 
 function isLightColor(value) {
