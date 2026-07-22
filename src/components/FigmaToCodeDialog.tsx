@@ -180,11 +180,6 @@ export function FigmaToCodeDialog({
         throw new Error("Failed to fetch frame data from Figma");
       }
 
-      const { code } = await ipc.figma.convertNodes({
-        nodes: nodeDocs,
-        componentName: "FigmaScreen",
-      });
-
       onOpenChange(false);
 
       const result = await ipc.app.createApp({
@@ -201,13 +196,6 @@ export function FigmaToCodeDialog({
         });
       }
 
-      const filePath = "app/screens/FigmaScreen.tsx";
-      await ipc.app.editAppFile({
-        appId,
-        filePath,
-        content: code,
-      });
-
       setIsPreviewOpen(true);
       await queryClient.invalidateQueries({ queryKey: queryKeys.chats.all });
       await invalidateAppQuery(queryClient, { appId });
@@ -221,12 +209,25 @@ export function FigmaToCodeDialog({
         .map((f) => f.name)
         .join(", ");
 
+      const figmaData = JSON.stringify(nodeDocs, null, 2);
+
       streamMessage({
-        prompt: `I've converted a Figma design into a React Native screen. The Figma file "${nodeDocs[0]?.name ?? "Untitled"}" was used as a reference. The following frames were converted: ${frameNames}. The generated code is at app/screens/FigmaScreen.tsx. Please review it and refine it to be production-ready. Focus on:
-1. Verifying the layout matches the design
-2. Adding proper navigation and interactions
-3. Making components reusable
-4. Ensuring responsive behavior`,
+        prompt: `I'm converting a Figma design into a React web component. The project uses React, Vite, TypeScript, Tailwind CSS, and shadcn/ui. React Router DOM v6 is used for routing with routes defined in \`src/App.tsx\`.
+
+The Figma file "${nodeDocs[0]?.name ?? "Untitled"}" was used as a reference. The following frames were converted: ${frameNames}.
+
+Here is the Figma node data (JSON representation of the design):
+
+\`\`\`json
+${figmaData.slice(0, 8000)}
+\`\`\`
+
+Please:
+1. Create a new page component in \`src/pages/FigmaScreen.tsx\` that reproduces this design using Tailwind CSS classes and shadcn/ui components. Use semantic div elements, not React Native components.
+2. Register it in \`src/App.tsx\` by importing it and adding a \`<Route path="/figma" element={<FigmaScreen />} />\` above the catch-all "*" route.
+3. Make the layout responsive (mobile-first) and match the Figma design as closely as possible.
+4. Break the design into reusable components in \`src/components/\`.
+5. Each frame from the Figma design represents a step in an onboarding flow. Implement step navigation with state management.`,
         chatId,
         appId,
         requestedChatMode: settings?.selectedChatMode ?? "build",
