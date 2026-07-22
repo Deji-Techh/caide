@@ -52,6 +52,7 @@ import { registerTerminalHandlers } from "./handlers/terminal_handlers";
 import { registerTestsHandlers } from "./handlers/tests_handlers";
 import { registerReleaseHandlers } from "./handlers/release_handlers";
 import { registerChatGPTHandlers } from "./handlers/chatgpt_handlers";
+import { registerFigmaHandlers } from "./handlers/figma_handlers";
 
 export function registerIpcHandlers() {
   // Register all IPC handlers by category
@@ -109,4 +110,5 @@ export function registerIpcHandlers() {
   registerNetworkHandlers();
   registerReleaseHandlers();
   registerChatGPTHandlers();
+  registerFigmaHandlers();
 }

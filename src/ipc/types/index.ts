@@ -60,6 +60,7 @@ export { appCollectionContracts } from "./app_collections";
 export { terminalContracts } from "./terminal";
 export { testsContracts, testsEvents } from "./tests";
 export { chatgptContracts } from "./chatgpt";
+export { figmaContracts } from "./figma";
 
 // =============================================================================
 // Notch Exports
@@ -120,6 +121,7 @@ export { appCollectionClient } from "./app_collections";
 export { terminalClient } from "./terminal";
 export { testsClient, testsEventClient } from "./tests";
 export { chatgptClient } from "./chatgpt";
+export { figmaClient } from "./figma";
 export { releaseClient } from "./release";
 
 // =============================================================================
@@ -468,6 +470,7 @@ import { appBlueprintClient, appBlueprintEventClient } from "./app_blueprint";
 import { appCollectionClient } from "./app_collections";
 import { terminalClient } from "./terminal";
 import { testsClient, testsEventClient } from "./tests";
+import { figmaClient } from "./figma";
 import { releaseClient } from "./release";
 /**
  * Unified IPC client with all domains organized by namespace.
@@ -533,6 +536,7 @@ export const ipc = {
   appCollection: appCollectionClient,
   terminal: terminalClient,
   tests: testsClient,
+  figma: figmaClient,
 
   // Event clients for main->renderer pub/sub
   events: {

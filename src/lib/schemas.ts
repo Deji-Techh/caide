@@ -391,6 +391,7 @@ const BaseUserSettingsFields = {
   skipNotificationBanner: z.boolean().optional(),
   enableSelectAppFromHomeChatInput: z.boolean().optional(),
   previewIdleTimeoutPolicy: z.enum(["default", "never"]).optional(),
+  figmaAccessToken: SecretSchema.optional(),
 };
 
 /**
