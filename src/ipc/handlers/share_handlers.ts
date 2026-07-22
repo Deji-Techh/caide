@@ -1,4 +1,5 @@
 import { dialog } from "electron";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import os from "node:os";
 import { promises as fs } from "node:fs";
@@ -15,6 +16,33 @@ import { CAIDE_PACKAGE_EXTENSION } from "@/shared/project_package";
 
 const logger = log.scope("share-handlers");
 const handle = createLoggedHandler(logger);
+
+async function moveExportedPackage(
+  source: string,
+  destination: string,
+): Promise<void> {
+  try {
+    await fs.rename(source, destination);
+    return;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EXDEV") throw error;
+  }
+
+  const destinationDirectory = path.dirname(destination);
+  const stagingPath = path.join(
+    destinationDirectory,
+    `.${path.basename(destination)}.${randomUUID()}.tmp`,
+  );
+  try {
+    await fs.copyFile(source, stagingPath);
+    await fs.rm(destination, { force: true });
+    await fs.rename(stagingPath, destination);
+    await fs.rm(source, { force: true });
+  } catch (error) {
+    await fs.rm(stagingPath, { force: true }).catch(() => undefined);
+    throw error;
+  }
+}
 
 export function registerShareHandlers() {
   handle("share:select-package-file", async () => {
@@ -52,11 +80,12 @@ export function registerShareHandlers() {
           ...params,
           destination: tempPath,
         });
-        await fs.rename(tempPath, destination);
-        return result;
-      } catch (err) {
-        await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-        throw err;
+        await moveExportedPackage(tempPath, destination);
+        return { ...result, path: destination };
+      } finally {
+        await fs
+          .rm(tempDir, { recursive: true, force: true })
+          .catch(() => undefined);
       }
     },
   );

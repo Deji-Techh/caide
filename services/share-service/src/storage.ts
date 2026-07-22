@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -23,18 +24,18 @@ export const storage = new S3Client({
   },
 });
 
-export function signedUploadUrl(key: string, _size: number, checksum: string) {
+export function signedUploadUrl(
+  key: string,
+  _size: number,
+  _checksum: string,
+) {
   return getSignedUrl(
     storage,
     new PutObjectCommand({
       Bucket: config.S3_BUCKET,
       Key: key,
       ContentType: "application/vnd.caide.project+gzip",
-      Metadata: { sha256: checksum },
     }),
-    // Follow Cloudflare R2's documented presigned PUT shape. The AWS SDK places
-    // x-amz-meta-sha256 in the signed query string, while the desktop client
-    // only has to reproduce the signed Content-Type header.
     { expiresIn: 15 * 60 },
   );
 }
@@ -55,6 +56,21 @@ export async function headObject(key: string) {
   return storage.send(
     new HeadObjectCommand({ Bucket: config.S3_BUCKET, Key: key }),
   );
+}
+
+export async function sha256Object(key: string): Promise<string> {
+  const response = await storage.send(
+    new GetObjectCommand({ Bucket: config.S3_BUCKET, Key: key }),
+  );
+  if (!response.Body) {
+    throw new Error("Uploaded object body is unavailable");
+  }
+
+  const hash = createHash("sha256");
+  for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+    hash.update(chunk);
+  }
+  return hash.digest("hex");
 }
 
 export async function deleteObject(key: string) {

@@ -24,6 +24,7 @@ import {
 import {
   deleteObject,
   headObject,
+  sha256Object,
   signedDownloadUrl,
   signedUploadUrl,
 } from "./storage.js";
@@ -193,10 +194,9 @@ app.post("/v1/shares/:id/complete", async (req, res, next) => {
       res.status(409).json({ error: "Uploaded object type does not match" });
       return;
     }
-    if (head.Metadata?.sha256 !== row.checksum) {
-      res
-        .status(409)
-        .json({ error: "Uploaded object checksum metadata does not match" });
+    const uploadedChecksum = await sha256Object(row.object_key);
+    if (uploadedChecksum !== row.checksum) {
+      res.status(409).json({ error: "Uploaded object checksum does not match" });
       return;
     }
     await pool.query(
