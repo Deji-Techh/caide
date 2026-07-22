@@ -14,6 +14,7 @@ import { useAppVersion } from "@/hooks/useAppVersion";
 import { useNavigate } from "@tanstack/react-router";
 import { GitHubIntegration } from "@/components/GitHubIntegration";
 import { VercelIntegration } from "@/components/VercelIntegration";
+import { FigmaIntegration } from "@/components/FigmaIntegration";
 import { SupabaseIntegration } from "@/components/SupabaseIntegration";
 import { CustomAppsFolderSelector } from "@/components/CustomAppsFolderSelector";
 import { Switch } from "@/components/ui/switch";
@@ -263,6 +264,9 @@ export default function SettingsPage() {
                 </div>
                 <div id={SETTING_IDS.neon}>
                   <NeonIntegration />
+                </div>
+                <div id={SETTING_IDS.figma}>
+                  <FigmaIntegration />
                 </div>
               </div>
             </div>
