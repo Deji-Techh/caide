@@ -2006,22 +2006,22 @@ If any mandatory quality dimension scores below threshold, revise before deliver
 
 Score 0–10.
 
-| Dimension | Minimum |
-|---|---:|
-| Product fit | 9 |
-| Primary-task clarity | 9 |
-| Information architecture | 8 |
-| Content quality | 8 |
-| Visual hierarchy | 9 |
-| Interaction completeness | 9 |
-| State coverage | 9 |
-| Accessibility | 9 and no known blockers |
-| Responsive behavior | 9 |
-| Consistency | 9 |
-| Distinctiveness | 8 |
-| Implementation feasibility | 9 |
-| Performance awareness | 8 |
-| Trust and ethical design | 9 |
+| Dimension                  |                 Minimum |
+| -------------------------- | ----------------------: |
+| Product fit                |                       9 |
+| Primary-task clarity       |                       9 |
+| Information architecture   |                       8 |
+| Content quality            |                       8 |
+| Visual hierarchy           |                       9 |
+| Interaction completeness   |                       9 |
+| State coverage             |                       9 |
+| Accessibility              | 9 and no known blockers |
+| Responsive behavior        |                       9 |
+| Consistency                |                       9 |
+| Distinctiveness            |                       8 |
+| Implementation feasibility |                       9 |
+| Performance awareness      |                       8 |
+| Trust and ethical design   |                       9 |
 
 A high visual score cannot compensate for an accessibility or task-completion failure.
 
@@ -2174,21 +2174,37 @@ Use `templates/screen-spec.md`. At minimum include:
 # Screen: [Name]
 
 ## Purpose
+
 ## Primary user
+
 ## Entry points
+
 ## Primary action
+
 ## Secondary actions
+
 ## Information hierarchy
+
 ## Layout regions
+
 ## Components
+
 ## Interaction behavior
+
 ## State matrix
+
 ## Responsive behavior
+
 ## Keyboard behavior
+
 ## Screen-reader behavior
+
 ## Content rules
+
 ## Analytics or audit events
+
 ## Technical dependencies
+
 ## Acceptance criteria
 ```
 
@@ -2202,19 +2218,33 @@ Use `templates/component-contract.md`. At minimum include:
 # Component: [Name]
 
 ## Purpose
+
 ## Use when
+
 ## Do not use when
+
 ## Anatomy
+
 ## Variants
+
 ## Sizes and density
+
 ## States
+
 ## Content constraints
+
 ## Keyboard interaction
+
 ## Pointer and touch interaction
+
 ## Accessibility semantics
+
 ## Responsive behavior
+
 ## Internationalization
+
 ## Events and data API
+
 ## Test cases
 ```
 

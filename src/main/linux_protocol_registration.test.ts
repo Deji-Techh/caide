@@ -71,7 +71,8 @@ describe("buildDesktopFile", () => {
       tryExec: "/opt/dyad/dyad",
     });
 
-    expect(contents).toContain("MimeType=x-scheme-handler/dyad;");
+    expect(contents).toContain("x-scheme-handler/dyad;");
+    expect(contents).toContain("x-scheme-handler/caide;");
     expect(contents).toContain(`Exec="/opt/dyad/dyad" %u`);
     expect(contents).toContain("TryExec=/opt/dyad/dyad");
     expect(contents).toContain("NoDisplay=true");

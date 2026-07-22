@@ -171,16 +171,16 @@ Do not lock the interface into a “touch mode” or “mouse mode” based only
 
 ## 8. Navigation Pattern Selection
 
-| Pattern | Best for | Avoid when |
-|---|---|---|
-| top navigation | few broad website destinations | complex application hierarchy |
-| sidebar | persistent app sections | simple short mobile flow |
-| bottom navigation | 3–5 primary mobile destinations | many unstable destinations |
-| tabs | peer views of same context | unrelated global sections |
-| breadcrumb | deep hierarchy | flat app navigation |
-| command palette | expert acceleration | sole discovery route |
-| hub | occasional task selection | continuous professional workspace |
-| master-detail | object lists and inspection | unrelated content types |
+| Pattern           | Best for                        | Avoid when                        |
+| ----------------- | ------------------------------- | --------------------------------- |
+| top navigation    | few broad website destinations  | complex application hierarchy     |
+| sidebar           | persistent app sections         | simple short mobile flow          |
+| bottom navigation | 3–5 primary mobile destinations | many unstable destinations        |
+| tabs              | peer views of same context      | unrelated global sections         |
+| breadcrumb        | deep hierarchy                  | flat app navigation               |
+| command palette   | expert acceleration             | sole discovery route              |
+| hub               | occasional task selection       | continuous professional workspace |
+| master-detail     | object lists and inspection     | unrelated content types           |
 
 ---
 

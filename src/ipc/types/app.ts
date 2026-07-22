@@ -37,6 +37,12 @@ export const AppBaseSchema = z.object({
   isFavorite: z.boolean(),
   testingEnabled: z.boolean(),
   collectionId: z.number().nullable(),
+  sourceType: z.enum(["local", "imported", "received"]),
+  receivedAt: z.date().nullable(),
+  sourceShareId: z.string().nullable(),
+  originProjectId: z.string().nullable(),
+  sharedByDisplayName: z.string().nullable(),
+  packageChecksum: z.string().nullable(),
 });
 
 /**

@@ -242,9 +242,7 @@ describe("GitService", () => {
     mocks.gitAdd
       .mockImplementationOnce(async () => {
         callOrder.push("gitAdd");
-        throw new Error(
-          `fatal: Unable to create '${lockPath}': File exists.`,
-        );
+        throw new Error(`fatal: Unable to create '${lockPath}': File exists.`);
       })
       .mockImplementationOnce(async () => {
         callOrder.push("gitAdd");

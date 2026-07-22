@@ -89,9 +89,7 @@ export function FigmaToCodeDialog({
     }
 
     if (!hasToken) {
-      setError(
-        "No Figma token configured. Add one in Settings > Connections.",
-      );
+      setError("No Figma token configured. Add one in Settings > Connections.");
       return;
     }
 
@@ -143,7 +141,9 @@ export function FigmaToCodeDialog({
 
       setFrames(frameOptions);
       setFileKey(parsed.fileKey);
-      setSelectedIds(new Set(frameOptions.length === 1 ? [frameOptions[0].id] : []));
+      setSelectedIds(
+        new Set(frameOptions.length === 1 ? [frameOptions[0].id] : []),
+      );
       setStep("selecting");
     } catch (err: any) {
       setError(err.message || "Failed to fetch Figma file");
@@ -358,8 +358,8 @@ Please:
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Select frames to convert ({selectedIds.size} of{" "}
-                {frames.length} selected)
+                Select frames to convert ({selectedIds.size} of {frames.length}{" "}
+                selected)
               </p>
               <div className="flex gap-1">
                 <Button variant="ghost" size="sm" onClick={handleBack}>
@@ -376,9 +376,7 @@ Please:
               </div>
             </div>
 
-            {error ? (
-              <p className="text-xs text-red-500">{error}</p>
-            ) : null}
+            {error ? <p className="text-xs text-red-500">{error}</p> : null}
 
             <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
               {frames.map((frame) => {

@@ -61,6 +61,7 @@ export { terminalContracts } from "./terminal";
 export { testsContracts, testsEvents } from "./tests";
 export { chatgptContracts } from "./chatgpt";
 export { figmaContracts } from "./figma";
+export { shareContracts } from "./share";
 
 // =============================================================================
 // Notch Exports
@@ -122,6 +123,7 @@ export { terminalClient } from "./terminal";
 export { testsClient, testsEventClient } from "./tests";
 export { chatgptClient } from "./chatgpt";
 export { figmaClient } from "./figma";
+export { shareClient } from "./share";
 export { releaseClient } from "./release";
 
 // =============================================================================
@@ -332,6 +334,20 @@ export type { ProposalResult, ApproveProposalResult } from "./proposals";
 // Import types
 export type { ImportAppParams, ImportAppResult } from "./import";
 
+// Project package and sharing types
+export type {
+  ExportProjectPackageParams,
+  ExportProjectPackageResult,
+  ImportProjectPackageParams,
+  ImportProjectPackageResult,
+  ProjectPackageInspection,
+  CreateRemoteShareParams,
+  CreateRemoteShareResult,
+  ReceiveRemoteShareParams,
+  RemoteShareMetadata,
+  RevokeRemoteShareParams,
+} from "./share";
+
 // Help types
 export type { HelpChatStartParams } from "./help";
 
@@ -472,6 +488,7 @@ import { terminalClient } from "./terminal";
 import { testsClient, testsEventClient } from "./tests";
 import { figmaClient } from "./figma";
 import { releaseClient } from "./release";
+import { shareClient } from "./share";
 /**
  * Unified IPC client with all domains organized by namespace.
  *
@@ -537,6 +554,7 @@ export const ipc = {
   terminal: terminalClient,
   tests: testsClient,
   figma: figmaClient,
+  share: shareClient,
 
   // Event clients for main->renderer pub/sub
   events: {

@@ -12,6 +12,7 @@ import {
   FolderClock,
   FolderOpen,
   Home,
+  Inbox,
   Import,
   LoaderCircle,
   Plus,
@@ -54,6 +55,7 @@ import { showError } from "@/lib/toast";
 import { generateCuteAppName } from "@/lib/utils";
 import { NEON_TEMPLATE_IDS } from "@/shared/templates";
 import { neonTemplateHook } from "@/client_logic/template_hook";
+import { ImportProjectPackageDialog } from "@/components/share/ImportProjectPackageDialog";
 import "./caide-home.css";
 
 export interface HomeSubmitOptions {
@@ -67,7 +69,7 @@ const starterBriefs = [
   "A food delivery app with cart, checkout, live orders, and courier tracking",
 ];
 
-type HomeSection = "overview" | "projects";
+type HomeSection = "overview" | "projects" | "received";
 
 export default function HomePage() {
   const { t } = useTranslation("home");
@@ -97,11 +99,15 @@ export default function HomePage() {
   const [isAiSetupOpen, setIsAiSetupOpen] = useState(false);
   const [resumeWhenProvidersLoad, setResumeWhenProvidersLoad] = useState(false);
   const [isFigmaDialogOpen, setIsFigmaDialogOpen] = useState(false);
+  const [isPackageImportOpen, setIsPackageImportOpen] = useState(false);
   const resumeAttempted = useRef(false);
   const briefRef = useRef<HTMLTextAreaElement>(null);
 
   const selectedChatMode = settings?.selectedChatMode ?? initialChatMode;
-  const filteredApps = apps.filter((app) =>
+  const receivedApps = apps.filter((app) => app.sourceType === "received");
+  const localApps = apps.filter((app) => app.sourceType !== "received");
+  const visibleSectionApps = section === "received" ? receivedApps : localApps;
+  const filteredApps = visibleSectionApps.filter((app) =>
     app.name.toLowerCase().includes(projectQuery.trim().toLowerCase()),
   );
 
@@ -329,7 +335,15 @@ export default function HomePage() {
             className={section === "projects" ? "active" : undefined}
             onClick={() => setSection("projects")}
           >
-            <FolderClock size={16} /> Project history <em>{apps.length}</em>
+            <FolderClock size={16} /> Project history{" "}
+            <em>{localApps.length}</em>
+          </button>
+          <button
+            type="button"
+            className={section === "received" ? "active" : undefined}
+            onClick={() => setSection("received")}
+          >
+            <Inbox size={16} /> Received <em>{receivedApps.length}</em>
           </button>
           <ImportAppButton
             className="caide-sidebar-import"
@@ -356,7 +370,11 @@ export default function HomePage() {
           <div>
             <span>CAIDE / {section.toUpperCase()}</span>
             <strong>
-              {section === "overview" ? "Mobile workspace" : "Project history"}
+              {section === "overview"
+                ? "Mobile workspace"
+                : section === "received"
+                  ? "Received projects"
+                  : "Project history"}
             </strong>
           </div>
           <div className="caide-overview-header-actions">
@@ -457,7 +475,7 @@ export default function HomePage() {
               </section>
 
               <ProjectHistory
-                apps={apps.slice(0, 4)}
+                apps={localApps.slice(0, 4)}
                 loading={appsLoading}
                 openingId={isOpeningProject}
                 onOpen={openProject}
@@ -515,10 +533,7 @@ export default function HomePage() {
                 </span>
                 <ArrowRight size={15} />
               </button>
-              <button
-                type="button"
-                onClick={() => setIsFigmaDialogOpen(true)}
-              >
+              <button type="button" onClick={() => setIsFigmaDialogOpen(true)}>
                 <Figma size={17} />
                 <span>
                   <strong>Figma to Code</strong>
@@ -539,7 +554,31 @@ export default function HomePage() {
             onQueryChange={setProjectQuery}
             onOpen={openProject}
             onDelete={deleteProject}
-            onCreate={startNewProject}
+            eyebrow={
+              section === "received" ? "INCOMING PROJECTS" : "LOCAL ARCHIVE"
+            }
+            title={section === "received" ? "Received" : "Project history"}
+            description={
+              section === "received"
+                ? "Independent project snapshots shared with this device."
+                : "Mobile projects indexed by the desktop runtime."
+            }
+            emptyMessage={
+              section === "received"
+                ? "Projects shared with you will appear here."
+                : "No projects match this search."
+            }
+            actionLabel={
+              section === "received" ? "Import package" : "New project"
+            }
+            onAction={
+              section === "received"
+                ? () => setIsPackageImportOpen(true)
+                : startNewProject
+            }
+            sourceLabel={
+              section === "received" ? "Received package" : undefined
+            }
           />
         )}
 
@@ -570,6 +609,11 @@ export default function HomePage() {
       <FigmaToCodeDialog
         open={isFigmaDialogOpen}
         onOpenChange={setIsFigmaDialogOpen}
+      />
+
+      <ImportProjectPackageDialog
+        open={isPackageImportOpen}
+        onOpenChange={setIsPackageImportOpen}
       />
 
       {(settingsLoading || providersLoading) && (
@@ -681,7 +725,13 @@ function ProjectArchive({
   onQueryChange,
   onOpen,
   onDelete,
-  onCreate,
+  eyebrow,
+  title,
+  description,
+  emptyMessage,
+  actionLabel,
+  onAction,
+  sourceLabel,
 }: {
   apps: ListedApp[];
   loading: boolean;
@@ -690,18 +740,24 @@ function ProjectArchive({
   onQueryChange: (value: string) => void;
   onOpen: (app: ListedApp) => Promise<void>;
   onDelete: (app: ListedApp) => Promise<void>;
-  onCreate: () => void;
+  eyebrow: string;
+  title: string;
+  description: string;
+  emptyMessage: string;
+  actionLabel: string;
+  onAction: () => void;
+  sourceLabel?: string;
 }) {
   return (
     <div className="caide-project-archive">
       <div className="caide-archive-heading">
         <div>
-          <span>LOCAL ARCHIVE</span>
-          <h1>Project history</h1>
-          <p>Mobile projects indexed by the desktop runtime.</p>
+          <span>{eyebrow}</span>
+          <h1>{title}</h1>
+          <p>{description}</p>
         </div>
-        <button type="button" onClick={onCreate}>
-          <Plus size={15} /> New project
+        <button type="button" onClick={onAction}>
+          <Plus size={15} /> {actionLabel}
         </button>
       </div>
       <label className="caide-archive-search">
@@ -724,9 +780,7 @@ function ProjectArchive({
         {loading ? (
           <div className="caide-project-empty">Loading local projects…</div>
         ) : apps.length === 0 ? (
-          <div className="caide-project-empty">
-            No projects match this search.
-          </div>
+          <div className="caide-project-empty">{emptyMessage}</div>
         ) : (
           apps.map((app) => (
             <div className="caide-project-table-row" key={app.id}>
@@ -740,7 +794,7 @@ function ProjectArchive({
                   <LoaderCircle className="animate-spin" size={13} />
                 ) : null}
               </button>
-              <span>Local</span>
+              <span>{sourceLabel ?? "Local"}</span>
               <span>{formatProjectDate(app.updatedAt)}</span>
               <span>
                 {app.githubRepo

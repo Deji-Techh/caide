@@ -6,18 +6,18 @@ Use this reference after identifying the product's primary and secondary archety
 
 Score each dimension before selecting patterns:
 
-| Dimension | Low end | High end | Design consequence |
-|---|---|---|---|
-| Usage frequency | occasional | continuous | onboarding vs efficiency and shortcuts |
-| User expertise | novice | specialist | explanation vs compact controls |
-| Consequence of error | trivial | severe | speed vs verification and auditability |
-| Data density | sparse | extreme | spacious storytelling vs structured density |
-| Task duration | seconds | hours | transient flow vs persistent workspace |
-| Collaboration | individual | multi-role | local state vs comments, permissions, presence |
-| Connectivity | stable | intermittent | synchronous assumptions vs offline resilience |
-| Content volatility | static | real-time | ordinary refresh vs visible freshness and conflict handling |
-| Emotional context | relaxed | stressful | expressive delight vs calm clarity |
-| Input method | touch | keyboard/mouse/mixed | target size vs compact acceleration |
+| Dimension            | Low end    | High end             | Design consequence                                          |
+| -------------------- | ---------- | -------------------- | ----------------------------------------------------------- |
+| Usage frequency      | occasional | continuous           | onboarding vs efficiency and shortcuts                      |
+| User expertise       | novice     | specialist           | explanation vs compact controls                             |
+| Consequence of error | trivial    | severe               | speed vs verification and auditability                      |
+| Data density         | sparse     | extreme              | spacious storytelling vs structured density                 |
+| Task duration        | seconds    | hours                | transient flow vs persistent workspace                      |
+| Collaboration        | individual | multi-role           | local state vs comments, permissions, presence              |
+| Connectivity         | stable     | intermittent         | synchronous assumptions vs offline resilience               |
+| Content volatility   | static     | real-time            | ordinary refresh vs visible freshness and conflict handling |
+| Emotional context    | relaxed    | stressful            | expressive delight vs calm clarity                          |
+| Input method         | touch      | keyboard/mouse/mixed | target size vs compact acceleration                         |
 
 Use the score to moderate archetype defaults. A novice-facing finance app should not inherit the density of a professional trading terminal merely because both are financial.
 

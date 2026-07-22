@@ -157,7 +157,7 @@ const config: ForgeConfig = {
     protocols: [
       {
         name: "CAIDE Mobile Builder",
-        schemes: ["dyad"],
+        schemes: ["dyad", "caide"],
       },
     ],
     icon: "./assets/icon/logo",
@@ -214,13 +214,13 @@ const config: ForgeConfig = {
     new MakerZIP({}, ["darwin"]),
     new MakerRpm({
       options: {
-        mimeType: ["x-scheme-handler/dyad"],
+        mimeType: ["x-scheme-handler/dyad", "x-scheme-handler/caide"],
         icon: "./assets/icon/logo.png",
       },
     }),
     new MakerDeb({
       options: {
-        mimeType: ["x-scheme-handler/dyad"],
+        mimeType: ["x-scheme-handler/dyad", "x-scheme-handler/caide"],
         icon: "./assets/icon/logo.png",
       },
     }),

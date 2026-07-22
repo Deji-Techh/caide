@@ -117,7 +117,9 @@ export interface ProcessedNode {
   backgroundColor?: string;
   backgroundImage?: string;
   borderRadius?: number | [number, number, number, number];
-  borderWidth?: number | { top: number; right: number; bottom: number; left: number };
+  borderWidth?:
+    | number
+    | { top: number; right: number; bottom: number; left: number };
   borderColor?: string;
   shadows?: Array<{
     color: string;

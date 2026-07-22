@@ -27,10 +27,22 @@ interface PipelineStep {
 }
 
 const PIPELINE: PipelineStep[] = [
-  { id: "generating", label: "Generate", description: "Generating application code" },
+  {
+    id: "generating",
+    label: "Generate",
+    description: "Generating application code",
+  },
   { id: "building", label: "Build", description: "Compiling production build" },
-  { id: "type-checking", label: "Type-check", description: "Running TypeScript checks" },
-  { id: "previewing", label: "Start preview", description: "Starting preview server" },
+  {
+    id: "type-checking",
+    label: "Type-check",
+    description: "Running TypeScript checks",
+  },
+  {
+    id: "previewing",
+    label: "Start preview",
+    description: "Starting preview server",
+  },
   {
     id: "testing-viewports",
     label: "Test responsive viewports",
@@ -113,17 +125,20 @@ export function QualityGatePipeline({
       const step = PIPELINE[currentStepIndex];
       if (!step) return;
 
-      const timer = setTimeout(() => {
-        setCompletedSteps((prev) => {
-          const next = new Set(prev);
-          next.add(step.id);
-          return next;
-        });
+      const timer = setTimeout(
+        () => {
+          setCompletedSteps((prev) => {
+            const next = new Set(prev);
+            next.add(step.id);
+            return next;
+          });
 
-        if (currentStepIndex < PIPELINE.length - 1) {
-          setCurrentStepIndex((i) => i + 1);
-        }
-      }, 800 + Math.random() * 400);
+          if (currentStepIndex < PIPELINE.length - 1) {
+            setCurrentStepIndex((i) => i + 1);
+          }
+        },
+        800 + Math.random() * 400,
+      );
 
       return () => clearTimeout(timer);
     }
@@ -132,10 +147,7 @@ export function QualityGatePipeline({
   const stepStatus = (step: PipelineStep) => {
     if (completedSteps.has(step.id)) return "done";
     if (failedSteps.has(step.id)) return "failed";
-    if (
-      status === "generating" &&
-      PIPELINE[currentStepIndex]?.id === step.id
-    )
+    if (status === "generating" && PIPELINE[currentStepIndex]?.id === step.id)
       return "active";
     return "pending";
   };
@@ -145,7 +157,10 @@ export function QualityGatePipeline({
       <div className="caide-quality-gate-result space-y-3 p-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <CheckCircle2 size={22} className="text-green-600 dark:text-green-400" />
+            <CheckCircle2
+              size={22}
+              className="text-green-600 dark:text-green-400"
+            />
           </div>
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">
@@ -187,12 +202,7 @@ export function QualityGatePipeline({
             </p>
           </div>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleRun}
-        >
+        <Button type="button" variant="outline" size="sm" onClick={handleRun}>
           <Play size={12} className="mr-1" />
           Retry
         </Button>
@@ -220,10 +230,8 @@ export function QualityGatePipeline({
                   "flex items-center gap-2 px-3 py-1.5 rounded text-xs transition-colors",
                   s === "active" &&
                     "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300",
-                  s === "done" &&
-                    "text-green-600 dark:text-green-400",
-                  s === "pending" &&
-                    "text-gray-400 dark:text-gray-600",
+                  s === "done" && "text-green-600 dark:text-green-400",
+                  s === "pending" && "text-gray-400 dark:text-gray-600",
                   s === "failed" &&
                     "bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400",
                 )}

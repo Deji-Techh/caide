@@ -9,9 +9,9 @@ import { IS_TEST_BUILD } from "../ipc/utils/test_utils";
 const logger = log.scope("linux_protocol");
 const execFileAsync = promisify(execFile);
 
-const SCHEME = "dyad";
-const MIME_TYPE = `x-scheme-handler/${SCHEME}`;
-const DESKTOP_FILENAME = `${SCHEME}-url-handler.desktop`;
+const SCHEMES = ["dyad", "caide"] as const;
+const MIME_TYPES = SCHEMES.map((scheme) => `x-scheme-handler/${scheme}`);
+const DESKTOP_FILENAME = "caide-url-handler.desktop";
 
 interface ExecInputs {
   // process.defaultApp: true for dev / unpackaged runs.
@@ -79,14 +79,14 @@ export function buildDesktopFile(command: ExecCommand): string {
     `Exec=${command.exec}`,
     // TryExec is a bare path; the spec doesn't allow it to be quoted or escaped.
     `TryExec=${command.tryExec}`,
-    `MimeType=${MIME_TYPE};`,
+    `MimeType=${MIME_TYPES.join(";")};`,
     "NoDisplay=true",
     "Terminal=false",
     "",
   ].join("\n");
 }
 
-// Register this build as the dyad:// handler. Linux only; best-effort.
+// Register this build as the dyad:// and caide:// handler. Linux only; best-effort.
 //
 // Electron's setAsDefaultProtocolClient doesn't reliably do this on Linux, so
 // we write the .desktop file ourselves and point the OS at it. We do it on
@@ -132,21 +132,27 @@ export async function registerDyadProtocolLinux(): Promise<void> {
 
     // xdg-mime is the step that actually sets the default, so only claim
     // success when it succeeds.
-    const registered = await execFileAsync(
-      "xdg-mime",
-      ["default", DESKTOP_FILENAME, MIME_TYPE],
-      { timeout: 5000 },
-    )
-      .then(() => true)
-      .catch((error) => {
-        logger.warn("xdg-mime default failed:", error);
-        return false;
-      });
+    const registered = (
+      await Promise.all(
+        MIME_TYPES.map((mimeType) =>
+          execFileAsync("xdg-mime", ["default", DESKTOP_FILENAME, mimeType], {
+            timeout: 5000,
+          })
+            .then(() => true)
+            .catch((error) => {
+              logger.warn(`xdg-mime default failed for ${mimeType}:`, error);
+              return false;
+            }),
+        ),
+      )
+    ).every(Boolean);
 
     if (registered) {
-      logger.info(`Registered ${MIME_TYPE} handler at ${desktopPath}`);
+      logger.info(
+        `Registered ${MIME_TYPES.join(", ")} handler at ${desktopPath}`,
+      );
     }
   } catch (error) {
-    logger.warn("Failed to register dyad:// protocol handler:", error);
+    logger.warn("Failed to register CAIDE protocol handlers:", error);
   }
 }

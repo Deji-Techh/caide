@@ -141,6 +141,7 @@ export function registerImportHandlers() {
           path: skipCopy ? sourcePath : appName,
           installCommand: installCommand ?? null,
           startCommand: startCommand ?? null,
+          sourceType: "imported",
         })
         .returning();
 

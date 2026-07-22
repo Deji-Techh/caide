@@ -52,7 +52,13 @@ export function registerFigmaHandlers() {
       return { ok: true };
     } catch (err) {
       console.error("Figma token validation failed:", err);
-      return { ok: false, error: err instanceof DyadError ? err.message : "Network error connecting to Figma API" };
+      return {
+        ok: false,
+        error:
+          err instanceof DyadError
+            ? err.message
+            : "Network error connecting to Figma API",
+      };
     }
   });
 

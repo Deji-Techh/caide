@@ -52,8 +52,7 @@ export async function getOpenCodeZenFreeModels(
           .map((model) => model.id)
           .filter(
             (modelId): modelId is string =>
-              typeof modelId === "string" &&
-              isOpenCodeZenFreeModelId(modelId),
+              typeof modelId === "string" && isOpenCodeZenFreeModelId(modelId),
           ),
       ),
     );

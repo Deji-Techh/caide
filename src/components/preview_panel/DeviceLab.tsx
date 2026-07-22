@@ -126,7 +126,14 @@ export function DeviceFrame({
                 height="44"
                 patternUnits="userSpaceOnUse"
               >
-                <circle cx="22" cy="22" r="20" fill="none" stroke="red" strokeWidth="1" />
+                <circle
+                  cx="22"
+                  cy="22"
+                  r="20"
+                  fill="none"
+                  stroke="red"
+                  strokeWidth="1"
+                />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#touch-grid)" />
@@ -155,7 +162,13 @@ interface OverlayButtonProps {
   label: string;
 }
 
-function OverlayButton({ overlay, active, onToggle, icon, label }: OverlayButtonProps) {
+function OverlayButton({
+  overlay,
+  active,
+  onToggle,
+  icon,
+  label,
+}: OverlayButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger
@@ -241,7 +254,11 @@ export function DeviceLab({
     { key: "keyboard-open", icon: <Keyboard size={13} />, label: "Keyboard" },
     {
       key: "dark-mode",
-      icon: activeOverlays.includes("dark-mode") ? <Moon size={13} /> : <Sun size={13} />,
+      icon: activeOverlays.includes("dark-mode") ? (
+        <Moon size={13} />
+      ) : (
+        <Sun size={13} />
+      ),
       label: "Dark mode",
     },
     { key: "slow-network", icon: <Gauge size={13} />, label: "Slow net" },

@@ -41,8 +41,8 @@ The screen succeeds when:
 ### Secondary actions
 
 | Action | Priority | Result | Safeguard |
-|---|---|---|---|
-| | | | |
+| ------ | -------- | ------ | --------- |
+|        |          |        |           |
 
 ## 6. Information Hierarchy
 
@@ -55,14 +55,14 @@ The screen succeeds when:
 ## 7. Layout Regions
 
 | Region | Purpose | Persistent? | Responsive transformation |
-|---|---|---:|---|
-| | | | |
+| ------ | ------- | ----------: | ------------------------- |
+|        |         |             |                           |
 
 ## 8. Components
 
 | Component | Variant | Content | Important behavior |
-|---|---|---|---|
-| | | | |
+| --------- | ------- | ------- | ------------------ |
+|           |         |         |                    |
 
 ## 9. Interaction Sequence
 
@@ -72,15 +72,15 @@ The screen succeeds when:
 
 ## 10. State Matrix
 
-| State | Trigger | Visible result | Available action | Accessibility announcement |
-|---|---|---|---|---|
-| Initial | | | | |
-| Loading | | | | |
-| Empty | | | | |
-| Error | | | | |
-| Success | | | | |
-| Permission denied | | | | |
-| Offline | | | | |
+| State             | Trigger | Visible result | Available action | Accessibility announcement |
+| ----------------- | ------- | -------------- | ---------------- | -------------------------- |
+| Initial           |         |                |                  |                            |
+| Loading           |         |                |                  |                            |
+| Empty             |         |                |                  |                            |
+| Error             |         |                |                  |                            |
+| Success           |         |                |                  |                            |
+| Permission denied |         |                |                  |                            |
+| Offline           |         |                |                  |                            |
 
 Delete irrelevant rows and add domain-specific states.
 
@@ -145,8 +145,8 @@ Delete irrelevant rows and add domain-specific states.
 ## 15. Analytics and Audit Events
 
 | Event | Trigger | Properties | Privacy note |
-|---|---|---|---|
-| | | | |
+| ----- | ------- | ---------- | ------------ |
+|       |         |            |              |
 
 ## 16. Technical Dependencies
 

@@ -4,15 +4,15 @@ Use this rubric during self-review, team critique, acceptance, or redesign prior
 
 ## Scoring Meaning
 
-| Score | Meaning |
-|---:|---|
-| 0–2 | absent or fundamentally broken |
-| 3–4 | major deficiencies |
-| 5–6 | functional but ordinary or incomplete |
-| 7 | solid with identifiable improvements |
-| 8 | strong production quality |
-| 9 | exceptional and thoroughly resolved |
-| 10 | exemplary; no material issue found in tested scope |
+| Score | Meaning                                            |
+| ----: | -------------------------------------------------- |
+|   0–2 | absent or fundamentally broken                     |
+|   3–4 | major deficiencies                                 |
+|   5–6 | functional but ordinary or incomplete              |
+|     7 | solid with identifiable improvements               |
+|     8 | strong production quality                          |
+|     9 | exceptional and thoroughly resolved                |
+|    10 | exemplary; no material issue found in tested scope |
 
 A score of 10 should be rare and evidence-based.
 
@@ -263,23 +263,23 @@ Evaluate:
 
 Recommended weighting:
 
-| Dimension | Weight |
-|---|---:|
-| Product fit | 10% |
-| Primary-task clarity | 10% |
-| Information architecture | 8% |
-| Flow quality | 8% |
-| Content | 6% |
-| Visual hierarchy | 8% |
-| Design system | 6% |
-| Interaction | 8% |
-| State coverage | 8% |
-| Accessibility | 10% |
-| Responsive quality | 6% |
-| Performance | 4% |
-| Distinctiveness | 4% |
-| Feasibility | 2% |
-| Trust and ethics | 2% |
+| Dimension                | Weight |
+| ------------------------ | -----: |
+| Product fit              |    10% |
+| Primary-task clarity     |    10% |
+| Information architecture |     8% |
+| Flow quality             |     8% |
+| Content                  |     6% |
+| Visual hierarchy         |     8% |
+| Design system            |     6% |
+| Interaction              |     8% |
+| State coverage           |     8% |
+| Accessibility            |    10% |
+| Responsive quality       |     6% |
+| Performance              |     4% |
+| Distinctiveness          |     4% |
+| Feasibility              |     2% |
+| Trust and ethics         |     2% |
 
 Do not use the weighted score to hide a blocker. A blocker remains a blocker.
 

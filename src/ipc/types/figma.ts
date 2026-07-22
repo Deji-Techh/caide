@@ -55,7 +55,9 @@ export const FigmaFileNodesResponseSchema = z.object({
 
 export type FigmaFileResponse = z.infer<typeof FigmaFileResponseSchema>;
 export type FigmaImagesResponse = z.infer<typeof FigmaImagesResponseSchema>;
-export type FigmaFileNodesResponse = z.infer<typeof FigmaFileNodesResponseSchema>;
+export type FigmaFileNodesResponse = z.infer<
+  typeof FigmaFileNodesResponseSchema
+>;
 
 export const figmaContracts = {
   validateToken: defineContract({

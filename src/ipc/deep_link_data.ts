@@ -34,9 +34,16 @@ export type AddPromptDeepLinkData = {
   payload: AddPromptPayload;
 };
 
+export type ReceiveProjectDeepLinkData = {
+  type: "receive-project";
+  payload: { token: string };
+};
+
 export type DeepLinkData =
   | AddMcpServerDeepLinkData
   | AddPromptDeepLinkData
+  | ReceiveProjectDeepLinkData
   | {
       type: string;
+      payload?: Record<string, unknown>;
     };

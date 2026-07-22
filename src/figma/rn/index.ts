@@ -32,7 +32,10 @@ function borderRadiusToRN(
 }
 
 function borderWidthToRN(
-  bw: number | { top: number; right: number; bottom: number; left: number } | undefined,
+  bw:
+    | number
+    | { top: number; right: number; bottom: number; left: number }
+    | undefined,
 ): Record<string, number> | number | undefined {
   if (bw === undefined) return undefined;
   if (typeof bw === "number") return bw;
@@ -44,10 +47,7 @@ function borderWidthToRN(
   };
 }
 
-function generateViewStyle(
-  node: ProcessedNode,
-  styleName: string,
-): string {
+function generateViewStyle(node: ProcessedNode, styleName: string): string {
   const props: string[] = [];
 
   if (node.rotation) {
@@ -58,8 +58,8 @@ function generateViewStyle(
     props.push(`opacity: ${styleValue(node.opacity)}`);
   }
 
-  if (node.isAbsolute || (node.x !== 0 || node.y !== 0)) {
-    if (node.isAbsolute) props.push("position: \"absolute\"");
+  if (node.isAbsolute || node.x !== 0 || node.y !== 0) {
+    if (node.isAbsolute) props.push('position: "absolute"');
     if (node.x !== 0) props.push(`left: ${node.x}`);
     if (node.y !== 0) props.push(`top: ${node.y}`);
   }
@@ -99,29 +99,41 @@ function generateViewStyle(
   if (node.shadows && node.shadows.length > 0) {
     const shadow = node.shadows[0];
     props.push(`shadowColor: "${shadow.color}"`);
-    props.push(`shadowOffset: { width: ${shadow.offsetX}, height: ${shadow.offsetY} }`);
+    props.push(
+      `shadowOffset: { width: ${shadow.offsetX}, height: ${shadow.offsetY} }`,
+    );
     props.push(`shadowOpacity: 1`);
     props.push(`shadowRadius: ${shadow.blur}`);
     props.push(`elevation: ${Math.min(shadow.blur, 10)}`);
   }
 
   if (node.clipsContent) {
-    props.push("overflow: \"hidden\"");
+    props.push('overflow: "hidden"');
   }
 
   // Auto-layout (flexbox)
   if (node.layoutMode && node.layoutMode !== "none") {
     props.push(`flexDirection: "${node.layoutMode}"`);
-    if (node.justifyContent) props.push(`justifyContent: "${node.justifyContent}"`);
+    if (node.justifyContent)
+      props.push(`justifyContent: "${node.justifyContent}"`);
     if (node.alignItems) props.push(`alignItems: "${node.alignItems}"`);
-    if (node.paddingTop !== 0 || node.paddingRight !== 0 || node.paddingBottom !== 0 || node.paddingLeft !== 0) {
+    if (
+      node.paddingTop !== 0 ||
+      node.paddingRight !== 0 ||
+      node.paddingBottom !== 0 ||
+      node.paddingLeft !== 0
+    ) {
       props.push(`paddingTop: ${node.paddingTop}`);
       props.push(`paddingRight: ${node.paddingRight}`);
       props.push(`paddingBottom: ${node.paddingBottom}`);
       props.push(`paddingLeft: ${node.paddingLeft}`);
     }
     if (node.itemSpacing !== 0) {
-      props.push(node.layoutMode === "horizontal" ? `columnGap: ${node.itemSpacing}` : `rowGap: ${node.itemSpacing}`);
+      props.push(
+        node.layoutMode === "horizontal"
+          ? `columnGap: ${node.itemSpacing}`
+          : `rowGap: ${node.itemSpacing}`,
+      );
     }
   }
 
@@ -130,7 +142,7 @@ function generateViewStyle(
   }
 
   if (props.length === 0) return "";
-  return `${styleName}: { ${props.join(", ") } },`;
+  return `${styleName}: { ${props.join(", ")} },`;
 }
 
 function generateNodeComponent(
@@ -201,9 +213,7 @@ function generateNodeComponent(
   return { component, styles };
 }
 
-export function generateRNCode(
-  nodes: ProcessedNode[],
-): string {
+export function generateRNCode(nodes: ProcessedNode[]): string {
   if (nodes.length === 0) return "";
 
   let allComponents = "";
@@ -242,8 +252,6 @@ import { View, Text, StyleSheet } from "react-native";`;
   return `${imports}\n\n${componentCode}\n\n${fullStyles}`;
 }
 
-export function generateLayoutSpec(
-  nodes: ProcessedNode[],
-): string {
+export function generateLayoutSpec(nodes: ProcessedNode[]): string {
   return JSON.stringify(nodes, null, 2);
 }

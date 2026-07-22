@@ -42,6 +42,7 @@ interface ChatPanelProps {
   isPreviewOpen: boolean;
   onTogglePreview: () => void;
   compact?: boolean;
+  showInput?: boolean;
 }
 
 export function ChatPanel({
@@ -49,6 +50,7 @@ export function ChatPanel({
   isPreviewOpen,
   onTogglePreview,
   compact = false,
+  showInput = true,
 }: ChatPanelProps) {
   const { t } = useTranslation("chat");
   const messagesById = useAtomValue(chatMessagesByIdAtom);
@@ -338,7 +340,7 @@ export function ChatPanel({
                     )}
                   </div>
                   <NotificationBanner />
-                  <ChatInput chatId={chatId} />
+                  {showInput && <ChatInput chatId={chatId} />}
                 </motion.div>
               )}
             </AnimatePresence>

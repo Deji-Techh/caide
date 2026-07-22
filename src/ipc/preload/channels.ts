@@ -56,6 +56,7 @@ import { chatgptContracts } from "../types/chatgpt";
 import { figmaContracts } from "../types/figma";
 import { notchContracts, notchEvents } from "../types/notch";
 import { releaseContracts } from "../types/release";
+import { shareContracts } from "../types/share";
 
 // =============================================================================
 // Invoke Channels (derived from all contracts)
@@ -124,6 +125,7 @@ export const VALID_INVOKE_CHANNELS = [
   ...getInvokeChannels(chatgptContracts),
   ...getInvokeChannels(figmaContracts),
   ...getInvokeChannels(releaseContracts),
+  ...getInvokeChannels(shareContracts),
 
   // Notch
   ...getInvokeChannels(notchContracts),

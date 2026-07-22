@@ -28,7 +28,13 @@ export function calculateRectFromBoundingBox(
 
   const denom = absCos * absCos - absSin * absSin;
   if (Math.abs(denom) < 0.0001) {
-    return { width: w_b, height: h_b, left: x_b, top: y_b, rotation: cssRotation };
+    return {
+      width: w_b,
+      height: h_b,
+      left: x_b,
+      top: y_b,
+      rotation: cssRotation,
+    };
   }
 
   const h = (w_b * absSin - h_b * absCos) / -denom;

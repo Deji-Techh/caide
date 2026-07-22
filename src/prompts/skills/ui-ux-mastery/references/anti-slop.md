@@ -180,13 +180,13 @@ For every screen:
 
 Score each 0–2:
 
-| Criterion | 0 | 1 | 2 |
-|---|---|---|---|
-| Product specificity | interchangeable | partially adapted | unmistakably fitted |
-| Content realism | filler | plausible | domain-authentic |
-| Visual concept | trend collage | somewhat coherent | coherent and ownable |
-| Interaction idea | generic controls | one adapted pattern | useful signature system |
-| Layout logic | template | mixed | task-derived |
-| State design | happy path | common states | domain-specific resilience |
+| Criterion           | 0                | 1                   | 2                          |
+| ------------------- | ---------------- | ------------------- | -------------------------- |
+| Product specificity | interchangeable  | partially adapted   | unmistakably fitted        |
+| Content realism     | filler           | plausible           | domain-authentic           |
+| Visual concept      | trend collage    | somewhat coherent   | coherent and ownable       |
+| Interaction idea    | generic controls | one adapted pattern | useful signature system    |
+| Layout logic        | template         | mixed               | task-derived               |
+| State design        | happy path       | common states       | domain-specific resilience |
 
 A total below 9/12 requires revision.

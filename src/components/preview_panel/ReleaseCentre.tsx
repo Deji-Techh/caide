@@ -131,7 +131,9 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
     mutationFn: () => releaseClient.buildAll({ appId }),
     onSuccess: (result: BuildResult) => {
       setBuildLogs((prev) => [...prev, ...result.logs]);
-      result.success ? showSuccess("All builds completed") : showError("Build failed");
+      result.success
+        ? showSuccess("All builds completed")
+        : showError("Build failed");
     },
     onError: () => showError("Build all failed"),
   });
@@ -279,7 +281,9 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
             </button>
             <button
               type="button"
-              onClick={() => releaseClient.checkDependencies({ appId }).then(() => {})}
+              onClick={() =>
+                releaseClient.checkDependencies({ appId }).then(() => {})
+              }
               className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 underline"
             >
               Dependency diagnostics
@@ -294,7 +298,10 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
                   className="flex items-start gap-2 text-xs font-mono"
                 >
                   {log.status === "running" ? (
-                    <Loader2 size={11} className="animate-spin mt-0.5 text-blue-500" />
+                    <Loader2
+                      size={11}
+                      className="animate-spin mt-0.5 text-blue-500"
+                    />
                   ) : log.status === "success" ? (
                     <CheckCircle2 size={11} className="mt-0.5 text-green-500" />
                   ) : log.status === "failed" ? (
@@ -334,19 +341,11 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">Key alias</Label>
-                  <Input
-                    value="upload"
-                    className="h-8 text-xs mt-1"
-                    readOnly
-                  />
+                  <Input value="upload" className="h-8 text-xs mt-1" readOnly />
                 </div>
                 <div>
                   <Label className="text-xs">Validity (days)</Label>
-                  <Input
-                    value="3650"
-                    className="h-8 text-xs mt-1"
-                    readOnly
-                  />
+                  <Input value="3650" className="h-8 text-xs mt-1" readOnly />
                 </div>
               </div>
               <Button

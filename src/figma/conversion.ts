@@ -1,8 +1,4 @@
-import type {
-  FigmaJsonNode,
-  ProcessedNode,
-  TextSegment,
-} from "./types";
+import type { FigmaJsonNode, ProcessedNode, TextSegment } from "./types";
 import { figmaColorToCss, parseFigmaEffects } from "./color";
 import {
   calculateRectFromBoundingBox,
@@ -17,10 +13,7 @@ function collectTextSegments(node: FigmaJsonNode): TextSegment[] | undefined {
   const primaryFill = node.style.fills.find(
     (f) => f.type === "SOLID" && f.visible !== false,
   );
-  const textColor = figmaColorToCss(
-    primaryFill?.color,
-    primaryFill?.opacity,
-  );
+  const textColor = figmaColorToCss(primaryFill?.color, primaryFill?.opacity);
 
   const segment: TextSegment = {
     characters: node.characters ?? "",
@@ -29,15 +22,20 @@ function collectTextSegments(node: FigmaJsonNode): TextSegment[] | undefined {
     fontWeight: node.style?.fontWeight,
     textColor,
     letterSpacing: node.style?.letterSpacing,
-    textDecoration: node.style?.textDecoration === "UNDERLINE"
-      ? "underline"
-      : node.style?.textDecoration === "STRIKETHROUGH"
-        ? "line-through"
-        : undefined,
+    textDecoration:
+      node.style?.textDecoration === "UNDERLINE"
+        ? "underline"
+        : node.style?.textDecoration === "STRIKETHROUGH"
+          ? "line-through"
+          : undefined,
   };
 
   // Handle styled text segments via styleOverrideTable
-  if (node.characterStyleOverrides && node.styleOverrideTable && node.characters) {
+  if (
+    node.characterStyleOverrides &&
+    node.styleOverrideTable &&
+    node.characters
+  ) {
     const overrides = node.characterStyleOverrides;
     const table = node.styleOverrideTable;
     const segments: TextSegment[] = [];
@@ -103,7 +101,14 @@ function processStrokes(
   strokes?: FigmaJsonNode["strokes"],
   strokeWeight?: number,
   individualStrokeWeights?: FigmaJsonNode["individualStrokeWeights"],
-): { color?: string; width?: number | { top: number; right: number; bottom: number; left: number } } | undefined {
+):
+  | {
+      color?: string;
+      width?:
+        | number
+        | { top: number; right: number; bottom: number; left: number };
+    }
+  | undefined {
   if (!strokes) return undefined;
   const solidStroke = strokes.find(
     (s) => s.type === "SOLID" && s.visible !== false,
@@ -113,7 +118,10 @@ function processStrokes(
   const color = figmaColorToCss(solidStroke.color, solidStroke.opacity);
   if (!color) return undefined;
 
-  let width: number | { top: number; right: number; bottom: number; left: number } | undefined;
+  let width:
+    | number
+    | { top: number; right: number; bottom: number; left: number }
+    | undefined;
   if (individualStrokeWeights) {
     width = {
       top: individualStrokeWeights.top,
@@ -210,11 +218,18 @@ export function processFigmaNode(
   const processed: ProcessedNode = {
     id: node.id,
     name: node.name,
-    type: isText ? "text" : node.type === "RECTANGLE" || node.type === "ELLIPSE" || node.type === "FRAME" || node.type === "INSTANCE" || node.type === "COMPONENT" || node.type === "COMPONENT_SET"
-      ? "view"
-      : node.type === "VECTOR" || node.type === "BOOLEAN_OPERATION"
-        ? "vector"
-        : "view",
+    type: isText
+      ? "text"
+      : node.type === "RECTANGLE" ||
+          node.type === "ELLIPSE" ||
+          node.type === "FRAME" ||
+          node.type === "INSTANCE" ||
+          node.type === "COMPONENT" ||
+          node.type === "COMPONENT_SET"
+        ? "view"
+        : node.type === "VECTOR" || node.type === "BOOLEAN_OPERATION"
+          ? "vector"
+          : "view",
     x: rect.left,
     y: rect.top,
     width: rect.width,
@@ -234,18 +249,27 @@ export function processFigmaNode(
     fontWeight: node.style?.fontWeight,
     fontStyle: getFontStyle(node.style),
     textAlign: node.style?.textAlignHorizontal
-      ? (node.style.textAlignHorizontal.toLowerCase() as "left" | "center" | "right")
+      ? (node.style.textAlignHorizontal.toLowerCase() as
+          | "left"
+          | "center"
+          | "right")
       : undefined,
     textColor: textSegments?.[0]?.textColor,
     lineHeight: node.style?.lineHeightPx,
     letterSpacing: node.style?.letterSpacing,
-    textDecoration: node.style?.textDecoration === "UNDERLINE"
-      ? "underline"
-      : node.style?.textDecoration === "STRIKETHROUGH"
-        ? "line-through"
-        : undefined,
+    textDecoration:
+      node.style?.textDecoration === "UNDERLINE"
+        ? "underline"
+        : node.style?.textDecoration === "STRIKETHROUGH"
+          ? "line-through"
+          : undefined,
     textSegments,
-    layoutMode: node.layoutMode === "HORIZONTAL" ? "horizontal" : node.layoutMode === "VERTICAL" ? "vertical" : "none",
+    layoutMode:
+      node.layoutMode === "HORIZONTAL"
+        ? "horizontal"
+        : node.layoutMode === "VERTICAL"
+          ? "vertical"
+          : "none",
     paddingTop: node.paddingTop ?? 0,
     paddingRight: node.paddingRight ?? 0,
     paddingBottom: node.paddingBottom ?? 0,
@@ -275,9 +299,7 @@ export function processFigmaNode(
   return processed;
 }
 
-export function flattenTopFrames(
-  doc: FigmaJsonNode,
-): FigmaJsonNode[] {
+export function flattenTopFrames(doc: FigmaJsonNode): FigmaJsonNode[] {
   const frames: FigmaJsonNode[] = [];
 
   function walk(node: FigmaJsonNode) {

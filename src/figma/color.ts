@@ -6,14 +6,8 @@ export function rgbToHex(r: number, g: number, b: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toLowerCase();
 }
 
-export function rgbToRgba(
-  r: number,
-  g: number,
-  b: number,
-  a: number,
-): string {
-  const round = (n: number) =>
-    Math.round(Math.max(0, Math.min(1, n)) * 255);
+export function rgbToRgba(r: number, g: number, b: number, a: number): string {
+  const round = (n: number) => Math.round(Math.max(0, Math.min(1, n)) * 255);
   return `rgba(${round(r)}, ${round(g)}, ${round(b)}, ${a.toFixed(2)})`;
 }
 
@@ -42,13 +36,15 @@ export function parseFigmaEffects(
     radius: number;
     spread?: number;
   }>,
-): Array<{
-  color: string;
-  offsetX: number;
-  offsetY: number;
-  blur: number;
-  spread: number;
-}> | undefined {
+):
+  | Array<{
+      color: string;
+      offsetX: number;
+      offsetY: number;
+      blur: number;
+      spread: number;
+    }>
+  | undefined {
   if (!effects) return undefined;
   const shadows = effects.filter(
     (e) =>

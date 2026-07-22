@@ -182,17 +182,17 @@ Do not generate dark mode by numerical inversion. Re-evaluate:
 
 Example:
 
-| Role | Typical use | Key concern |
-|---|---|---|
-| display | campaign or major product statement | character, controlled use |
-| title-1 | page or object title | immediate orientation |
-| title-2 | major section | hierarchy |
-| title-3 | local group | compact clarity |
-| body | ordinary reading | legibility |
-| body-compact | dense tools and tables | efficient scanning |
-| label | controls and metadata | clarity at small size |
-| data | values and metrics | numeral alignment |
-| code | code and identifiers | glyph distinction |
+| Role         | Typical use                         | Key concern               |
+| ------------ | ----------------------------------- | ------------------------- |
+| display      | campaign or major product statement | character, controlled use |
+| title-1      | page or object title                | immediate orientation     |
+| title-2      | major section                       | hierarchy                 |
+| title-3      | local group                         | compact clarity           |
+| body         | ordinary reading                    | legibility                |
+| body-compact | dense tools and tables              | efficient scanning        |
+| label        | controls and metadata               | clarity at small size     |
+| data         | values and metrics                  | numeral alignment         |
+| code         | code and identifiers                | glyph distinction         |
 
 ### 4.2 Fluid type
 

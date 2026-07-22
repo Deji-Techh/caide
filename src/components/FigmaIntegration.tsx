@@ -24,7 +24,9 @@ export function FigmaIntegration() {
     setIsSaving(true);
     setTestResult(null);
     try {
-      const { ok, error } = await ipc.figma.validateToken({ token: token.trim() });
+      const { ok, error } = await ipc.figma.validateToken({
+        token: token.trim(),
+      });
       if (!ok) {
         showError(error || "Token is invalid. Please check and try again.");
         setTestResult("fail");
@@ -160,9 +162,7 @@ export function FigmaIntegration() {
           disabled={!token.trim() || isSaving}
           size="sm"
         >
-          {isSaving ? (
-            <Loader2 className="h-3 w-3 animate-spin mr-1" />
-          ) : null}
+          {isSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
           Save
         </Button>
       </div>

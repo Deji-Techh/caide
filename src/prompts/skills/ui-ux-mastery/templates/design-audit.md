@@ -24,21 +24,21 @@ Summarize the product's strongest qualities, greatest risks, and recommended pri
 
 ## 4. Findings
 
-| ID | Severity | Area | Evidence | User impact | Recommendation | Verification |
-|---|---|---|---|---|---|---|
-| UX-001 | | | | | | |
+| ID     | Severity | Area | Evidence | User impact | Recommendation | Verification |
+| ------ | -------- | ---- | -------- | ----------- | -------------- | ------------ |
+| UX-001 |          |      |          |             |                |              |
 
 ## 5. Flow Review
 
 | Flow | Entry | Completion | Failure recovery | Status |
-|---|---|---|---|---|
-| | | | | |
+| ---- | ----- | ---------- | ---------------- | ------ |
+|      |       |            |                  |        |
 
 ## 6. State Coverage
 
 | Surface | Loading | Empty | Error | Offline | Permission | Success | Long content |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| | | | | | | | |
+| ------- | ------: | ----: | ----: | ------: | ---------: | ------: | -----------: |
+|         |         |       |       |         |            |         |              |
 
 ## 7. Accessibility Review
 
@@ -69,8 +69,8 @@ Summarize the product's strongest qualities, greatest risks, and recommended pri
 ## 8. Responsive Review
 
 | Width/device | Navigation | Layout | Content | Actions | Defects |
-|---|---|---|---|---|---|
-| | | | | | |
+| ------------ | ---------- | ------ | ------- | ------- | ------- |
+|              |            |        |         |         |         |
 
 ## 9. Content Review
 
@@ -93,23 +93,23 @@ Summarize the product's strongest qualities, greatest risks, and recommended pri
 
 ## 11. Quality Scorecard
 
-| Dimension | Score /10 | Evidence | Required action |
-|---|---:|---|---|
-| Product fit | | | |
-| Primary-task clarity | | | |
-| Information architecture | | | |
-| Flow quality | | | |
-| Content quality | | | |
-| Visual hierarchy | | | |
-| Design-system coherence | | | |
-| Interaction quality | | | |
-| State coverage | | | |
-| Accessibility | | | |
-| Responsive quality | | | |
-| Performance | | | |
-| Distinctiveness | | | |
-| Implementation feasibility | | | |
-| Trust and ethics | | | |
+| Dimension                  | Score /10 | Evidence | Required action |
+| -------------------------- | --------: | -------- | --------------- |
+| Product fit                |           |          |                 |
+| Primary-task clarity       |           |          |                 |
+| Information architecture   |           |          |                 |
+| Flow quality               |           |          |                 |
+| Content quality            |           |          |                 |
+| Visual hierarchy           |           |          |                 |
+| Design-system coherence    |           |          |                 |
+| Interaction quality        |           |          |                 |
+| State coverage             |           |          |                 |
+| Accessibility              |           |          |                 |
+| Responsive quality         |           |          |                 |
+| Performance                |           |          |                 |
+| Distinctiveness            |           |          |                 |
+| Implementation feasibility |           |          |                 |
+| Trust and ethics           |           |          |                 |
 
 ## 12. Prioritized Plan
 

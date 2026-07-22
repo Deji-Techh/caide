@@ -58,6 +58,7 @@ import {
 import { isPreviewOpenAtom, selectedFileAtom } from "@/atoms/viewAtoms";
 import { ChatPanel } from "@/components/ChatPanel";
 import { ChatInput } from "@/components/chat/ChatInput";
+import { ShareProjectDialog } from "@/components/share/ShareProjectDialog";
 import { DevicePresetPicker } from "@/components/DevicePresetPicker";
 import {
   Popover,
@@ -148,6 +149,7 @@ export default function ChatPage() {
   const [tool, setTool] = useState<CanvasTool>("inspect");
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("design");
   const [isAgentExpanded, setIsAgentExpanded] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [zoom, setZoom] = useState(90);
   const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
   const panOrigin = useRef<{
@@ -452,7 +454,7 @@ export default function ChatPage() {
           <button type="button" onClick={() => selectMode("tests")}>
             <Play size={14} /> Run tests
           </button>
-          <button type="button" onClick={() => selectMode("publish")}>
+          <button type="button" onClick={() => setIsShareDialogOpen(true)}>
             <Share2 size={14} /> Share
           </button>
           <button
@@ -1080,7 +1082,11 @@ export default function ChatPage() {
                 aria-pressed={isAgentExpanded}
                 onClick={() => setIsAgentExpanded((expanded) => !expanded)}
               >
-                {isAgentExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                {isAgentExpanded ? (
+                  <Minimize2 size={14} />
+                ) : (
+                  <Maximize2 size={14} />
+                )}
               </button>
             )}
             <button
@@ -1100,6 +1106,7 @@ export default function ChatPage() {
                 isPreviewOpen
                 onTogglePreview={() => undefined}
                 compact={!isAgentExpanded}
+                showInput={isAgentExpanded}
               />
             </div>
           ) : (
@@ -1128,6 +1135,14 @@ export default function ChatPage() {
           )}
         </aside>
       </div>
+      {selectedAppId ? (
+        <ShareProjectDialog
+          appId={selectedAppId}
+          projectName={app?.name ?? "CAIDE project"}
+          open={isShareDialogOpen}
+          onOpenChange={setIsShareDialogOpen}
+        />
+      ) : null}
     </main>
   );
 }

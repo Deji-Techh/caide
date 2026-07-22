@@ -88,6 +88,7 @@ import {
   getUserDataPath,
 } from "./paths/paths";
 import { createDeepLinkQueue } from "./main/deep_link_queue";
+import { queuePendingProjectShareToken } from "./main/pending_project_share";
 import { registerDyadProtocolLinux } from "./main/linux_protocol_registration";
 import {
   applyManagedPnpmToProcessPath,
@@ -281,15 +282,19 @@ if (fs.existsSync(gitDir)) {
 }
 
 // https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app#main-process-mainjs
-if (process.defaultApp) {
-  if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient("dyad", process.execPath, [
-      path.resolve(process.argv[1]),
-    ]);
+for (const scheme of ["dyad", "caide"] as const) {
+  if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+      app.setAsDefaultProtocolClient(scheme, process.execPath, [
+        path.resolve(process.argv[1]),
+      ]);
+    }
+  } else {
+    app.setAsDefaultProtocolClient(scheme);
   }
-} else {
-  app.setAsDefaultProtocolClient("dyad");
 }
+
+const isCaideDeepLink = (value: string) => /^(?:dyad|caide):\/\//i.test(value);
 
 export async function onReady() {
   // Linux: claim the dyad:// scheme for this build (best-effort, see module).
@@ -994,7 +999,7 @@ if (IS_TEST_BUILD) {
   } else {
     app.on("second-instance", (_event, commandLine, _workingDirectory) => {
       restoreOrCreateMainWindow();
-      const url = commandLine.find((arg) => arg.startsWith("dyad://"));
+      const url = commandLine.find(isCaideDeepLink);
       if (url) {
         deepLinkQueue.handle(url);
       }
@@ -1005,9 +1010,7 @@ if (IS_TEST_BUILD) {
     // drain the initial argv here. The queue holds it until the app is ready.
     // This runs on every launch, so match by dyad:// prefix to ignore the
     // normal (no-deep-link) startup args.
-    const initialDeepLink = process.argv.find((arg) =>
-      arg.startsWith("dyad://"),
-    );
+    const initialDeepLink = process.argv.find(isCaideDeepLink);
     if (initialDeepLink) {
       deepLinkQueue.handle(initialDeepLink);
     }
@@ -1054,10 +1057,10 @@ async function handleDeepLinkReturn(url: string) {
     "hostname",
     parsed.hostname,
   );
-  if (parsed.protocol !== "dyad:") {
+  if (parsed.protocol !== "dyad:" && parsed.protocol !== "caide:") {
     dialog.showErrorBox(
       "Invalid Protocol",
-      `Expected dyad://, got ${parsed.protocol}. Full URL: ${url}`,
+      `Expected caide:// or dyad://, got ${parsed.protocol}`,
     );
     return;
   }
@@ -1189,6 +1192,23 @@ async function handleDeepLinkReturn(url: string) {
         "The deep link contains malformed data. Please check the URL and try again.",
       );
     }
+    return;
+  }
+  if (parsed.hostname === "receive-project") {
+    const token = parsed.searchParams.get("token");
+    if (!token || token.length < 20 || token.length > 256) {
+      dialog.showErrorBox(
+        "Invalid project link",
+        "The project share token is missing or malformed.",
+      );
+      return;
+    }
+    queuePendingProjectShareToken(token);
+    focusMainWindow();
+    sendToMainWindow("deep-link-received", {
+      type: "receive-project",
+      payload: { token },
+    });
     return;
   }
   dialog.showErrorBox("Invalid deep link URL", url);

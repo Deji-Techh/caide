@@ -33,7 +33,10 @@ function segmentToJSX(
     props.push(`textDecorationLine: "${seg.textDecoration}"`);
   }
 
-  const chars = seg.characters.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$/g, "\\$");
+  const chars = seg.characters
+    .replace(/\\/g, "\\\\")
+    .replace(/`/g, "\\`")
+    .replace(/\$/g, "\\$");
 
   if (props.length === 0) return `{\`${chars}\`}`;
 
@@ -53,40 +56,56 @@ export function generateTextComponent(
   if (node.fontSize) textStyles.push(`fontSize: ${node.fontSize}`);
   if (node.fontWeight) textStyles.push(`fontWeight: "${node.fontWeight}"`);
   if (node.fontStyle) textStyles.push(`fontStyle: "${node.fontStyle}"`);
-  if (node.textColor) textStyles.push(`color: "${cssColorToRN(node.textColor)}"`);
+  if (node.textColor)
+    textStyles.push(`color: "${cssColorToRN(node.textColor)}"`);
   if (node.textAlign) textStyles.push(`textAlign: "${node.textAlign}"`);
   if (node.lineHeight) textStyles.push(`lineHeight: ${node.lineHeight}`);
-  if (node.letterSpacing) textStyles.push(`letterSpacing: ${node.letterSpacing}`);
+  if (node.letterSpacing)
+    textStyles.push(`letterSpacing: ${node.letterSpacing}`);
   if (node.textDecoration && node.textDecoration !== "none") {
     textStyles.push(`textDecorationLine: "${node.textDecoration}"`);
   }
 
-  const styleDef = textStyles.length > 0
-    ? `${textStyleName}: {${textStyles.join(", ")}},`
-    : "";
+  const styleDef =
+    textStyles.length > 0
+      ? `${textStyleName}: {${textStyles.join(", ")}},`
+      : "";
 
   if (node.textSegments && node.textSegments.length > 1) {
     const segments = node.textSegments.map((seg, i) => {
       const segName = `${baseName}_seg_${i}`;
-      return { component: segmentToJSX(seg, i === node.textSegments!.length - 1, segName), styleName: segName };
+      return {
+        component: segmentToJSX(
+          seg,
+          i === node.textSegments!.length - 1,
+          segName,
+        ),
+        styleName: segName,
+      };
     });
 
-    const segStyles = node.textSegments.map((seg, i) => {
-      const segName = `${baseName}_seg_${i}`;
-      const segProps: string[] = [];
-      if (seg.fontFamily) segProps.push(`fontFamily: "${seg.fontFamily}"`);
-      if (seg.fontSize) segProps.push(`fontSize: ${seg.fontSize}`);
-      if (seg.fontWeight) segProps.push(`fontWeight: "${seg.fontWeight}"`);
-      if (seg.fontStyle) segProps.push(`fontStyle: "${seg.fontStyle}"`);
-      if (seg.textColor) segProps.push(`color: "${cssColorToRN(seg.textColor)}"`);
-      if (seg.letterSpacing) segProps.push(`letterSpacing: ${seg.letterSpacing}`);
-      if (seg.textDecoration && seg.textDecoration !== "none") {
-        segProps.push(`textDecorationLine: "${seg.textDecoration}"`);
-      }
-      return `${segName}: {${segProps.join(", ")}},`;
-    }).join("\n    ");
+    const segStyles = node.textSegments
+      .map((seg, i) => {
+        const segName = `${baseName}_seg_${i}`;
+        const segProps: string[] = [];
+        if (seg.fontFamily) segProps.push(`fontFamily: "${seg.fontFamily}"`);
+        if (seg.fontSize) segProps.push(`fontSize: ${seg.fontSize}`);
+        if (seg.fontWeight) segProps.push(`fontWeight: "${seg.fontWeight}"`);
+        if (seg.fontStyle) segProps.push(`fontStyle: "${seg.fontStyle}"`);
+        if (seg.textColor)
+          segProps.push(`color: "${cssColorToRN(seg.textColor)}"`);
+        if (seg.letterSpacing)
+          segProps.push(`letterSpacing: ${seg.letterSpacing}`);
+        if (seg.textDecoration && seg.textDecoration !== "none") {
+          segProps.push(`textDecorationLine: "${seg.textDecoration}"`);
+        }
+        return `${segName}: {${segProps.join(", ")}},`;
+      })
+      .join("\n    ");
 
-    const segmentComponents = segments.map((s) => s.component).join("\n          ");
+    const segmentComponents = segments
+      .map((s) => s.component)
+      .join("\n          ");
 
     return {
       component: `<Text style={styles.${textStyleName}}>\n          ${segmentComponents}\n        </Text>`,
@@ -99,9 +118,10 @@ export function generateTextComponent(
     .replace(/`/g, "\\`")
     .replace(/\$/g, "\\$");
 
-  const component = text.length > 0
-    ? `<Text style={styles.${textStyleName}}>{\`${text}\`}</Text>`
-    : `<Text style={styles.${textStyleName}}></Text>`;
+  const component =
+    text.length > 0
+      ? `<Text style={styles.${textStyleName}}>{\`${text}\`}</Text>`
+      : `<Text style={styles.${textStyleName}}></Text>`;
 
   return { component, styles: styleDef };
 }

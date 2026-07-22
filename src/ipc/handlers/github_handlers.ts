@@ -1356,6 +1356,7 @@ async function handleCloneRepoFromUrl(
         githubBranch: "main",
         installCommand: installCommand || null,
         startCommand: startCommand || null,
+        sourceType: "imported",
       })
       .returning();
     logger.log(`Successfully cloned repo ${owner}/${repoName} to ${appPath}`);
