@@ -117,14 +117,14 @@ export function DyadCard({
   const variantClasses =
     variant === "ghost"
       ? "hover:bg-(--background-lightest) rounded-lg"
-      : `bg-(--background-lightest) hover:bg-(--background-lighter) rounded-xl border border-border/60 ${leftBorder}`;
+      : `bg-(--background-lightest) hover:bg-(--background-lighter) rounded-xl border border-border/70 shadow-[0_1px_0_rgb(255_255_255/0.025)] ${leftBorder}`;
 
   return (
     <div
       className={`
         group/card
         ${variantClasses}
-        my-1.5 transition-colors duration-150
+        min-w-0 overflow-hidden my-2 transition-[background-color,border-color,box-shadow] duration-150
         ${onClick ? "cursor-pointer" : ""}
         ${className}
       `}
@@ -171,13 +171,13 @@ export function DyadCardHeader({
   children,
 }: DyadCardHeaderProps) {
   return (
-    <div className="flex items-center gap-2.5 px-3 py-2">
+    <div className="flex min-h-12 min-w-0 items-center gap-2.5 px-3 py-2.5">
       <div
         className={`flex items-center justify-center size-7 rounded-lg shrink-0 ${ACCENT_ICON_BG[accentColor]}`}
       >
         {icon}
       </div>
-      <div className="flex-1 min-w-0 flex items-center gap-2">{children}</div>
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">{children}</div>
     </div>
   );
 }

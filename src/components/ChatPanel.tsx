@@ -43,6 +43,7 @@ interface ChatPanelProps {
   onTogglePreview: () => void;
   compact?: boolean;
   showInput?: boolean;
+  disableMessageVirtualization?: boolean;
 }
 
 export function ChatPanel({
@@ -51,6 +52,7 @@ export function ChatPanel({
   onTogglePreview,
   compact = false,
   showInput = true,
+  disableMessageVirtualization = false,
 }: ChatPanelProps) {
   const { t } = useTranslation("chat");
   const messagesById = useAtomValue(chatMessagesByIdAtom);
@@ -137,6 +139,25 @@ export function ChatPanel({
     // Note: if isChatSwitch && messages.length === 0, we don't scroll yet.
     // The messages will be fetched and this effect will re-run with messages.length > 0.
   }, [chatId, streamCount, messages.length, scrollToBottom]);
+
+  // The builder switches between a narrow inspector and a full-width agent
+  // workspace. Keep the same non-virtualized renderer in both modes and restore
+  // the bottom position after the width reflow, so file cards, approvals and
+  // footer actions do not appear to disappear when the panel is expanded.
+  useEffect(() => {
+    if (!disableMessageVirtualization || !isAtBottomRef.current) return;
+    let firstFrame: number | undefined;
+    let secondFrame: number | undefined;
+    firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        scrollToBottom("instant");
+      });
+    });
+    return () => {
+      if (firstFrame !== undefined) cancelAnimationFrame(firstFrame);
+      if (secondFrame !== undefined) cancelAnimationFrame(secondFrame);
+    };
+  }, [compact, disableMessageVirtualization, scrollToBottom]);
 
   const fetchChatMessages = useCallback(async () => {
     if (!chatId) {
@@ -315,7 +336,9 @@ export function ChatPanel({
                       messagesEndRef={messagesEndRef}
                       ref={messagesContainerRef}
                       onAtBottomChange={handleAtBottomChange}
-                      disableVirtualization={compact}
+                      disableVirtualization={
+                        compact || disableMessageVirtualization
+                      }
                     />
 
                     {/* Scroll to bottom button */}

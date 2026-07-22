@@ -443,6 +443,13 @@ const MemoMarkdown = React.memo(function MemoMarkdown({
 }: {
   content: string;
 }) {
+  // Some older model responses emitted a legacy closing tag after a sequence
+  // of file cards. The incremental parser correctly renders the cards but the
+  // orphan token otherwise leaks into the transcript as literal XML.
+  if (/^<\/dyad-(?:file|write)>$/i.test(content.trim())) {
+    return null;
+  }
+
   return (
     <ReactMarkdown
       remarkPlugins={REMARK_PLUGINS}

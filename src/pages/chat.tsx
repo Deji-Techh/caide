@@ -1107,6 +1107,7 @@ export default function ChatPage() {
                 onTogglePreview={() => undefined}
                 compact={!isAgentExpanded}
                 showInput={isAgentExpanded}
+                disableMessageVirtualization
               />
             </div>
           ) : (

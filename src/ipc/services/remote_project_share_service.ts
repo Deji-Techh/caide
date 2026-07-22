@@ -63,6 +63,32 @@ function encodeToken(token: string): string {
   return encodeURIComponent(token);
 }
 
+function decodeStorageXml(value: string): string {
+  return value
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+function storageErrorSummary(body: string): string | null {
+  const readTag = (tag: string) => {
+    const match = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i").exec(body);
+    return match?.[1] ? decodeStorageXml(match[1].trim()) : null;
+  };
+  const code = readTag("Code");
+  const message = readTag("Message");
+  const requestId = readTag("RequestId");
+  if (code || message) {
+    return [code, message, requestId ? `request ${requestId}` : null]
+      .filter(Boolean)
+      .join(": ");
+  }
+  const plain = body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return plain ? plain.slice(0, 280) : null;
+}
+
 async function uploadFile(
   url: string,
   filePath: string,
@@ -84,7 +110,17 @@ async function uploadFile(
       },
     } as RequestInit & { duplex: "half" });
     if (!response.ok) {
-      throw new Error(`Project upload failed (${response.status})`);
+      const responseBody = await response.text().catch(() => "");
+      const storageDetail = storageErrorSummary(responseBody);
+      const permissionHint =
+        response.status === 403
+          ? " Verify the R2 endpoint, bucket-scoped Object Read & Write token, and current Render credentials."
+          : "";
+      throw new Error(
+        `Project upload failed (${response.status}${
+          response.statusText ? ` ${response.statusText}` : ""
+        })${storageDetail ? `: ${storageDetail}` : "."}${permissionHint}`,
+      );
     }
   } finally {
     clearTimeout(timeout);

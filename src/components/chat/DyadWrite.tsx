@@ -59,7 +59,7 @@ export const DyadWrite: React.FC<DyadWriteProps> = ({
       isExpanded={isContentVisible}
     >
       <DyadCardHeader icon={<Pencil size={15} />} accentColor="blue">
-        <div className="min-w-0 truncate">
+        <div className="min-w-0 flex-1 truncate">
           {fileName && (
             <span className="font-medium text-sm text-foreground truncate block">
               {fileName}
@@ -77,7 +77,7 @@ export const DyadWrite: React.FC<DyadWriteProps> = ({
         {aborted && (
           <DyadStateIndicator state="aborted" abortedLabel="Did not finish" />
         )}
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           {!inProgress && (
             <>
               {isEditing ? (
@@ -86,7 +86,7 @@ export const DyadWrite: React.FC<DyadWriteProps> = ({
                     e.stopPropagation();
                     handleCancel();
                   }}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded transition-colors cursor-pointer"
+                  className="flex shrink-0 items-center gap-1 whitespace-nowrap text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded transition-colors cursor-pointer"
                 >
                   <X size={14} />
                   Cancel
@@ -97,7 +97,7 @@ export const DyadWrite: React.FC<DyadWriteProps> = ({
                     e.stopPropagation();
                     handleEdit();
                   }}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded transition-colors cursor-pointer"
+                  className="flex shrink-0 items-center gap-1 whitespace-nowrap text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded transition-colors cursor-pointer"
                 >
                   <Edit size={14} />
                   Edit
