@@ -93,7 +93,7 @@ async function uploadFile(
   url: string,
   filePath: string,
   size: number,
-  checksum: string,
+  _checksum: string,
 ): Promise<void> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TRANSFER_TIMEOUT_MS);
@@ -106,7 +106,6 @@ async function uploadFile(
       headers: {
         "content-type": "application/vnd.caide.project+gzip",
         "content-length": String(size),
-        "x-amz-meta-sha256": checksum,
       },
     } as RequestInit & { duplex: "half" });
     if (!response.ok) {

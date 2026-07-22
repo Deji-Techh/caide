@@ -32,14 +32,10 @@ export function signedUploadUrl(key: string, _size: number, checksum: string) {
       ContentType: "application/vnd.caide.project+gzip",
       Metadata: { sha256: checksum },
     }),
-    {
-      expiresIn: 15 * 60,
-      // Match the exact headers sent by the Electron main process. Keep the
-      // metadata as a signed header instead of allowing the presigner to hoist
-      // it into the query string, which avoids R2 SignatureDoesNotMatch errors.
-      signableHeaders: new Set(["content-type"]),
-      unhoistableHeaders: new Set(["x-amz-meta-sha256"]),
-    },
+    // Follow Cloudflare R2's documented presigned PUT shape. The AWS SDK places
+    // x-amz-meta-sha256 in the signed query string, while the desktop client
+    // only has to reproduce the signed Content-Type header.
+    { expiresIn: 15 * 60 },
   );
 }
 
