@@ -19,6 +19,7 @@ import {
   Layers3,
   LayoutPanelTop,
   Maximize2,
+  Minimize2,
   MoveDiagonal2,
   MousePointer2,
   PanelRight,
@@ -146,6 +147,7 @@ export default function ChatPage() {
   const [runtimeOpen, setRuntimeOpen] = useState(false);
   const [tool, setTool] = useState<CanvasTool>("inspect");
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("design");
+  const [isAgentExpanded, setIsAgentExpanded] = useState(false);
   const [zoom, setZoom] = useState(90);
   const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
   const panOrigin = useRef<{
@@ -272,6 +274,17 @@ export default function ChatPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isImmersivePreview]);
+
+  useEffect(() => {
+    if (!isAgentExpanded) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsAgentExpanded(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isAgentExpanded]);
 
   useEffect(() => {
     if (previewMode !== "preview") {
@@ -453,7 +466,11 @@ export default function ChatPage() {
       </header>
 
       <div className="caide-workspace-body">
-        <aside className="caide-tool-rail" aria-label="Builder tools">
+        <aside
+          className="caide-tool-rail"
+          aria-label="Builder tools"
+          inert={isAgentExpanded || undefined}
+        >
           {railItems.map(({ label, icon: Icon, mode }) => (
             <button
               type="button"
@@ -482,7 +499,10 @@ export default function ChatPage() {
           </button>
         </aside>
 
-        <aside className="caide-screen-map">
+        <aside
+          className="caide-screen-map"
+          inert={isAgentExpanded || undefined}
+        >
           <div className="caide-map-heading">
             <span>APP STRUCTURE</span>
             <strong>Screens</strong>
@@ -543,7 +563,10 @@ export default function ChatPage() {
           </div>
         </aside>
 
-        <section className="caide-builder-stage">
+        <section
+          className="caide-builder-stage"
+          inert={isAgentExpanded || undefined}
+        >
           <div className="caide-builder-toolbar">
             <div className="caide-tool-modes">
               <ToolButton
@@ -1020,13 +1043,16 @@ export default function ChatPage() {
         </section>
 
         <aside
-          className={`caide-properties${compactPropertiesOpen ? " is-compact-open" : ""}`}
+          className={`caide-properties${compactPropertiesOpen ? " is-compact-open" : ""}${isAgentExpanded && inspectorTab === "agent" ? " is-agent-expanded" : ""}`}
         >
           <div className="caide-inspector-tabs">
             <button
               type="button"
               className={inspectorTab === "design" ? "active" : undefined}
-              onClick={() => setInspectorTab("design")}
+              onClick={() => {
+                setIsAgentExpanded(false);
+                setInspectorTab("design");
+              }}
             >
               <Component size={14} /> Design
             </button>
@@ -1037,6 +1063,26 @@ export default function ChatPage() {
             >
               <Bot size={14} /> Agent
             </button>
+            {inspectorTab === "agent" && (
+              <button
+                type="button"
+                className="caide-agent-expand-toggle"
+                aria-label={
+                  isAgentExpanded
+                    ? "Minimize agent workspace"
+                    : "Expand agent workspace"
+                }
+                title={
+                  isAgentExpanded
+                    ? "Minimize agent workspace (Esc)"
+                    : "Expand agent workspace"
+                }
+                aria-pressed={isAgentExpanded}
+                onClick={() => setIsAgentExpanded((expanded) => !expanded)}
+              >
+                {isAgentExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+              </button>
+            )}
             <button
               type="button"
               className="caide-compact-inspector-close"
@@ -1053,7 +1099,7 @@ export default function ChatPage() {
                 chatId={chatId}
                 isPreviewOpen
                 onTogglePreview={() => undefined}
-                compact
+                compact={!isAgentExpanded}
               />
             </div>
           ) : (

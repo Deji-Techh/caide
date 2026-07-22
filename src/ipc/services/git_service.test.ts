@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import pathModule from "node:path";
 
 const mocks = vi.hoisted(() => ({
   ensureGitLineEndingPolicy: vi.fn(),
@@ -16,6 +19,7 @@ import { GitService } from "./git_service";
 describe("GitService", () => {
   const service = new GitService();
   const callOrder: string[] = [];
+  const temporaryDirectories: string[] = [];
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -28,6 +32,17 @@ describe("GitService", () => {
         return undefined;
       });
     }
+  });
+
+  afterEach(async () => {
+    await Promise.all(
+      temporaryDirectories.splice(0).map((directory) =>
+        fs.promises.rm(directory, {
+          recursive: true,
+          force: true,
+        }),
+      ),
+    );
   });
 
   it("initRepoWithInitialCommit inits, stages all, then commits", async () => {
@@ -133,5 +148,119 @@ describe("GitService", () => {
     expect(callOrder).toEqual(["gitAdd", "hasStagedChanges"]);
     expect(hash).toBeNull();
     expect(mocks.gitCommit).not.toHaveBeenCalled();
+  });
+
+  it("serializes stage-and-commit operations for the same repository", async () => {
+    let releaseFirstAdd!: () => void;
+    let markFirstAddStarted!: () => void;
+    const firstAddStarted = new Promise<void>((resolve) => {
+      markFirstAddStarted = resolve;
+    });
+    let addCount = 0;
+
+    mocks.gitAdd.mockImplementation(async () => {
+      callOrder.push("gitAdd");
+      addCount += 1;
+      if (addCount === 1) {
+        await new Promise<void>((resolve) => {
+          releaseFirstAdd = resolve;
+          markFirstAddStarted();
+        });
+      }
+    });
+
+    const firstCommit = service.commitFile({
+      path: "/repo",
+      filepath: "src/a.ts",
+      message: "first",
+    });
+    await firstAddStarted;
+
+    const secondCommit = service.commitFile({
+      path: "/repo",
+      filepath: "src/b.ts",
+      message: "second",
+    });
+    await Promise.resolve();
+
+    expect(mocks.gitAdd).toHaveBeenCalledTimes(1);
+
+    releaseFirstAdd();
+    await Promise.all([firstCommit, secondCommit]);
+
+    expect(callOrder).toEqual([
+      "gitAdd",
+      "hasStagedChanges",
+      "gitCommit",
+      "gitAdd",
+      "hasStagedChanges",
+      "gitCommit",
+    ]);
+  });
+
+  it("retries a transient git index lock failure", async () => {
+    mocks.gitAdd
+      .mockImplementationOnce(async () => {
+        callOrder.push("gitAdd");
+        throw new Error(
+          "fatal: Unable to create '/repo/.git/index.lock': File exists.",
+        );
+      })
+      .mockImplementationOnce(async () => {
+        callOrder.push("gitAdd");
+      });
+
+    await expect(
+      service.commitFile({
+        path: "/repo",
+        filepath: "src/a.ts",
+        message: "msg",
+      }),
+    ).resolves.toBe("commit-hash");
+
+    expect(mocks.gitAdd).toHaveBeenCalledTimes(2);
+    expect(callOrder).toEqual([
+      "gitAdd",
+      "gitAdd",
+      "hasStagedChanges",
+      "gitCommit",
+    ]);
+  });
+
+  it("removes a stale git index lock before retrying", async () => {
+    const repoPath = await fs.promises.mkdtemp(
+      pathModule.join(os.tmpdir(), "git-service-"),
+    );
+    temporaryDirectories.push(repoPath);
+    const gitPath = pathModule.join(repoPath, ".git");
+    const lockPath = pathModule.join(gitPath, "index.lock");
+    await fs.promises.mkdir(gitPath, { recursive: true });
+    await fs.promises.writeFile(lockPath, "");
+    const oldTimestamp = new Date(Date.now() - 10 * 60_000);
+    await fs.promises.utimes(lockPath, oldTimestamp, oldTimestamp);
+
+    mocks.gitAdd
+      .mockImplementationOnce(async () => {
+        callOrder.push("gitAdd");
+        throw new Error(
+          `fatal: Unable to create '${lockPath}': File exists.`,
+        );
+      })
+      .mockImplementationOnce(async () => {
+        callOrder.push("gitAdd");
+      });
+
+    await expect(
+      service.commitFile({
+        path: repoPath,
+        filepath: "src/a.ts",
+        message: "msg",
+      }),
+    ).resolves.toBe("commit-hash");
+
+    await expect(fs.promises.stat(lockPath)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    expect(mocks.gitAdd).toHaveBeenCalledTimes(2);
   });
 });

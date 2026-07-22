@@ -2877,7 +2877,7 @@
 }
 .caide-inspector-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
   border-bottom: 1px solid var(--caide-line);
 }
 .caide-inspector-tabs button {
@@ -2897,6 +2897,75 @@
   border-bottom-color: #f0f0ed;
   background: #121317;
 }
+
+.caide-agent-expand-toggle {
+  width: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-left: 1px solid var(--caide-line) !important;
+  border-bottom-color: transparent !important;
+}
+
+.caide-agent-expand-toggle:hover,
+.caide-agent-expand-toggle[aria-pressed="true"] {
+  color: #f0f0ed;
+  background: #18191d;
+}
+
+/* Agent focus mode overlays only the workspace body. The project header stays
+   available while the tool rail, screen map, preview and command tray remain
+   mounted underneath, preserving their state. */
+.caide-properties.is-agent-expanded {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  width: auto;
+  max-width: none;
+  border-left: 0;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 45%);
+}
+
+.caide-properties.is-agent-expanded .caide-agent-panel {
+  padding-inline: clamp(16px, 5vw, 88px);
+  background: #0d0e11;
+}
+
+.caide-properties.is-agent-expanded .caide-agent-panel > div {
+  width: min(1180px, 100%);
+  margin-inline: auto;
+}
+
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="messages-list"] {
+  width: min(960px, 100%);
+  margin-inline: auto !important;
+  padding: 24px 12px 0 !important;
+}
+
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="chat-input-container"] {
+  width: min(960px, 100%);
+  margin-inline: auto;
+}
+
+.light .caide-agent-expand-toggle:hover,
+.light .caide-agent-expand-toggle[aria-pressed="true"] {
+  color: #17191d;
+  background: #e9ebee;
+}
+
+.light .caide-properties.is-agent-expanded .caide-agent-panel {
+  background: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .caide-agent-expand-toggle {
+    display: none !important;
+  }
+}
+
 .caide-agent-panel {
   container-type: inline-size;
   min-height: 0;
