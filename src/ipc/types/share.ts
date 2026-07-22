@@ -4,7 +4,7 @@ import {
   ProjectPackageInspectionSchema,
   ProjectPackageManifestSchema,
   ProjectPackageSecurityReportSchema,
-} from "@/shared/project_package";
+} from "../../shared/project_package";
 
 export const ExportProjectPackageParamsSchema = z.object({
   appId: z.number().int().positive(),
@@ -148,4 +148,4 @@ export type ImportProjectPackageResult = z.infer<
   typeof ImportProjectPackageResultSchema
 >;
 
-export type { ProjectPackageInspection } from "@/shared/project_package";
+export type { ProjectPackageInspection } from "../../shared/project_package";
