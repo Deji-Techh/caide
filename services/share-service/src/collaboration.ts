@@ -666,15 +666,18 @@ export function registerCollaborationRoutes(app: Express): void {
       await assertSessionActive(participant.sessionId);
       const event = EventSchema.parse(req.body);
       if (event.type === "text_edit") {
-        res.json(await handleTextEdit(participant, event.payload));
+        const textEdit = TextEditSchema.parse(event);
+        res.json(await handleTextEdit(participant, textEdit.payload));
         return;
       }
       if (event.type === "file_snapshot") {
-        res.json(await handleSnapshot(participant, event.payload));
+        const snapshot = SnapshotSchema.parse(event);
+        res.json(await handleSnapshot(participant, snapshot.payload));
         return;
       }
       if (["file_create", "file_delete", "file_rename"].includes(event.type)) {
-        res.json(await handleFileOperation(participant, event as z.infer<typeof FileOperationSchema>));
+        const fileOperation = FileOperationSchema.parse(event);
+        res.json(await handleFileOperation(participant, fileOperation));
         return;
       }
       if (!PRESENCE_TYPES.has(event.type) && event.type !== "chat_message") {
