@@ -55,6 +55,11 @@ import { registerChatGPTHandlers } from "./handlers/chatgpt_handlers";
 import { registerFigmaHandlers } from "./handlers/figma_handlers";
 import { registerShareHandlers } from "./handlers/share_handlers";
 import { registerCollaborationHandlers } from "./handlers/collaboration_handlers";
+import {
+  allIpcContracts,
+  assertUniqueIpcContractChannels,
+} from "./contracts/registry";
+import { assertIpcRegistrationCoverage } from "./handlers/base";
 
 export function registerIpcHandlers() {
   // Register all IPC handlers by category
@@ -115,4 +120,7 @@ export function registerIpcHandlers() {
   registerFigmaHandlers();
   registerShareHandlers();
   registerCollaborationHandlers();
+
+  assertUniqueIpcContractChannels();
+  assertIpcRegistrationCoverage(allIpcContracts);
 }

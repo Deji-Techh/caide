@@ -41,6 +41,7 @@ export default defineConfig({
     },
   },
   build: {
+    sourcemap: true,
     cssCodeSplit: false,
     assetsDir: "assets",
   },

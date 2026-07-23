@@ -30,6 +30,46 @@ export function getRegisteredHandlerForTesting(
   return handler;
 }
 
+export interface IpcRegistrationAudit {
+  expectedChannels: string[];
+  registeredChannels: string[];
+  missingChannels: string[];
+}
+
+export function getRegisteredIpcChannelsForTesting(): string[] {
+  return [...registeredHandlers.keys()].sort();
+}
+
+export function auditIpcRegistration(
+  contracts: Iterable<IpcContract<string, z.ZodType, z.ZodType>>,
+): IpcRegistrationAudit {
+  const expectedChannels = [...contracts]
+    .map((contract) => contract.channel)
+    .sort();
+  const registeredChannels = getRegisteredIpcChannelsForTesting();
+  const registered = new Set(registeredChannels);
+  return {
+    expectedChannels,
+    registeredChannels,
+    missingChannels: expectedChannels.filter((channel) => !registered.has(channel)),
+  };
+}
+
+export function assertIpcRegistrationCoverage(
+  contracts: Iterable<IpcContract<string, z.ZodType, z.ZodType>>,
+): void {
+  const audit = auditIpcRegistration(contracts);
+  if (audit.missingChannels.length === 0) return;
+  throw new Error(
+    [
+      "CAIDE IPC startup audit failed.",
+      "The renderer exposes contracts that have no main-process handler:",
+      ...audit.missingChannels.map((channel) => `  - ${channel}`),
+      "Run `npm run verify:ipc` before packaging.",
+    ].join("\n"),
+  );
+}
+
 /**
  * Creates a typed IPC handler from a contract.
  * Provides runtime validation of inputs and type-safe handler implementation.

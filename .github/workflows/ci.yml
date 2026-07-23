@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - main
+      - "release/**"
   pull_request:
     types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -235,6 +237,29 @@ jobs:
       - name: Unit tests
         run: npm --prefix packages/pg-schema-classifier test
 
+  share-service-tests:
+    needs: [check-changes]
+    if: needs.check-changes.outputs.should_run_tests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.ref || '' }}
+      - name: Initialize environment
+        uses: actions/setup-node@v5
+        with:
+          node-version: v24.13.1
+          cache: npm
+          cache-dependency-path: services/share-service/package-lock.json
+      - name: Install share service dependencies
+        run: npm --prefix services/share-service ci
+      - name: Build share service
+        run: npm --prefix services/share-service run build
+      - name: Test share service
+        run: npm --prefix services/share-service test
+
   build-e2e-artifacts:
     needs: [check-changes]
     if: needs.check-changes.outputs.should_run_tests == 'true'
@@ -301,6 +326,43 @@ jobs:
         if: always() && contains(matrix.os.image, 'self-hosted')
         run: bash scripts/ci-cleanup-macos.sh
 
+  release-package-smoke:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/release/')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux
+            runner: ubuntu-latest
+          - name: windows
+            runner: windows-2022
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Initialize environment
+        uses: actions/setup-node@v5
+        with:
+          node-version: v24.13.1
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install npm 11.8.0
+        run: npm install -g npm@11.8.0
+      - name: Install node modules
+        run: bash scripts/npm-ci-retry.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Package desktop application
+        env:
+          DYAD_SKIP_NATIVE_REBUILD: "true"
+        run: npm run package
+      - name: Upload packaged application
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-package-${{ matrix.name }}
+          path: out/
+          retention-days: 3
+
   unit-tests-macos:
     needs: [check-changes]
     if: needs.check-changes.outputs.should_run_tests == 'true'
@@ -334,6 +396,8 @@ jobs:
       # vitest to resolve the right packages.
       - name: Prep test server
         run: cd testing/fake-llm-server && npm install && npm run build && cd -
+      - name: Verify IPC registration
+        run: npm run verify:ipc
       - name: Type-checking
         run: npm run ts
       - name: Unit tests
@@ -364,6 +428,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Prep test server
         run: cd testing/fake-llm-server && npm install && npm run build && cd -
+      - name: Verify IPC registration
+        run: npm run verify:ipc
+      - name: Type-checking
+        run: npm run ts
       - name: Unit tests
         run: npm run test
 

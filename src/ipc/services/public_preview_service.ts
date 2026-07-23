@@ -6,15 +6,12 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { apps } from "@/db/schema";
 import { getDyadAppPath } from "@/paths/paths";
+import { buildCloudSandboxFileMap } from "@/ipc/utils/cloud_sandbox_provider";
 import {
-  buildCloudSandboxFileMap,
-  createCloudSandbox,
-  createCloudSandboxShareLink,
-  destroyCloudSandbox,
-  getCloudSandboxStatus,
-  uploadCloudSandboxFiles,
-} from "@/ipc/utils/cloud_sandbox_provider";
-import { formatCloudSandboxError } from "./app_runtime_service";
+  publicPreviewErrorMessage,
+  resolvePublicPreviewProvider,
+  type PublicPreviewProviderId,
+} from "./public_preview_provider";
 import { isSafePublicPreviewPath } from "./public_preview_security";
 import {
   watchProjectTree,
@@ -57,6 +54,7 @@ export interface PublicPreviewStatus {
 
 type ActivePreview = PublicPreviewStatus & {
   appPath: string;
+  providerId: PublicPreviewProviderId;
   expiryTimer?: ReturnType<typeof setTimeout>;
   watcher?: ProjectChangeWatcher;
   fingerprint: string | null;
@@ -72,7 +70,10 @@ function stateFilePath(): string {
 }
 
 async function persistSessions(): Promise<void> {
-  const sessions = [...activePreviews.values()].map(publicStatus);
+  const sessions = [...activePreviews.values()].map((session) => ({
+    ...publicStatus(session),
+    providerId: session.providerId,
+  }));
   const destination = stateFilePath();
   const temporary = `${destination}.tmp`;
   await fs.mkdir(path.dirname(destination), { recursive: true });
@@ -85,14 +86,24 @@ async function ensurePersistedSessionsLoaded(): Promise<void> {
   persistedStateLoaded = true;
   const stored = await fs
     .readFile(stateFilePath(), "utf8")
-    .then((value) => JSON.parse(value) as PublicPreviewStatus[])
+    .then(
+      (value) =>
+        JSON.parse(value) as Array<
+          PublicPreviewStatus & { providerId?: PublicPreviewProviderId }
+        >,
+    )
     .catch(() => []);
   for (const status of stored) {
     if (new Date(status.expiresAt).getTime() <= Date.now()) continue;
     const appRecord = await db.query.apps.findFirst({ where: eq(apps.id, status.appId) });
     if (!appRecord) continue;
+    const provider = await resolvePublicPreviewProvider(
+      status.providerId,
+    ).catch(() => null);
+    if (!provider) continue;
     const session: ActivePreview = {
       ...status,
+      providerId: provider.id,
       appPath: getDyadAppPath(appRecord.path),
       fingerprint: null,
       syncing: false,
@@ -114,6 +125,7 @@ function clampLifetime(value?: number): number {
 function publicStatus(session: ActivePreview): PublicPreviewStatus {
   const {
     appPath: _appPath,
+    providerId: _providerId,
     expiryTimer: _expiryTimer,
     watcher: _watcher,
     fingerprint: _fingerprint,
@@ -151,22 +163,19 @@ async function syncPreview(session: ActivePreview, force = false): Promise<void>
   session.syncing = true;
   const previousState = session.state;
   try {
+    const provider = await resolvePublicPreviewProvider(session.providerId);
     const files = await buildSafePreviewFileMap(session.appPath);
     const fingerprint = fingerprintFiles(files);
     if (!force && session.fingerprint === fingerprint) return;
     session.state = "syncing";
-    await uploadCloudSandboxFiles({
-      sandboxId: session.sandboxId,
-      files,
-      replaceAll: true,
-    });
+    await provider.replaceFiles(session.sandboxId, files);
     session.fingerprint = fingerprint;
     session.lastSyncedAt = new Date().toISOString();
     session.errorMessage = null;
     session.state = "live";
     await persistSessions();
   } catch (error) {
-    session.errorMessage = formatCloudSandboxError(error);
+    session.errorMessage = publicPreviewErrorMessage(error);
     session.state = previousState === "preparing" ? "failed" : "live";
     throw error;
   } finally {
@@ -220,55 +229,46 @@ export async function startPublicPreview(input: {
 
   const appPath = getDyadAppPath(appRecord.path);
   const lifetime = clampLifetime(input.expiresInSeconds);
-  let sandboxId: string | undefined;
-  let managedSandbox = false;
+  const provider = await resolvePublicPreviewProvider();
+  let sessionId: string | undefined;
 
   try {
-    // Always use a dedicated sandbox. Destroying it immediately revokes the
-    // public URL without interrupting the owner's local or cloud preview.
-    managedSandbox = true;
-    const created = await createCloudSandbox({
+    const files = await buildSafePreviewFileMap(appPath);
+    const created = await provider.createSession({
       appId: input.appId,
       appPath,
       installCommand: appRecord.installCommand,
       startCommand: appRecord.startCommand,
-    });
-    sandboxId = created.sandboxId;
-
-    const link = await createCloudSandboxShareLink(sandboxId, {
       expiresInSeconds: lifetime,
+      files,
     });
+    sessionId = created.sessionId;
     const session: ActivePreview = {
       appId: input.appId,
       appPath,
-      sandboxId,
-      url: link.url,
-      expiresAt: link.expiresAt,
-      state: "preparing",
-      lastSyncedAt: null,
+      providerId: provider.id,
+      sandboxId: created.sessionId,
+      url: created.url,
+      expiresAt: created.expiresAt,
+      state: "live",
+      lastSyncedAt: new Date().toISOString(),
       errorMessage: null,
-      managedSandbox,
-      fingerprint: null,
+      managedSandbox: true,
+      fingerprint: fingerprintFiles(files),
       syncing: false,
       pendingSync: false,
     };
     activePreviews.set(input.appId, session);
 
-    if (managedSandbox) {
-      await syncPreview(session, true);
-    } else {
-      session.state = "live";
-      session.lastSyncedAt = new Date().toISOString();
-    }
     await scheduleSession(session);
     await persistSessions();
     return publicStatus(session);
   } catch (error) {
-    if (managedSandbox && sandboxId) {
-      await destroyCloudSandbox(sandboxId).catch(() => undefined);
+    if (sessionId) {
+      await provider.destroySession(sessionId).catch(() => undefined);
     }
     activePreviews.delete(input.appId);
-    throw new Error(formatCloudSandboxError(error));
+    throw new Error(publicPreviewErrorMessage(error));
   }
 }
 
@@ -284,19 +284,22 @@ export async function getPublicPreviewStatus(
     return publicStatus(session);
   }
   try {
-    const remote = await getCloudSandboxStatus(session.sandboxId);
-    if (remote.appStatus === "failed") {
+    const provider = await resolvePublicPreviewProvider(session.providerId);
+    const remote = await provider.getStatus(session.sandboxId);
+    if (remote.state === "failed") {
       session.state = "failed";
-      session.errorMessage = remote.lastErrorMessage ?? "Preview runtime failed";
-    } else if (remote.appStatus === "starting") {
+      session.errorMessage = remote.errorMessage ?? "Preview runtime failed";
+    } else if (remote.state === "starting") {
       session.state = "preparing";
+    } else if (remote.state === "stopped") {
+      session.state = "stopped";
     } else {
       session.state = session.syncing ? "syncing" : "live";
       session.errorMessage = null;
     }
     await persistSessions();
   } catch (error) {
-    session.errorMessage = formatCloudSandboxError(error);
+    session.errorMessage = publicPreviewErrorMessage(error);
   }
   return publicStatus(session);
 }
@@ -321,9 +324,10 @@ export async function stopPublicPreview(
   session.watcher?.close();
   session.state = expired ? "expired" : "stopped";
   activePreviews.delete(appId);
-  if (session.managedSandbox) {
-    await destroyCloudSandbox(session.sandboxId).catch(() => undefined);
-  }
+  const provider = await resolvePublicPreviewProvider(session.providerId).catch(
+    () => null,
+  );
+  await provider?.destroySession(session.sandboxId).catch(() => undefined);
   await persistSessions();
 }
 

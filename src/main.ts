@@ -330,7 +330,18 @@ export async function onReady() {
 
   // Some handlers immediately reconcile persisted runtime state. Register them
   // only after Electron and the database are ready, before creating the window.
-  registerIpcHandlers();
+  try {
+    registerIpcHandlers();
+  } catch (error) {
+    const message = getErrorMessage(error);
+    logger.error("IPC startup audit failed", error);
+    dialog.showErrorBox(
+      "CAIDE Startup Check Failed",
+      `CAIDE found an incomplete desktop build and stopped before opening the workspace.\n\n${message}`,
+    );
+    app.quit();
+    return;
+  }
 
   // Reconcile any Neon test branches / Supabase test users leaked by a previous
   // session that crashed mid test-run. Fire-and-forget: best-effort cleanup

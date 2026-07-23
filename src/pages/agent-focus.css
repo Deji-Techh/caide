@@ -1,0 +1,330 @@
+
+/*
+ * Expanded Agent workspace
+ *
+ * This stylesheet intentionally owns the expanded workspace surface. It is
+ * imported by chat.tsx after the builder styles, so the expanded Agent view
+ * cannot inherit the previous nested panel colours.
+ */
+
+.caide-workspace.is-agent-focus .caide-command-tray {
+  display: none;
+}
+
+.caide-properties.is-agent-expanded {
+  --caide-agent-surface: #0d0e11;
+  --caide-agent-border: #25272d;
+  --caide-agent-muted: #7f838c;
+  --caide-agent-strong: #f1f2ef;
+  grid-template-rows: 44px minmax(0, 1fr);
+  color: var(--caide-agent-strong);
+  background: var(--caide-agent-surface) !important;
+  box-shadow: none;
+}
+
+.caide-properties.is-agent-expanded .caide-inspector-tabs {
+  grid-template-columns: auto auto 1fr auto auto;
+  min-height: 44px;
+  padding-inline: 14px;
+  border-bottom-color: var(--caide-agent-border);
+  background: var(--caide-agent-surface) !important;
+}
+
+.caide-properties.is-agent-expanded .caide-inspector-tabs button {
+  min-width: 82px;
+  padding-inline: 14px;
+  border-bottom: 0;
+  border-radius: 5px;
+}
+
+.caide-properties.is-agent-expanded .caide-inspector-tabs button.active {
+  color: var(--caide-agent-strong);
+  background: #18191d;
+}
+
+.caide-properties.is-agent-expanded .caide-agent-expand-toggle {
+  grid-column: 5;
+  min-width: 36px;
+  width: 36px;
+  border: 0 !important;
+}
+
+.caide-agent-panel.is-expanded {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 58px minmax(0, 1fr);
+  overflow: hidden;
+  padding: 0 !important;
+  background: var(--caide-agent-surface) !important;
+}
+
+.caide-agent-focus-header {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 clamp(18px, 3vw, 42px);
+  border-bottom: 1px solid var(--caide-agent-border);
+  background: var(--caide-agent-surface);
+}
+
+.caide-agent-focus-title,
+.caide-agent-focus-meta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.caide-agent-focus-title {
+  gap: 11px;
+}
+
+.caide-agent-focus-title > svg {
+  flex: 0 0 auto;
+  color: #b8bcc4;
+}
+
+.caide-agent-focus-title > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.caide-agent-focus-title span,
+.caide-agent-context-card span {
+  color: var(--caide-agent-muted);
+  font: 650 8px/1.2 "Geist Mono", monospace;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.caide-agent-focus-title strong {
+  overflow: hidden;
+  color: var(--caide-agent-strong);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caide-agent-focus-meta {
+  gap: 7px;
+}
+
+.caide-agent-focus-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 9px;
+  color: #a9adb5;
+  border: 1px solid var(--caide-agent-border);
+  border-radius: 5px;
+  background: transparent;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.caide-agent-focus-layout {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 272px;
+  overflow: hidden;
+  background: var(--caide-agent-surface);
+}
+
+.caide-agent-conversation {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--caide-agent-surface);
+}
+
+.caide-agent-conversation > div {
+  width: 100%;
+  height: 100%;
+  background: var(--caide-agent-surface) !important;
+}
+
+.caide-agent-context-rail {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 16px;
+  border-left: 1px solid var(--caide-agent-border);
+  background: var(--caide-agent-surface);
+  scrollbar-gutter: stable;
+}
+
+.caide-agent-context-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 13px;
+  color: #d7d9dd;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.caide-agent-context-grid {
+  display: grid;
+  gap: 9px;
+}
+
+.caide-agent-context-card {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid var(--caide-agent-border);
+  border-radius: 6px;
+  background: transparent;
+}
+
+.caide-agent-context-card > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #d9dadd;
+}
+
+.caide-agent-context-card svg {
+  flex: 0 0 auto;
+  color: #858a94;
+}
+
+.caide-agent-context-card strong {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caide-agent-context-card small {
+  color: #747984;
+  font-size: 9px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* Remove all large nested surfaces. Message bubbles may still have a subtle
+   boundary, but the conversation, header, scroller and composer are one colour. */
+.caide-properties.is-agent-expanded .caide-agent-panel,
+.caide-properties.is-agent-expanded .caide-agent-panel > div,
+.caide-properties.is-agent-expanded .caide-chat-header,
+.caide-properties.is-agent-expanded [data-testid="messages-list"],
+.caide-properties.is-agent-expanded [data-testid="messages-list"] > div,
+.caide-properties.is-agent-expanded [data-testid="messages-list"] [data-viewport-type],
+.caide-properties.is-agent-expanded [data-testid="chat-input-container"] {
+  background: var(--caide-agent-surface) !important;
+}
+
+.caide-properties.is-agent-expanded .caide-chat-header {
+  min-height: 44px;
+  padding-inline: clamp(16px, 3vw, 40px);
+  border-bottom-color: var(--caide-agent-border);
+}
+
+.caide-properties.is-agent-expanded [data-testid="messages-list"] {
+  width: min(920px, 100%) !important;
+  margin-inline: auto !important;
+  padding: 22px clamp(16px, 3vw, 36px) 120px !important;
+}
+
+.caide-properties.is-agent-expanded [data-message-role] {
+  padding-inline: 0;
+}
+
+.caide-properties.is-agent-expanded .caide-chat-message-body {
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+}
+
+.caide-properties.is-agent-expanded
+  [data-message-role="user"]
+  .caide-chat-message-body {
+  width: fit-content;
+  max-width: min(680px, 88%);
+  margin-left: auto !important;
+  padding: 10px 12px;
+  border: 1px solid #2a2c32;
+  border-radius: 7px;
+  background: #15161a !important;
+}
+
+.caide-properties.is-agent-expanded [data-testid="chat-input-container"] {
+  position: sticky;
+  z-index: 8;
+  bottom: 0;
+  width: min(920px, calc(100% - 32px)) !important;
+  margin-inline: auto !important;
+  padding: 10px 0 14px !important;
+  border-top: 0;
+}
+
+.caide-properties.is-agent-expanded
+  [data-testid="chat-input-container"]
+  > div:last-child {
+  border-color: #303239;
+  border-radius: 8px;
+  background: #121317 !important;
+  box-shadow: 0 12px 34px rgb(0 0 0 / 24%);
+}
+
+.light .caide-properties.is-agent-expanded {
+  --caide-agent-surface: #ffffff;
+  --caide-agent-border: #dfe1e5;
+  --caide-agent-muted: #69707a;
+  --caide-agent-strong: #202328;
+}
+
+.light .caide-properties.is-agent-expanded .caide-inspector-tabs button.active {
+  background: #eef0f2;
+}
+
+.light
+  .caide-properties.is-agent-expanded
+  [data-message-role="user"]
+  .caide-chat-message-body {
+  border-color: #d8dade;
+  background: #f1f3f5 !important;
+}
+
+.light
+  .caide-properties.is-agent-expanded
+  [data-testid="chat-input-container"]
+  > div:last-child {
+  border-color: #cfd2d7;
+  background: #ffffff !important;
+  box-shadow: 0 12px 30px rgb(31 35 41 / 10%);
+}
+
+@media (max-width: 1180px) {
+  .caide-agent-focus-layout {
+    grid-template-columns: minmax(0, 1fr) 230px;
+  }
+
+  .caide-agent-focus-meta span:last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 980px) {
+  .caide-agent-focus-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .caide-agent-context-rail {
+    display: none;
+  }
+
+  .caide-agent-focus-header {
+    padding-inline: 16px;
+  }
+}
