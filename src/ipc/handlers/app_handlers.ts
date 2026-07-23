@@ -95,6 +95,8 @@ import {
   restartCloudSandbox,
 } from "../utils/cloud_sandbox_provider";
 import {
+  getPublicPreviewStatus,
+  refreshPublicPreview,
   startPublicPreview,
   stopPublicPreview,
 } from "../services/public_preview_service";
@@ -864,6 +866,22 @@ export function registerAppHandlers() {
       }
     },
   );
+
+  createTypedHandler(appContracts.startPublicPreview, async (_, params) => {
+    return startPublicPreview(params);
+  });
+
+  createTypedHandler(appContracts.getPublicPreviewStatus, async (_, params) => {
+    return getPublicPreviewStatus(params.appId);
+  });
+
+  createTypedHandler(appContracts.refreshPublicPreview, async (_, params) => {
+    return refreshPublicPreview(params.appId);
+  });
+
+  createTypedHandler(appContracts.stopPublicPreview, async (_, params) => {
+    await stopPublicPreview(params.appId);
+  });
 
   createTypedHandler(appContracts.restartApp, async (event, params) => {
     const { appId, removeNodeModules, recreateSandbox } = params;
