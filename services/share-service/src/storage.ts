@@ -40,6 +40,18 @@ export function signedUploadUrl(
   );
 }
 
+export function signedPreviewUploadUrl(key: string) {
+  return getSignedUrl(
+    storage,
+    new PutObjectCommand({
+      Bucket: config.S3_BUCKET,
+      Key: key,
+      ContentType: "application/vnd.caide.preview+gzip",
+    }),
+    { expiresIn: 15 * 60 },
+  );
+}
+
 export function signedDownloadUrl(key: string) {
   return getSignedUrl(
     storage,
@@ -47,6 +59,18 @@ export function signedDownloadUrl(key: string) {
       Bucket: config.S3_BUCKET,
       Key: key,
       ResponseContentType: "application/vnd.caide.project+gzip",
+    }),
+    { expiresIn: 5 * 60 },
+  );
+}
+
+export function signedPreviewDownloadUrl(key: string) {
+  return getSignedUrl(
+    storage,
+    new GetObjectCommand({
+      Bucket: config.S3_BUCKET,
+      Key: key,
+      ResponseContentType: "application/vnd.caide.preview+gzip",
     }),
     { expiresIn: 5 * 60 },
   );

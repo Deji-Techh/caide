@@ -29,6 +29,10 @@ import {
   signedUploadUrl,
 } from "./storage.js";
 import { registerCollaborationRoutes } from "./collaboration.js";
+import {
+  expireOldPreviewSessions,
+  registerPreviewControlPlaneRoutes,
+} from "./preview_control_plane.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -80,6 +84,7 @@ function apiRateLimit(req: Request, res: Response, next: NextFunction) {
 
 app.use(["/v1", "/s"], apiRateLimit);
 registerCollaborationRoutes(app);
+registerPreviewControlPlaneRoutes(app);
 
 app.get("/", (_req, res) => {
   res.type("html").send(serviceHomePage());
@@ -364,7 +369,15 @@ app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     res.status(400).json({ error: "Invalid request", details: error.issues });
     return;
   }
-  res.status(500).json({ error: "Internal server error" });
+  const status =
+    error instanceof Error &&
+    Number.isInteger((error as Error & { status?: number }).status)
+      ? (error as Error & { status: number }).status
+      : 500;
+  res.status(status).json({
+    error:
+      status >= 500 ? "Internal server error" : String((error as Error).message),
+  });
 });
 
 async function expireOldShares() {
@@ -388,6 +401,12 @@ const expirationTimer = setInterval(
 );
 expirationTimer.unref();
 void expireOldShares().catch(console.error);
+const previewExpirationTimer = setInterval(
+  () => void expireOldPreviewSessions().catch(console.error),
+  60_000,
+);
+previewExpirationTimer.unref();
+void expireOldPreviewSessions().catch(console.error);
 
 const rateCleanupTimer = setInterval(() => {
   const now = Date.now();
@@ -399,6 +418,7 @@ rateCleanupTimer.unref();
 
 const cleanup = async () => {
   clearInterval(expirationTimer);
+  clearInterval(previewExpirationTimer);
   clearInterval(rateCleanupTimer);
   await new Promise<void>((resolve) => server.close(() => resolve()));
   await pool.end();

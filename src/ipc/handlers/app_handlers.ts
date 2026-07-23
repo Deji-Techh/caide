@@ -99,7 +99,7 @@ import {
   refreshPublicPreview,
   startPublicPreview,
   stopPublicPreview,
-} from "../services/public_preview_service";
+} from "../services/multi_tenant_public_preview_service";
 import { broadcastCollaborationFileSnapshot } from "../services/collaboration_service";
 import { createFromTemplate } from "./createFromTemplate";
 import { getInitialChatModeForNewChat } from "./chat_mode_resolution";
