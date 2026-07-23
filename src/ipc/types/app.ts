@@ -201,6 +201,31 @@ export const CreateCloudSandboxShareLinkResultSchema = z.object({
   expiresAt: z.string(),
 });
 
+export const PublicPreviewStateSchema = z.enum([
+  "preparing",
+  "live",
+  "syncing",
+  "failed",
+  "stopped",
+  "expired",
+]);
+
+export const PublicPreviewStatusSchema = z.object({
+  appId: z.number(),
+  sandboxId: z.string(),
+  url: z.string().url(),
+  expiresAt: z.string(),
+  state: PublicPreviewStateSchema,
+  lastSyncedAt: z.string().nullable(),
+  errorMessage: z.string().nullable(),
+  managedSandbox: z.boolean(),
+});
+
+export const StartPublicPreviewParamsSchema = z.object({
+  appId: z.number(),
+  expiresInSeconds: z.number().int().positive().optional(),
+});
+
 /**
  * Schema for edit app file params.
  */
@@ -431,6 +456,30 @@ export const appContracts = {
     channel: "create-cloud-sandbox-share-link",
     input: CreateCloudSandboxShareLinkParamsSchema,
     output: CreateCloudSandboxShareLinkResultSchema,
+  }),
+
+  startPublicPreview: defineContract({
+    channel: "app:start-public-preview",
+    input: StartPublicPreviewParamsSchema,
+    output: PublicPreviewStatusSchema,
+  }),
+
+  getPublicPreviewStatus: defineContract({
+    channel: "app:get-public-preview-status",
+    input: AppIdParamsSchema,
+    output: PublicPreviewStatusSchema.nullable(),
+  }),
+
+  refreshPublicPreview: defineContract({
+    channel: "app:refresh-public-preview",
+    input: AppIdParamsSchema,
+    output: PublicPreviewStatusSchema,
+  }),
+
+  stopPublicPreview: defineContract({
+    channel: "app:stop-public-preview",
+    input: AppIdParamsSchema,
+    output: z.void(),
   }),
 
   editAppFile: defineContract({

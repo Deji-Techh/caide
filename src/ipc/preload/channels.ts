@@ -57,6 +57,7 @@ import { figmaContracts } from "../types/figma";
 import { notchContracts, notchEvents } from "../types/notch";
 import { releaseContracts } from "../types/release";
 import { shareContracts } from "../types/share";
+import { collaborationContracts, collaborationEvents } from "../types/collaboration";
 
 // =============================================================================
 // Invoke Channels (derived from all contracts)
@@ -126,6 +127,7 @@ export const VALID_INVOKE_CHANNELS = [
   ...getInvokeChannels(figmaContracts),
   ...getInvokeChannels(releaseContracts),
   ...getInvokeChannels(shareContracts),
+  ...getInvokeChannels(collaborationContracts),
 
   // Notch
   ...getInvokeChannels(notchContracts),
@@ -158,6 +160,7 @@ export const VALID_RECEIVE_CHANNELS = [
   ...getReceiveChannels(appBlueprintEvents),
   ...getReceiveChannels(testsEvents),
   ...getReceiveChannels(notchEvents),
+  ...getReceiveChannels(collaborationEvents),
 ] as const;
 
 // =============================================================================

@@ -62,6 +62,7 @@ export { testsContracts, testsEvents } from "./tests";
 export { chatgptContracts } from "./chatgpt";
 export { figmaContracts } from "./figma";
 export { shareContracts } from "./share";
+export { collaborationContracts, collaborationEvents } from "./collaboration";
 
 // =============================================================================
 // Notch Exports
@@ -124,6 +125,7 @@ export { testsClient, testsEventClient } from "./tests";
 export { chatgptClient } from "./chatgpt";
 export { figmaClient } from "./figma";
 export { shareClient } from "./share";
+export { collaborationClient, collaborationEventClient } from "./collaboration";
 export { releaseClient } from "./release";
 
 // =============================================================================
@@ -489,6 +491,7 @@ import { testsClient, testsEventClient } from "./tests";
 import { figmaClient } from "./figma";
 import { releaseClient } from "./release";
 import { shareClient } from "./share";
+import { collaborationClient, collaborationEventClient } from "./collaboration";
 /**
  * Unified IPC client with all domains organized by namespace.
  *
@@ -565,5 +568,6 @@ export const ipc = {
     misc: miscEventClient,
     appBlueprint: appBlueprintEventClient,
     tests: testsEventClient,
+    collaboration: collaborationEventClient,
   },
 };

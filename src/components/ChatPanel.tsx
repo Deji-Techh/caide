@@ -32,6 +32,7 @@ import { ArrowDown } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { terminalOpenByChatIdAtom } from "@/atoms/terminalAtoms";
 import { selectedAppIdAtom } from "@/atoms/appAtoms";
+import { collaborationSessionAtom } from "@/atoms/collaborationAtoms";
 import { useReducedMotionPref } from "@/hooks/useReducedMotion";
 import { useLoadApps } from "@/hooks/useLoadApps";
 
@@ -62,6 +63,7 @@ export function ChatPanel({
     terminalOpenByChatIdAtom,
   );
   const selectedAppId = useAtomValue(selectedAppIdAtom);
+  const collaborationSession = useAtomValue(collaborationSessionAtom);
   const { apps } = useLoadApps();
   const currentApp = apps.find((app) => app.id === selectedAppId);
   const reducedMotion = useReducedMotionPref();
@@ -168,6 +170,27 @@ export function ChatPanel({
   }, [fetchChatMessages]);
 
   const isStreaming = chatId ? (isStreamingById.get(chatId) ?? false) : false;
+  const previousCollaborationStreamingRef = useRef(false);
+
+  useEffect(() => {
+    if (!collaborationSession || selectedAppId === null || collaborationSession.role === "viewer") {
+      previousCollaborationStreamingRef.current = isStreaming;
+      return;
+    }
+    if (previousCollaborationStreamingRef.current === isStreaming) return;
+    previousCollaborationStreamingRef.current = isStreaming;
+    void ipc.collaboration.sendEvent({
+      appId: selectedAppId,
+      type: "agent_activity",
+      payload: {
+        status: isStreaming ? "started" : "completed",
+        chatId: chatId ?? null,
+        message: isStreaming
+          ? "CAIDE Agent started working"
+          : "CAIDE Agent completed its current run",
+      },
+    });
+  }, [chatId, collaborationSession, isStreaming, selectedAppId]);
 
   // Scroll to bottom when streaming completes to ensure footer content is visible,
   // but only if the user was following (at bottom) during the stream.

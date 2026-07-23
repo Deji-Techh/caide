@@ -94,6 +94,11 @@ import {
   reconcileCloudSandboxes,
   restartCloudSandbox,
 } from "../utils/cloud_sandbox_provider";
+import {
+  startPublicPreview,
+  stopPublicPreview,
+} from "../services/public_preview_service";
+import { broadcastCollaborationFileSnapshot } from "../services/collaboration_service";
 import { createFromTemplate } from "./createFromTemplate";
 import { getInitialChatModeForNewChat } from "./chat_mode_resolution";
 import { ensureDyadGitignored } from "./gitignoreUtils";
@@ -1020,6 +1025,14 @@ export function registerAppHandlers() {
 
     try {
       await fsPromises.writeFile(fullPath, content, "utf-8");
+      void broadcastCollaborationFileSnapshot({
+        appId,
+        path: filePath,
+        content,
+        origin: "caide-write",
+      }).catch((error) =>
+        logger.warn(`Failed to broadcast collaborative update for ${filePath}:`, error),
+      );
 
       // Check if git repository exists and commit the change
       if (fs.existsSync(path.join(appPath, ".git"))) {

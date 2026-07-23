@@ -337,6 +337,11 @@ export const mobilePreviewLanUrlAtom = atom<string | null>(null);
 export const mobilePreviewQrCodeAtom = atom<string | null>(null);
 export const mobilePreviewPendingAtom = atom<boolean>(false);
 export const mobilePreviewAppIdAtom = atom<number | null>(null);
+export const mobilePreviewStateAtom = atom<
+  "preparing" | "live" | "syncing" | "failed" | "stopped" | "expired" | null
+>(null);
+export const mobilePreviewExpiresAtAtom = atom<string | null>(null);
+export const mobilePreviewErrorAtom = atom<string | null>(null);
 
 export const clearPreviewRuntimeForAppAtom = atom(
   null,
@@ -386,5 +391,8 @@ export const clearPreviewRuntimeForAppAtom = atom(
     set(mobilePreviewQrCodeAtom, null);
     set(mobilePreviewPendingAtom, false);
     set(mobilePreviewAppIdAtom, null);
+    set(mobilePreviewStateAtom, null);
+    set(mobilePreviewExpiresAtAtom, null);
+    set(mobilePreviewErrorAtom, null);
   },
 );

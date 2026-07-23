@@ -59,6 +59,7 @@ import { isPreviewOpenAtom, selectedFileAtom } from "@/atoms/viewAtoms";
 import { ChatPanel } from "@/components/ChatPanel";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ShareProjectDialog } from "@/components/share/ShareProjectDialog";
+import { CollaborationPanel } from "@/components/collaboration/CollaborationPanel";
 import { DevicePresetPicker } from "@/components/DevicePresetPicker";
 import {
   Popover,
@@ -150,6 +151,7 @@ export default function ChatPage() {
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("design");
   const [isAgentExpanded, setIsAgentExpanded] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isCollaborationOpen, setIsCollaborationOpen] = useState(false);
   const [zoom, setZoom] = useState(90);
   const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
   const panOrigin = useRef<{
@@ -187,11 +189,17 @@ export default function ChatPage() {
   const {
     isMobilePreviewEnabled,
     mobilePreviewLanUrl,
+    publicPreviewState,
+    publicPreviewExpiresAt,
+    publicPreviewError,
     qrCodeDataUrl,
     isMobilePreviewPending,
     isQrPopoverOpen,
     setIsQrPopoverOpen,
     toggleMobilePreview,
+    refreshPublicPreview,
+    copyPublicPreviewUrl,
+    openPublicPreview,
   } = useMobilePreview(selectedAppId);
 
   usePlanImplementation();
@@ -495,6 +503,9 @@ export default function ChatPage() {
           <button type="button" onClick={() => selectMode("tests")}>
             <Play size={14} /> Run tests
           </button>
+          <button type="button" onClick={() => setIsCollaborationOpen(true)}>
+            <Users size={14} /> Collaborate
+          </button>
           <button type="button" onClick={() => setIsShareDialogOpen(true)}>
             <Share2 size={14} /> Share
           </button>
@@ -771,28 +782,23 @@ export default function ChatPage() {
                 >
                   {isMobilePreviewEnabled && qrCodeDataUrl ? (
                     <div className="flex flex-col items-center gap-3">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Scan to preview on your phone
-                      </p>
-                      <img
-                        src={qrCodeDataUrl}
-                        alt="QR code for mobile preview"
-                        className="w-56 h-56 rounded-lg border border-gray-200 dark:border-gray-700"
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center break-all">
-                        {mobilePreviewLanUrl}
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
-                        Make sure your phone is on the same Wi-Fi network
-                      </p>
-                      <button
-                        type="button"
-                        onClick={toggleMobilePreview}
-                        disabled={isMobilePreviewPending}
-                        className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                      >
-                        Disable mobile preview
-                      </button>
+                      <div className="w-full">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold">Public preview</p>
+                          <span className="text-[10px] uppercase text-emerald-600">{publicPreviewState ?? "live"}</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">Works worldwide. The viewer does not need CAIDE or your Wi-Fi.</p>
+                      </div>
+                      <img src={qrCodeDataUrl} alt="QR code for public preview" className="w-56 h-56 rounded-xl border bg-white p-2" />
+                      <p className="text-xs text-muted-foreground text-center break-all">{mobilePreviewLanUrl}</p>
+                      {publicPreviewExpiresAt && <p className="text-[11px] text-muted-foreground">Expires {new Date(publicPreviewExpiresAt).toLocaleString()}</p>}
+                      {publicPreviewError && <p className="text-xs text-red-600">{publicPreviewError}</p>}
+                      <div className="grid w-full grid-cols-2 gap-2">
+                        <button type="button" onClick={copyPublicPreviewUrl} className="rounded-md border px-2 py-1.5 text-xs">Copy link</button>
+                        <button type="button" onClick={openPublicPreview} className="rounded-md border px-2 py-1.5 text-xs">Open</button>
+                        <button type="button" onClick={refreshPublicPreview} disabled={isMobilePreviewPending} className="rounded-md border px-2 py-1.5 text-xs">Sync now</button>
+                        <button type="button" onClick={toggleMobilePreview} disabled={isMobilePreviewPending} className="rounded-md border border-red-300 px-2 py-1.5 text-xs text-red-600">Stop</button>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2 py-4">
@@ -1184,12 +1190,19 @@ export default function ChatPage() {
         </aside>
       </div>
       {selectedAppId ? (
-        <ShareProjectDialog
-          appId={selectedAppId}
-          projectName={app?.name ?? "CAIDE project"}
-          open={isShareDialogOpen}
-          onOpenChange={setIsShareDialogOpen}
-        />
+        <>
+          <ShareProjectDialog
+            appId={selectedAppId}
+            projectName={app?.name ?? "CAIDE project"}
+            open={isShareDialogOpen}
+            onOpenChange={setIsShareDialogOpen}
+          />
+          <CollaborationPanel
+            appId={selectedAppId}
+            open={isCollaborationOpen}
+            onOpenChange={setIsCollaborationOpen}
+          />
+        </>
       ) : null}
     </main>
   );

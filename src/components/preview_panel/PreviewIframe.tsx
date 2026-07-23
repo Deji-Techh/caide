@@ -348,11 +348,17 @@ export const PreviewIframe = ({
   const {
     isMobilePreviewEnabled,
     mobilePreviewLanUrl,
+    publicPreviewState,
+    publicPreviewExpiresAt,
+    publicPreviewError,
     qrCodeDataUrl,
     isMobilePreviewPending,
     isQrPopoverOpen,
     setIsQrPopoverOpen,
     toggleMobilePreview,
+    refreshPublicPreview,
+    copyPublicPreviewUrl,
+    openPublicPreview,
   } = useMobilePreview(selectedAppId);
   // Track which apps have already had the on-load fallback attempted this
   // session so the check doesn't re-run on every HMR/reload.
@@ -2012,7 +2018,6 @@ export const PreviewIframe = ({
                       }}
                       disabled={
                         isMobilePreviewPending ||
-                        isCloudMode ||
                         !originalUrl ||
                         selectedAppId === null
                       }
@@ -2042,28 +2047,39 @@ export const PreviewIframe = ({
               >
                 {isMobilePreviewEnabled && qrCodeDataUrl ? (
                   <div className="flex flex-col items-center gap-3">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      Scan to preview on your phone
-                    </p>
+                    <div className="w-full flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold">Public preview</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Anyone with this link can open the app from any network.
+                        </p>
+                      </div>
+                      <span className="text-[10px] uppercase tracking-wide text-emerald-600">
+                        {publicPreviewState ?? "live"}
+                      </span>
+                    </div>
                     <img
                       src={qrCodeDataUrl}
-                      alt="QR code for mobile preview"
-                      className="w-56 h-56 rounded-lg border border-gray-200 dark:border-gray-700"
+                      alt="QR code for public preview"
+                      className="w-56 h-56 rounded-xl border bg-white p-2"
                     />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center break-all">
+                    <p className="text-xs text-muted-foreground text-center break-all">
                       {mobilePreviewLanUrl}
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
-                      Make sure your phone is on the same Wi-Fi network
-                    </p>
-                    <button
-                      type="button"
-                      onClick={toggleMobilePreview}
-                      disabled={isMobilePreviewPending}
-                      className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                    >
-                      Disable mobile preview
-                    </button>
+                    {publicPreviewExpiresAt && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Expires {new Date(publicPreviewExpiresAt).toLocaleString()}
+                      </p>
+                    )}
+                    {publicPreviewError && (
+                      <p className="text-xs text-red-600">{publicPreviewError}</p>
+                    )}
+                    <div className="grid w-full grid-cols-2 gap-2">
+                      <button type="button" onClick={copyPublicPreviewUrl} className="rounded-md border px-2 py-1.5 text-xs">Copy link</button>
+                      <button type="button" onClick={openPublicPreview} className="rounded-md border px-2 py-1.5 text-xs">Open</button>
+                      <button type="button" onClick={refreshPublicPreview} disabled={isMobilePreviewPending} className="rounded-md border px-2 py-1.5 text-xs">Sync now</button>
+                      <button type="button" onClick={toggleMobilePreview} disabled={isMobilePreviewPending} className="rounded-md border border-red-300 px-2 py-1.5 text-xs text-red-600">Stop</button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-2 py-4">

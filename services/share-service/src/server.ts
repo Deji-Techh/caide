@@ -28,6 +28,7 @@ import {
   signedDownloadUrl,
   signedUploadUrl,
 } from "./storage.js";
+import { registerCollaborationRoutes } from "./collaboration.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -49,7 +50,7 @@ app.use(
   }),
 );
 app.use(cors({ origin: false }));
-app.use(express.json({ limit: "32kb" }));
+app.use(express.json({ limit: "24mb" }));
 
 const rateWindows = new Map<string, { count: number; resetAt: number }>();
 const RATE_WINDOW_MS = 60_000;
@@ -78,6 +79,7 @@ function apiRateLimit(req: Request, res: Response, next: NextFunction) {
 }
 
 app.use(["/v1", "/s"], apiRateLimit);
+registerCollaborationRoutes(app);
 
 app.get("/", (_req, res) => {
   res.type("html").send(serviceHomePage());

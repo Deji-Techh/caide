@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
 import { enqueueFileSave, getFileSaveQueueKey } from "./fileSaveQueue";
+import { useAtomValue } from "jotai";
+import { collaborationSessionAtom } from "@/atoms/collaborationAtoms";
 
 interface FileEditorProps {
   appId: number | null;
@@ -155,6 +157,16 @@ export const FileEditor = ({
   const hasInitializedContentRef = useRef(false);
   const isMountedRef = useRef(false);
   const releaseModelRef = useRef<(() => void) | null>(null);
+  const collaboration = useAtomValue(collaborationSessionAtom);
+  const collaborationRef = useRef(collaboration);
+  const collaborationRevisionRef = useRef(0);
+  const collaborationQueueRef = useRef(Promise.resolve());
+  const applyingRemoteRef = useRef(false);
+  const collaborationDisposablesRef = useRef<Array<{ dispose(): void }>>([]);
+  const remoteCursorDecorationsRef = useRef(new Map<string, string[]>());
+  const cursorBroadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const queryClient = useQueryClient();
   const { checkProblems } = useCheckProblems(appId);
@@ -165,6 +177,18 @@ export const FileEditor = ({
       isMountedRef.current = false;
       releaseModelRef.current?.();
       releaseModelRef.current = null;
+      collaborationDisposablesRef.current.forEach((item) => item.dispose());
+      collaborationDisposablesRef.current = [];
+      if (cursorBroadcastTimerRef.current) {
+        clearTimeout(cursorBroadcastTimerRef.current);
+        cursorBroadcastTimerRef.current = null;
+      }
+      const editor = editorRef.current;
+      if (editor) {
+        for (const ids of remoteCursorDecorationsRef.current.values())
+          editor.deltaDecorations(ids, []);
+      }
+      remoteCursorDecorationsRef.current.clear();
     };
   }, []);
 
@@ -197,6 +221,91 @@ export const FileEditor = ({
     return `file:///app-${appId ?? "unknown"}/${encodeURI(normalizedPath)}`;
   }, [appId, filePath]);
 
+  useEffect(() => {
+    collaborationRef.current = collaboration;
+    const file = collaboration?.files.find((item) => item.path === filePath);
+    if (file) collaborationRevisionRef.current = file.revision;
+  }, [collaboration, filePath]);
+
+  useEffect(() => {
+    const unsubscribe = ipc.events.collaboration.onUpdate((event) => {
+      if (event.appId !== appId) return;
+
+      if (event.type === "cursor") {
+        if (
+          !event.actor ||
+          event.actor.id === collaborationRef.current?.participantId ||
+          String(event.payload.path ?? "") !== filePath
+        ) {
+          return;
+        }
+        const selection = event.payload.selection as
+          | {
+              startLineNumber?: unknown;
+              startColumn?: unknown;
+              endLineNumber?: unknown;
+              endColumn?: unknown;
+            }
+          | undefined;
+        const values = [
+          selection?.startLineNumber,
+          selection?.startColumn,
+          selection?.endLineNumber,
+          selection?.endColumn,
+        ];
+        if (!values.every((value) => Number.isInteger(value) && Number(value) > 0))
+          return;
+        const editor = editorRef.current;
+        if (!editor) return;
+        const oldDecorations =
+          remoteCursorDecorationsRef.current.get(event.actor.id) ?? [];
+        const nextDecorations = editor.deltaDecorations(oldDecorations, [
+          {
+            range: {
+              startLineNumber: Number(selection?.startLineNumber),
+              startColumn: Number(selection?.startColumn),
+              endLineNumber: Number(selection?.endLineNumber),
+              endColumn: Number(selection?.endColumn),
+            },
+            options: {
+              inlineClassName:
+                "bg-blue-500/20 border-l-2 border-blue-500 rounded-sm",
+              hoverMessage: {
+                value: `${event.actor.displayName} is editing here`,
+              },
+            },
+          },
+        ]);
+        remoteCursorDecorationsRef.current.set(
+          event.actor.id,
+          nextDecorations,
+        );
+        return;
+      }
+
+      if (!['text_edit', 'file_snapshot', 'file_create'].includes(event.type))
+        return;
+      if (String(event.payload.path ?? "") !== filePath) return;
+      const content = String(event.payload.content ?? "");
+      collaborationRevisionRef.current = Number(
+        event.payload.revision ?? collaborationRevisionRef.current,
+      );
+      const model = editorRef.current?.getModel();
+      if (!model || model.getValue() === content) return;
+      applyingRemoteRef.current = true;
+      model.setValue(content);
+      originalValueRef.current = content;
+      currentValueRef.current = content;
+      needsSaveRef.current = false;
+      setValue(content);
+      setDisplayUnsavedChanges(false);
+      queueMicrotask(() => {
+        applyingRemoteRef.current = false;
+      });
+    });
+    return unsubscribe;
+  }, [appId, filePath]);
+
   // Navigate to a specific line in the editor
   const navigateToLine = React.useCallback((line: number | null) => {
     if (line == null || !editorRef.current) {
@@ -218,6 +327,67 @@ export const FileEditor = ({
     const model = editor.getModel();
     if (model) {
       releaseModelRef.current = retainMonacoModel(modelPath, model);
+      const contentDisposable = model.onDidChangeContent((event) => {
+        const activeCollaboration = collaborationRef.current;
+        if (
+          appId === null ||
+          !activeCollaboration ||
+          activeCollaboration.role === "viewer" ||
+          applyingRemoteRef.current
+        )
+          return;
+        const changes = event.changes.map((change) => ({
+          rangeOffset: change.rangeOffset,
+          rangeLength: change.rangeLength,
+          text: change.text,
+        }));
+        collaborationQueueRef.current = collaborationQueueRef.current
+          .then(async () => {
+            const result = await ipc.collaboration.sendTextEdit({
+              appId,
+              path: filePath,
+              baseRevision: collaborationRevisionRef.current,
+              changes,
+            });
+            collaborationRevisionRef.current = result.revision;
+          })
+          .catch((error) => showError(error));
+      });
+      collaborationDisposablesRef.current.push(contentDisposable);
+    }
+
+    const activeCollaboration = collaborationRef.current;
+    if (
+      appId !== null &&
+      activeCollaboration &&
+      activeCollaboration.role !== "viewer"
+    ) {
+      void ipc.collaboration.sendEvent({
+        appId,
+        type: "active_file",
+        payload: { path: filePath },
+      });
+      collaborationDisposablesRef.current.push(
+        editor.onDidChangeCursorSelection((event) => {
+          if (cursorBroadcastTimerRef.current)
+            clearTimeout(cursorBroadcastTimerRef.current);
+          cursorBroadcastTimerRef.current = setTimeout(() => {
+            void ipc.collaboration.sendEvent({
+              appId,
+              type: "cursor",
+              payload: {
+                path: filePath,
+                selection: {
+                  startLineNumber: event.selection.startLineNumber,
+                  startColumn: event.selection.startColumn,
+                  endLineNumber: event.selection.endLineNumber,
+                  endColumn: event.selection.endColumn,
+                },
+              },
+            });
+          }, 80);
+        }),
+      );
     }
 
     // Navigate to initialLine if provided (handles case when editor mounts after initialLine is set)
@@ -235,6 +405,7 @@ export const FileEditor = ({
 
   // Handle content change
   const handleEditorChange = (newValue: string | undefined) => {
+    if (applyingRemoteRef.current) return;
     setValue(newValue);
     currentValueRef.current = newValue;
 
@@ -349,6 +520,7 @@ export const FileEditor = ({
           onChange={handleEditorChange}
           onMount={handleEditorDidMount}
           options={{
+            readOnly: collaboration?.role === "viewer",
             minimap: { enabled: true },
             scrollBeyondLastLine: false,
             wordWrap: "off",
