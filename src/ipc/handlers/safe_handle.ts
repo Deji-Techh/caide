@@ -7,12 +7,14 @@ import {
 } from "../contracts/core";
 import { sendTelemetryException } from "../utils/telemetry";
 import { IS_TEST_BUILD } from "../utils/test_utils";
+import { registerLegacyIpcHandler } from "./base";
 
 export function createLoggedHandler(logger: log.LogFunctions) {
   return (
     channel: string,
     fn: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<any>,
   ) => {
+    registerLegacyIpcHandler(channel, fn);
     ipcMain.handle(
       channel,
       async (event: IpcMainInvokeEvent, ...args: any[]) => {

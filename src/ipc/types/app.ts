@@ -2,6 +2,10 @@ import { z } from "zod";
 import { defineContract, createClient } from "../contracts/core";
 import { APP_FRAMEWORK_TYPES } from "../../lib/framework_constants";
 import { ChatModeSchema } from "../../lib/schemas";
+import {
+  CheckAppNameParamsSchema,
+  CheckAppNameResultSchema,
+} from "./import";
 
 // =============================================================================
 // App Schemas
@@ -538,8 +542,8 @@ export const appContracts = {
 
   checkAppName: defineContract({
     channel: "check-app-name",
-    input: z.object({ appName: z.string() }),
-    output: z.object({ exists: z.boolean(), message: z.string().optional() }),
+    input: CheckAppNameParamsSchema,
+    output: CheckAppNameResultSchema,
   }),
 
   searchApps: defineContract({

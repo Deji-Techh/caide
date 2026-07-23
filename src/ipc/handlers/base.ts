@@ -10,13 +10,20 @@ import { sendTelemetryException } from "../utils/telemetry";
 
 type RegisteredHandler = (
   event: IpcMainInvokeEvent,
-  input: any,
+  ...args: any[]
 ) => Promise<unknown>;
 
 // Registry of raw handler implementations keyed by channel. Lets unit tests
 // invoke a handler directly (after calling the module's register*Handlers())
 // without mocking electron or introspecting ipcMain.handle calls.
 const registeredHandlers = new Map<string, RegisteredHandler>();
+
+export function registerLegacyIpcHandler(
+  channel: string,
+  handler: RegisteredHandler,
+): void {
+  registeredHandlers.set(channel, handler);
+}
 
 export function getRegisteredHandlerForTesting(
   channel: string,
@@ -43,9 +50,9 @@ export function getRegisteredIpcChannelsForTesting(): string[] {
 export function auditIpcRegistration(
   contracts: Iterable<IpcContract<string, z.ZodType, z.ZodType>>,
 ): IpcRegistrationAudit {
-  const expectedChannels = [...contracts]
-    .map((contract) => contract.channel)
-    .sort();
+  const expectedChannels = [
+    ...new Set([...contracts].map((contract) => contract.channel)),
+  ].sort();
   const registeredChannels = getRegisteredIpcChannelsForTesting();
   const registered = new Set(registeredChannels);
   return {

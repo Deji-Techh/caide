@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   auditDefinitions,
   collectContractDefinitions,
+  collectLiteralHandlerChannels,
   collectRegisteredContractReferences,
   collectRegistryGroupNames,
   maskCommentsAndStrings,
@@ -81,6 +82,36 @@ test("finds explicit and whole-group handler registrations", () => {
     "appContracts.createApp",
     "shareContracts.create",
   ]);
+});
+
+test("finds legacy logged handlers and direct ipcMain handlers", () => {
+  const channels = collectLiteralHandlerChannels(`
+    const handle = createLoggedHandler(logger);
+    const testHandle = createTestOnlyLoggedHandler(logger);
+    handle("create-app", async () => {});
+    testHandle("test:ping", async () => {});
+    ipcMain.handle("share:create", async () => {});
+    other.handle("not-an-ipc-registration", async () => {});
+    const label = 'handle("not-real")';
+    // handle("also-not-real", async () => {});
+  `);
+  assert.deepEqual([...channels].sort(), [
+    "create-app",
+    "share:create",
+    "test:ping",
+  ]);
+});
+
+test("allows the intentional check-app-name compatibility alias", () => {
+  const definitions = [
+    { group: "appContracts", member: "checkAppName", channel: "check-app-name" },
+    { group: "importContracts", member: "checkAppName", channel: "check-app-name" },
+  ];
+  const audit = auditDefinitions(
+    definitions,
+    new Set(["appContracts.checkAppName", "importContracts.checkAppName"]),
+  );
+  assert.deepEqual(audit.duplicateChannels, []);
 });
 
 test("reports missing contracts and duplicate channels", () => {

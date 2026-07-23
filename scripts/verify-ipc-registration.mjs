@@ -1,9 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
+const ALLOWED_DUPLICATE_CHANNELS = new Set(["check-app-name"]);
 
 function isIdentifierStart(char) {
   return /[A-Za-z_$]/.test(char ?? "");
@@ -372,6 +374,68 @@ function isExcludedRegistrationSource(root, filePath) {
   );
 }
 
+function scriptKindFor(filePath) {
+  if (filePath.endsWith(".tsx")) return ts.ScriptKind.TSX;
+  if (filePath.endsWith(".jsx")) return ts.ScriptKind.JSX;
+  if (filePath.endsWith(".mts")) return ts.ScriptKind.TS;
+  if (filePath.endsWith(".cts")) return ts.ScriptKind.TS;
+  return ts.ScriptKind.TS;
+}
+
+export function collectLiteralHandlerChannels(
+  source,
+  filePath = "source.ts",
+) {
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    scriptKindFor(filePath),
+  );
+  const handlerAliases = new Set();
+
+  const collectAliases = (node) => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer &&
+      ts.isCallExpression(node.initializer) &&
+      ts.isIdentifier(node.initializer.expression) &&
+      (node.initializer.expression.text === "createLoggedHandler" ||
+        node.initializer.expression.text === "createTestOnlyLoggedHandler")
+    ) {
+      handlerAliases.add(node.name.text);
+    }
+    ts.forEachChild(node, collectAliases);
+  };
+  collectAliases(sourceFile);
+
+  const channels = new Set();
+  const collectCalls = (node) => {
+    if (ts.isCallExpression(node) && node.arguments.length > 0) {
+      const callee = node.expression;
+      const isRegisteredAlias =
+        ts.isIdentifier(callee) && handlerAliases.has(callee.text);
+      const isDirectIpcMainHandle =
+        ts.isPropertyAccessExpression(callee) &&
+        callee.name.text === "handle" &&
+        ts.isIdentifier(callee.expression) &&
+        callee.expression.text === "ipcMain";
+      const firstArgument = node.arguments[0];
+      if (
+        (isRegisteredAlias || isDirectIpcMainHandle) &&
+        ts.isStringLiteralLike(firstArgument)
+      ) {
+        channels.add(firstArgument.text);
+      }
+    }
+    ts.forEachChild(node, collectCalls);
+  };
+  collectCalls(sourceFile);
+  return channels;
+}
+
 function collectRegisterTypedHandlerGroups(code) {
   const groups = new Set();
   const pattern = /\bregisterTypedHandlers\s*\(/g;
@@ -416,9 +480,25 @@ export function collectRegisteredContractReferences(
   definitionsByGroup,
 ) {
   const references = new Set();
-  for (const { source } of sources) {
+  const definitionsByChannel = new Map();
+  for (const definitions of definitionsByGroup.values()) {
+    for (const definition of definitions) {
+      const channelDefinitions =
+        definitionsByChannel.get(definition.channel) ?? [];
+      channelDefinitions.push(definition);
+      definitionsByChannel.set(definition.channel, channelDefinitions);
+    }
+  }
+
+  for (const { source, filePath = "source.ts" } of sources) {
     const code = maskCommentsAndStrings(source);
     const wholeGroups = collectRegisterTypedHandlerGroups(code);
+    const literalChannels = collectLiteralHandlerChannels(source, filePath);
+    for (const channel of literalChannels) {
+      for (const definition of definitionsByChannel.get(channel) ?? []) {
+        references.add(`${definition.group}.${definition.member}`);
+      }
+    }
     for (const [groupName, definitions] of definitionsByGroup) {
       const memberPattern = new RegExp(
         `\\b${groupName}\\s*\\.\\s*([A-Za-z_$][A-Za-z0-9_$]*)`,
@@ -447,7 +527,10 @@ export function auditDefinitions(definitions, registeredReferences) {
   const duplicateChannels = [];
   for (const definition of definitions) {
     const previous = channelOwners.get(definition.channel);
-    if (previous) {
+    if (
+      previous &&
+      !ALLOWED_DUPLICATE_CHANNELS.has(definition.channel)
+    ) {
       duplicateChannels.push({
         channel: definition.channel,
         contracts: [previous, `${definition.group}.${definition.member}`],

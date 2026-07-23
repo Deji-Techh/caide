@@ -41,6 +41,12 @@ import { releaseContracts } from "../types/release";
 
 export type AnyIpcContract = IpcContract<string, ZodType, ZodType>;
 
+// appClient.checkAppName and importClient.checkAppName are compatibility
+// aliases for the same handler and now share the same input/output schemas.
+// New duplicate channels must not be added to this set without an explicit
+// compatibility reason and matching schemas.
+const ALLOWED_IPC_CONTRACT_ALIAS_CHANNELS = new Set(["check-app-name"]);
+
 /**
  * Every invoke/response contract exposed by the renderer-facing IPC layer.
  *
@@ -104,7 +110,11 @@ export function findDuplicateIpcContractChannels(): Array<{
     counts.set(contract.channel, (counts.get(contract.channel) ?? 0) + 1);
   }
   return [...counts]
-    .filter(([, count]) => count > 1)
+    .filter(
+      ([channel, count]) =>
+        count > 1 &&
+        !ALLOWED_IPC_CONTRACT_ALIAS_CHANNELS.has(channel),
+    )
     .map(([channel, count]) => ({ channel, count }));
 }
 
