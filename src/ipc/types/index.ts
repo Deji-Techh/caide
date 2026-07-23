@@ -558,6 +558,7 @@ export const ipc = {
   tests: testsClient,
   figma: figmaClient,
   share: shareClient,
+  collaboration: collaborationClient,
 
   // Event clients for main->renderer pub/sub
   events: {

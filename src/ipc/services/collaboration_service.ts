@@ -508,6 +508,12 @@ async function activate(input: {
       color: participant.color,
       lastSeenAt: participant.last_seen_at,
     })),
+    checkpoints: (state.checkpoints ?? []).map((checkpoint: any) => ({
+      id: checkpoint.id,
+      name: checkpoint.name,
+      createdBy: checkpoint.created_by,
+      createdAt: checkpoint.created_at,
+    })),
     files,
     sender: input.sender,
     abortController: new AbortController(),

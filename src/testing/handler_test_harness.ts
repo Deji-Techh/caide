@@ -1,10 +1,10 @@
 import { setDatabaseForTesting } from "@/db";
 import { getRegisteredHandlerForTesting } from "@/ipc/handlers/base";
 import {
+  type GitServicePort,
   type HandlerContext,
   setHandlerContextForTesting,
 } from "@/ipc/handlers/handler_context";
-import type { GitService } from "@/ipc/services/git_service";
 import { DEFAULT_SETTINGS } from "@/main/settings";
 import type { UserSettings } from "@/lib/schemas";
 import { createInMemoryTestDb, type TestDb } from "./test_db";
@@ -13,14 +13,16 @@ import { createInMemoryTestDb, type TestDb } from "./test_db";
  * Recording stand-in for GitService. Returns deterministic fake hashes and
  * records every call for assertions.
  */
-export class FakeGitService implements GitService {
-  calls: Array<{ method: keyof GitService; args: Record<string, unknown> }> =
-    [];
+export class FakeGitService implements GitServicePort {
+  calls: Array<{
+    method: keyof GitServicePort;
+    args: Record<string, unknown>;
+  }> = [];
   /** Controls whether stageAllAndCommitIfChanged reports staged changes. */
   hasChangesToCommit = true;
   private commitCount = 0;
 
-  private record(method: keyof GitService, args: Record<string, unknown>) {
+  private record(method: keyof GitServicePort, args: Record<string, unknown>) {
     this.calls.push({ method, args });
     this.commitCount += 1;
     return `fake-commit-hash-${this.commitCount}`;

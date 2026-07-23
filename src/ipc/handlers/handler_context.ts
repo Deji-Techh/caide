@@ -1,7 +1,15 @@
 import { db } from "@/db";
 import { readSettings, writeSettings } from "@/main/settings";
-import { gitService, GitService } from "../services/git_service";
+import { gitService, type GitService } from "../services/git_service";
 import { safeSend } from "../utils/safe_sender";
+
+export type GitServicePort = Pick<
+  GitService,
+  | "initRepoWithInitialCommit"
+  | "stageAllAndCommit"
+  | "stageAllAndCommitIfChanged"
+  | "commitFile"
+>;
 
 /**
  * Dependencies that IPC handlers need but should not import directly.
@@ -18,7 +26,7 @@ export interface HandlerContext {
   db: typeof db;
   readSettings: typeof readSettings;
   writeSettings: typeof writeSettings;
-  gitService: GitService;
+  gitService: GitServicePort;
   safeSend: typeof safeSend;
 }
 

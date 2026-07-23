@@ -1,31 +1,55 @@
 import { Provider, createStore } from "jotai";
 import type { PropsWithChildren } from "react";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  getNetworkAddressMock,
-  setAppMobilePreviewMock,
+  getPublicPreviewStatusMock,
+  openExternalUrlMock,
+  refreshPublicPreviewMock,
   showErrorMock,
+  showSuccessMock,
+  startPublicPreviewMock,
+  stopPublicPreviewMock,
   toDataUrlMock,
 } = vi.hoisted(() => ({
-  getNetworkAddressMock: vi.fn(),
-  setAppMobilePreviewMock: vi.fn(),
+  getPublicPreviewStatusMock: vi.fn(),
+  openExternalUrlMock: vi.fn(),
+  refreshPublicPreviewMock: vi.fn(),
   showErrorMock: vi.fn(),
+  showSuccessMock: vi.fn(),
+  startPublicPreviewMock: vi.fn(),
+  stopPublicPreviewMock: vi.fn(),
   toDataUrlMock: vi.fn(),
 }));
 
 vi.mock("@/ipc/types", () => ({
   ipc: {
-    app: { setAppMobilePreview: setAppMobilePreviewMock },
-    system: { getNetworkAddress: getNetworkAddressMock },
+    app: {
+      getPublicPreviewStatus: getPublicPreviewStatusMock,
+      refreshPublicPreview: refreshPublicPreviewMock,
+      startPublicPreview: startPublicPreviewMock,
+      stopPublicPreview: stopPublicPreviewMock,
+    },
+    system: { openExternalUrl: openExternalUrlMock },
   },
 }));
 
-vi.mock("@/lib/toast", () => ({ showError: showErrorMock }));
+vi.mock("@/lib/toast", () => ({
+  showError: showErrorMock,
+  showSuccess: showSuccessMock,
+}));
 vi.mock("qrcode", () => ({ default: { toDataURL: toDataUrlMock } }));
 
-import { buildMobilePreviewUrl, useMobilePreview } from "./useMobilePreview";
+import { useMobilePreview } from "./useMobilePreview";
+
+const liveStatus = {
+  appId: 10,
+  url: "https://preview.caide.app/p/example",
+  expiresAt: "2030-01-01T00:00:00.000Z",
+  state: "live" as const,
+  errorMessage: null,
+};
 
 function createWrapper() {
   const store = createStore();
@@ -36,96 +60,79 @@ function createWrapper() {
 
 describe("useMobilePreview", () => {
   beforeEach(() => {
-    getNetworkAddressMock.mockReset();
-    setAppMobilePreviewMock.mockReset();
+    getPublicPreviewStatusMock.mockReset();
+    openExternalUrlMock.mockReset();
+    refreshPublicPreviewMock.mockReset();
     showErrorMock.mockReset();
+    showSuccessMock.mockReset();
+    startPublicPreviewMock.mockReset();
+    stopPublicPreviewMock.mockReset();
     toDataUrlMock.mockReset();
+
+    getPublicPreviewStatusMock.mockResolvedValue(null);
+    stopPublicPreviewMock.mockResolvedValue(undefined);
     toDataUrlMock.mockResolvedValue("data:image/png;base64,qr");
   });
 
-  it("builds a phone URL without losing the proxy port or route", () => {
-    expect(
-      buildMobilePreviewUrl(
-        "http://localhost:42110/profile?tab=posts#latest",
-        "192.168.1.76",
-      ),
-    ).toBe("http://192.168.1.76:42110/profile?tab=posts#latest");
-  });
-
-  it("opens a loading state and enables only after the QR code is ready", async () => {
-    let resolveProxy!: (url: string) => void;
-    setAppMobilePreviewMock.mockReturnValueOnce(
-      new Promise<string>((resolve) => {
-        resolveProxy = resolve;
-      }),
-    );
-    getNetworkAddressMock.mockResolvedValue("192.168.1.76");
+  it("creates an expiring worldwide preview and QR code", async () => {
+    startPublicPreviewMock.mockResolvedValue(liveStatus);
     const { result } = renderHook(() => useMobilePreview(10), {
       wrapper: createWrapper(),
     });
 
-    let togglePromise!: Promise<void>;
-    act(() => {
-      togglePromise = result.current.toggleMobilePreview();
+    await act(async () => {
+      await result.current.toggleMobilePreview();
     });
-    expect(result.current.isQrPopoverOpen).toBe(true);
-    expect(result.current.isMobilePreviewPending).toBe(true);
-    expect(result.current.isMobilePreviewEnabled).toBe(false);
 
-    resolveProxy("http://localhost:42110");
-    await act(async () => togglePromise);
-
+    expect(startPublicPreviewMock).toHaveBeenCalledWith({
+      appId: 10,
+      expiresInSeconds: 2 * 60 * 60,
+    });
+    expect(toDataUrlMock).toHaveBeenCalledWith(
+      liveStatus.url,
+      expect.objectContaining({ width: 256, margin: 2 }),
+    );
     expect(result.current.isMobilePreviewEnabled).toBe(true);
-    expect(result.current.mobilePreviewLanUrl).toBe(
-      "http://192.168.1.76:42110/",
-    );
+    expect(result.current.isQrPopoverOpen).toBe(true);
+    expect(result.current.publicPreviewUrl).toBe(liveStatus.url);
+    expect(result.current.publicPreviewState).toBe("live");
     expect(result.current.qrCodeDataUrl).toBe("data:image/png;base64,qr");
-    expect(result.current.isMobilePreviewPending).toBe(false);
+    expect(showSuccessMock).toHaveBeenCalledWith("Public preview is live");
   });
 
-  it("restores localhost and clears state when LAN discovery fails", async () => {
-    setAppMobilePreviewMock
-      .mockResolvedValueOnce("http://localhost:42110")
-      .mockResolvedValueOnce("http://localhost:42110");
-    getNetworkAddressMock.mockResolvedValue(null);
+  it("restores an active public preview when the project opens", async () => {
+    getPublicPreviewStatusMock.mockResolvedValue(liveStatus);
     const { result } = renderHook(() => useMobilePreview(10), {
       wrapper: createWrapper(),
     });
 
-    await act(async () => result.current.toggleMobilePreview());
+    await waitFor(() => {
+      expect(result.current.isMobilePreviewEnabled).toBe(true);
+    });
 
-    expect(setAppMobilePreviewMock).toHaveBeenNthCalledWith(1, {
-      appId: 10,
-      enabled: true,
+    expect(result.current.publicPreviewUrl).toBe(liveStatus.url);
+    expect(result.current.publicPreviewExpiresAt).toBe(liveStatus.expiresAt);
+  });
+
+  it("revokes the active preview and clears local state", async () => {
+    getPublicPreviewStatusMock
+      .mockResolvedValueOnce(liveStatus)
+      .mockResolvedValue(null);
+    const { result } = renderHook(() => useMobilePreview(10), {
+      wrapper: createWrapper(),
     });
-    expect(setAppMobilePreviewMock).toHaveBeenNthCalledWith(2, {
-      appId: 10,
-      enabled: false,
+
+    await waitFor(() => {
+      expect(result.current.isMobilePreviewEnabled).toBe(true);
     });
+    await act(async () => {
+      await result.current.toggleMobilePreview();
+    });
+
+    expect(stopPublicPreviewMock).toHaveBeenCalledWith({ appId: 10 });
     expect(result.current.isMobilePreviewEnabled).toBe(false);
     expect(result.current.isQrPopoverOpen).toBe(false);
-    expect(showErrorMock).toHaveBeenCalledWith(
-      expect.stringContaining("local Wi-Fi or Ethernet address"),
-    );
-  });
-
-  it("waits for localhost restoration before disabling", async () => {
-    setAppMobilePreviewMock
-      .mockResolvedValueOnce("http://localhost:42110")
-      .mockResolvedValueOnce("http://localhost:42110");
-    getNetworkAddressMock.mockResolvedValue("192.168.1.76");
-    const { result } = renderHook(() => useMobilePreview(10), {
-      wrapper: createWrapper(),
-    });
-    await act(async () => result.current.toggleMobilePreview());
-
-    await act(async () => result.current.toggleMobilePreview());
-
-    expect(setAppMobilePreviewMock).toHaveBeenLastCalledWith({
-      appId: 10,
-      enabled: false,
-    });
-    expect(result.current.isMobilePreviewEnabled).toBe(false);
+    expect(result.current.publicPreviewUrl).toBeNull();
     expect(result.current.qrCodeDataUrl).toBeNull();
   });
 });

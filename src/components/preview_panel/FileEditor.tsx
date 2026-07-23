@@ -351,7 +351,9 @@ export const FileEditor = ({
             });
             collaborationRevisionRef.current = result.revision;
           })
-          .catch((error) => showError(error));
+          .catch((error) => {
+            showError(error);
+          });
       });
       collaborationDisposablesRef.current.push(contentDisposable);
     }
