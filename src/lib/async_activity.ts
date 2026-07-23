@@ -19,6 +19,9 @@ const SILENT_CHANNELS = new Set([
   "app:get-public-preview-status",
   "get-cloud-sandbox-status",
   "select-app-for-preview",
+  "collaboration:send-text-edit",
+  "collaboration:send-event",
+  "read-app-file",
 ]);
 
 const LABELS: Record<string, string> = {

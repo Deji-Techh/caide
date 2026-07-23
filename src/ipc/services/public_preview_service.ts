@@ -16,11 +16,25 @@ import {
 } from "@/ipc/utils/cloud_sandbox_provider";
 import { formatCloudSandboxError } from "./app_runtime_service";
 import { isSafePublicPreviewPath } from "./public_preview_security";
+import {
+  watchProjectTree,
+  type ProjectChangeWatcher,
+} from "./project_change_watcher";
 
 const DEFAULT_PREVIEW_LIFETIME_SECONDS = 2 * 60 * 60;
 const MIN_PREVIEW_LIFETIME_SECONDS = 5 * 60;
 const MAX_PREVIEW_LIFETIME_SECONDS = 24 * 60 * 60;
-const SYNC_INTERVAL_MS = 1_500;
+const PREVIEW_EXCLUDED_DIRS = new Set([
+  ".git",
+  "node_modules",
+  ".next",
+  ".nuxt",
+  ".vite",
+  "dist",
+  "build",
+  "coverage",
+  "out",
+]);
 
 export type PublicPreviewState =
   | "preparing"
@@ -43,10 +57,11 @@ export interface PublicPreviewStatus {
 
 type ActivePreview = PublicPreviewStatus & {
   appPath: string;
-  timer?: ReturnType<typeof setInterval>;
   expiryTimer?: ReturnType<typeof setTimeout>;
+  watcher?: ProjectChangeWatcher;
   fingerprint: string | null;
   syncing: boolean;
+  pendingSync: boolean;
 };
 
 const activePreviews = new Map<number, ActivePreview>();
@@ -81,9 +96,10 @@ async function ensurePersistedSessionsLoaded(): Promise<void> {
       appPath: getDyadAppPath(appRecord.path),
       fingerprint: null,
       syncing: false,
+      pendingSync: false,
     };
     activePreviews.set(status.appId, session);
-    scheduleSession(session);
+    await scheduleSession(session);
   }
 }
 
@@ -98,10 +114,11 @@ function clampLifetime(value?: number): number {
 function publicStatus(session: ActivePreview): PublicPreviewStatus {
   const {
     appPath: _appPath,
-    timer: _timer,
     expiryTimer: _expiryTimer,
+    watcher: _watcher,
     fingerprint: _fingerprint,
     syncing: _syncing,
+    pendingSync: _pendingSync,
     ...status
   } = session;
   return status;
@@ -126,7 +143,11 @@ async function buildSafePreviewFileMap(appPath: string) {
 }
 
 async function syncPreview(session: ActivePreview, force = false): Promise<void> {
-  if (session.syncing || session.state === "stopped") return;
+  if (session.state === "stopped" || session.state === "expired") return;
+  if (session.syncing) {
+    session.pendingSync = true;
+    return;
+  }
   session.syncing = true;
   const previousState = session.state;
   try {
@@ -150,13 +171,26 @@ async function syncPreview(session: ActivePreview, force = false): Promise<void>
     throw error;
   } finally {
     session.syncing = false;
+    const state = session.state as PublicPreviewState;
+    if (
+      session.pendingSync &&
+      state !== "stopped" &&
+      state !== "expired"
+    ) {
+      session.pendingSync = false;
+      queueMicrotask(() => void syncPreview(session).catch(() => undefined));
+    }
   }
 }
 
-function scheduleSession(session: ActivePreview): void {
-  session.timer = setInterval(() => {
-    void syncPreview(session).catch(() => undefined);
-  }, SYNC_INTERVAL_MS);
+async function scheduleSession(session: ActivePreview): Promise<void> {
+  session.watcher?.close();
+  session.watcher = await watchProjectTree(session.appPath, {
+    excludedDirectories: PREVIEW_EXCLUDED_DIRS,
+    debounceMs: 450,
+    reconcileMs: 30_000,
+    onChange: () => syncPreview(session),
+  });
 
   const remaining = Math.max(0, new Date(session.expiresAt).getTime() - Date.now());
   session.expiryTimer = setTimeout(() => {
@@ -216,6 +250,7 @@ export async function startPublicPreview(input: {
       managedSandbox,
       fingerprint: null,
       syncing: false,
+      pendingSync: false,
     };
     activePreviews.set(input.appId, session);
 
@@ -225,7 +260,7 @@ export async function startPublicPreview(input: {
       session.state = "live";
       session.lastSyncedAt = new Date().toISOString();
     }
-    scheduleSession(session);
+    await scheduleSession(session);
     await persistSessions();
     return publicStatus(session);
   } catch (error) {
@@ -282,8 +317,8 @@ export async function stopPublicPreview(
   await ensurePersistedSessionsLoaded();
   const session = activePreviews.get(appId);
   if (!session) return;
-  if (session.timer) clearInterval(session.timer);
   if (session.expiryTimer) clearTimeout(session.expiryTimer);
+  session.watcher?.close();
   session.state = expired ? "expired" : "stopped";
   activePreviews.delete(appId);
   if (session.managedSandbox) {

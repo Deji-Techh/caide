@@ -5865,3 +5865,158 @@
     padding: 18px;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Expanded Agent workspace — one surface, clearer hierarchy, better density
+   -------------------------------------------------------------------------- */
+
+.caide-properties.is-agent-expanded {
+  --caide-agent-focus-bg: #0b0c0f;
+  --caide-agent-focus-border: #25272d;
+  background: var(--caide-agent-focus-bg) !important;
+  box-shadow: none;
+}
+
+.caide-properties.is-agent-expanded .caide-inspector-tabs {
+  min-height: 49px;
+  display: flex;
+  align-items: stretch;
+  padding-inline: clamp(18px, 4vw, 64px);
+  border-bottom-color: var(--caide-agent-focus-border);
+  background: var(--caide-agent-focus-bg) !important;
+}
+
+.caide-properties.is-agent-expanded
+  .caide-inspector-tabs
+  > button:not(.caide-agent-expand-toggle):not(.caide-compact-inspector-close) {
+  width: auto;
+  min-width: 116px;
+  flex: 0 0 auto;
+  padding-inline: 18px;
+}
+
+.caide-properties.is-agent-expanded .caide-agent-expand-toggle {
+  margin-left: auto;
+  border-right: 1px solid var(--caide-agent-focus-border) !important;
+}
+
+.caide-properties.is-agent-expanded .caide-agent-panel,
+.caide-properties.is-agent-expanded .caide-agent-panel > .caide-chat-panel,
+.caide-properties.is-agent-expanded .caide-agent-panel .caide-chat-header,
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="messages-list"],
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="messages-list"]
+  > div,
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="chat-input-container"] {
+  background: var(--caide-agent-focus-bg) !important;
+}
+
+.caide-properties.is-agent-expanded .caide-agent-panel {
+  padding-inline: clamp(20px, 5vw, 88px);
+}
+
+.caide-properties.is-agent-expanded .caide-agent-panel > .caide-chat-panel {
+  width: min(1180px, 100%);
+  margin-inline: auto;
+  border: 0;
+  box-shadow: none;
+}
+
+.caide-properties.is-agent-expanded .caide-agent-panel .caide-chat-header {
+  min-height: 52px;
+  padding-inline: 16px;
+  border-bottom-color: var(--caide-agent-focus-border);
+}
+
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="messages-list"] {
+  width: min(1040px, 100%);
+  margin-inline: auto !important;
+  padding: 28px 24px 18px !important;
+  scroll-padding-block: 28px 40px;
+}
+
+.caide-properties.is-agent-expanded .caide-agent-panel [data-message-role] {
+  padding-inline: 0;
+}
+
+.caide-properties.is-agent-expanded .caide-agent-panel .caide-chat-message {
+  max-width: 980px;
+}
+
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-message-role="user"]
+  .caide-chat-message {
+  max-width: 820px;
+  margin-left: auto;
+}
+
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="chat-input-container"] {
+  width: min(1040px, 100%);
+  margin-inline: auto;
+  padding: 14px 24px 20px !important;
+  border-top-color: var(--caide-agent-focus-border);
+}
+
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="chat-input-container"]
+  > div:last-child {
+  border-radius: 14px;
+  box-shadow: 0 14px 36px rgb(0 0 0 / 16%);
+}
+
+.light .caide-properties.is-agent-expanded {
+  --caide-agent-focus-bg: #f1f3f5;
+  --caide-agent-focus-border: #d8dade;
+}
+
+.light .caide-properties.is-agent-expanded .caide-agent-panel [class~="group/card"] {
+  border-color: #d4d7dc;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(31 35 41 / 5%);
+}
+
+.light
+  .caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-message-role="user"]
+  .caide-chat-message-body {
+  border-color: #d4d7dc;
+  background: #ffffff;
+}
+
+.light
+  .caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="chat-input-container"]
+  > div:last-child {
+  border-color: #cfd2d7;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgb(31 35 41 / 9%);
+}
+
+@media (max-width: 900px) {
+  .caide-properties.is-agent-expanded .caide-inspector-tabs,
+  .caide-properties.is-agent-expanded .caide-agent-panel {
+    padding-inline: 0;
+  }
+
+  .caide-properties.is-agent-expanded
+    .caide-agent-panel
+    [data-testid="messages-list"],
+  .caide-properties.is-agent-expanded
+    .caide-agent-panel
+    [data-testid="chat-input-container"] {
+    padding-inline: 12px !important;
+  }
+}

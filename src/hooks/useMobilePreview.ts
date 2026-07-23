@@ -12,7 +12,7 @@ import { ipc } from "@/ipc/types";
 import { showError, showSuccess } from "@/lib/toast";
 import { useAtom } from "jotai";
 import QRCode from "qrcode";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const STATUS_POLL_MS = 5_000;
 
@@ -26,6 +26,8 @@ export function useMobilePreview(appId: number | null) {
   const [expiresAt, setExpiresAt] = useAtom(mobilePreviewExpiresAtAtom);
   const [errorMessage, setErrorMessage] = useAtom(mobilePreviewErrorAtom);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const qrUrlRef = useRef<string | null>(null);
+  const qrDataRef = useRef<string | null>(null);
   const isEnabled = enabled && ownerAppId === appId;
 
   const clearState = useCallback(() => {
@@ -36,6 +38,8 @@ export function useMobilePreview(appId: number | null) {
     setState(null);
     setExpiresAt(null);
     setErrorMessage(null);
+    qrUrlRef.current = null;
+    qrDataRef.current = null;
   }, [
     setEnabled,
     setErrorMessage,
@@ -54,14 +58,18 @@ export function useMobilePreview(appId: number | null) {
       state: "preparing" | "live" | "syncing" | "failed" | "stopped" | "expired";
       errorMessage: string | null;
     }) => {
-      const code = await QRCode.toDataURL(status.url, {
-        width: 256,
-        margin: 2,
-        color: { dark: "#000000", light: "#ffffff" },
-      });
+      if (qrUrlRef.current !== status.url || !qrDataRef.current) {
+        const code = await QRCode.toDataURL(status.url, {
+          width: 256,
+          margin: 2,
+          color: { dark: "#000000", light: "#ffffff" },
+        });
+        qrUrlRef.current = status.url;
+        qrDataRef.current = code;
+        setQrCodeDataUrl(code);
+      }
       setOwnerAppId(status.appId);
       setPublicUrl(status.url);
-      setQrCodeDataUrl(code);
       setExpiresAt(status.expiresAt);
       setState(status.state);
       setErrorMessage(status.errorMessage);
@@ -80,17 +88,26 @@ export function useMobilePreview(appId: number | null) {
 
   useEffect(() => {
     if (ownerAppId !== null && ownerAppId !== appId) {
+      const previousAppId = ownerAppId;
       clearState();
       setIsPopoverOpen(false);
+      void ipc.app.stopPublicPreview({ appId: previousAppId }).catch(() => undefined);
     }
   }, [appId, clearState, ownerAppId]);
 
   useEffect(() => {
     if (appId === null || isEnabled) return;
     let cancelled = false;
-    void ipc.app.getPublicPreviewStatus({ appId }).then((status) => {
-      if (!cancelled && status) void applyStatus(status);
-    });
+    void ipc.app
+      .getPublicPreviewStatus({ appId })
+      .then((status) => {
+        if (!cancelled && status) return applyStatus(status);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.warn("Failed to restore public preview state", error);
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -106,9 +123,11 @@ export function useMobilePreview(appId: number | null) {
             clearState();
             return;
           }
-          void applyStatus(status);
+          return applyStatus(status);
         })
-        .catch(() => undefined);
+        .catch((error) => {
+          console.warn("Failed to refresh public preview status", error);
+        });
     }, STATUS_POLL_MS);
     return () => clearInterval(timer);
   }, [appId, applyStatus, clearState, isEnabled]);
@@ -165,12 +184,21 @@ export function useMobilePreview(appId: number | null) {
 
   const copyPublicPreviewUrl = useCallback(async () => {
     if (!publicUrl) return;
-    await navigator.clipboard.writeText(publicUrl);
-    showSuccess("Preview link copied");
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      showSuccess("Preview link copied");
+    } catch (error) {
+      showError(error);
+    }
   }, [publicUrl]);
 
   const openPublicPreview = useCallback(async () => {
-    if (publicUrl) await ipc.system.openExternalUrl(publicUrl);
+    if (!publicUrl) return;
+    try {
+      await ipc.system.openExternalUrl(publicUrl);
+    } catch (error) {
+      showError(error);
+    }
   }, [publicUrl]);
 
   return {

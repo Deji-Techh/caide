@@ -52,7 +52,6 @@ import {
   visualEditingSelectedComponentAtom,
 } from "@/atoms/previewAtoms";
 import {
-  currentAppUrlAtom,
   currentConsoleEntriesAtom,
   currentPreviewErrorAtom,
 } from "@/atoms/previewRuntimeAtoms";
@@ -135,7 +134,6 @@ export default function ChatPage() {
   const setSelectedFile = useSetAtom(selectedFileAtom);
   const setAnnotatorMode = useSetAtom(annotatorModeAtom);
   const previewIframe = useAtomValue(previewIframeRefAtom);
-  const currentAppUrl = useAtomValue(currentAppUrlAtom);
   const consoleEntries = useAtomValue(currentConsoleEntriesAtom);
   const previewError = useAtomValue(currentPreviewErrorAtom);
   const selectedComponent = useAtomValue(visualEditingSelectedComponentAtom);
@@ -402,8 +400,8 @@ export default function ChatPage() {
       ]);
       setRouteHistoryIndex((current) => current + 1);
     }
-    if (!previewIframe?.contentWindow || !currentAppUrl.appUrl) return;
-    const destination = new URL(path, new URL(currentAppUrl.appUrl).origin)
+    if (!previewIframe?.contentWindow || !mobilePreviewLanUrl) return;
+    const destination = new URL(path, new URL(mobilePreviewLanUrl).origin)
       .href;
     previewIframe.contentWindow.postMessage(
       { type: "navigate", payload: { url: destination } },
@@ -756,11 +754,7 @@ export default function ChatPage() {
                           e.preventDefault();
                           void toggleMobilePreview();
                         }}
-                        disabled={
-                          isMobilePreviewPending ||
-                          !currentAppUrl ||
-                          selectedAppId === null
-                        }
+                        disabled={isMobilePreviewPending || selectedAppId === null}
                         className={cn(
                           "p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-300 transition-colors",
                           isMobilePreviewEnabled &&

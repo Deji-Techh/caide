@@ -161,9 +161,14 @@ export const FileEditor = ({
   const collaborationRef = useRef(collaboration);
   const collaborationRevisionRef = useRef(0);
   const collaborationQueueRef = useRef(Promise.resolve());
+  const collaborationSyncedContentRef = useRef("");
+  const collaborationPendingContentRef = useRef<string | null>(null);
   const applyingRemoteRef = useRef(false);
   const collaborationDisposablesRef = useRef<Array<{ dispose(): void }>>([]);
   const remoteCursorDecorationsRef = useRef(new Map<string, string[]>());
+  const collaborationEditTimerRef = useRef<
+    ReturnType<typeof setTimeout> | null
+  >(null);
   const cursorBroadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -179,6 +184,10 @@ export const FileEditor = ({
       releaseModelRef.current = null;
       collaborationDisposablesRef.current.forEach((item) => item.dispose());
       collaborationDisposablesRef.current = [];
+      if (collaborationEditTimerRef.current) {
+        clearTimeout(collaborationEditTimerRef.current);
+        collaborationEditTimerRef.current = null;
+      }
       if (cursorBroadcastTimerRef.current) {
         clearTimeout(cursorBroadcastTimerRef.current);
         cursorBroadcastTimerRef.current = null;
@@ -208,7 +217,10 @@ export const FileEditor = ({
     needsSaveRef.current = false;
     setDisplayUnsavedChanges(false);
     setIsSaving(false);
-  }, [content]);
+    if (!collaborationRef.current?.files.some((file) => file.path === filePath)) {
+      collaborationSyncedContentRef.current = content;
+    }
+  }, [content, filePath]);
 
   // Determine if dark mode based on theme
   const isDarkMode =
@@ -224,7 +236,10 @@ export const FileEditor = ({
   useEffect(() => {
     collaborationRef.current = collaboration;
     const file = collaboration?.files.find((item) => item.path === filePath);
-    if (file) collaborationRevisionRef.current = file.revision;
+    if (file) {
+      collaborationRevisionRef.current = file.revision;
+      collaborationSyncedContentRef.current = file.content;
+    }
   }, [collaboration, filePath]);
 
   useEffect(() => {
@@ -292,6 +307,12 @@ export const FileEditor = ({
       );
       const model = editorRef.current?.getModel();
       if (!model || model.getValue() === content) return;
+      if (collaborationEditTimerRef.current) {
+        clearTimeout(collaborationEditTimerRef.current);
+        collaborationEditTimerRef.current = null;
+      }
+      collaborationPendingContentRef.current = null;
+      collaborationSyncedContentRef.current = content;
       applyingRemoteRef.current = true;
       model.setValue(content);
       originalValueRef.current = content;
@@ -321,13 +342,64 @@ export const FileEditor = ({
     editor.setPosition({ lineNumber, column: 1 });
   }, []);
 
+  function scheduleCollaborationFlush() {
+    if (collaborationEditTimerRef.current) {
+      clearTimeout(collaborationEditTimerRef.current);
+    }
+    collaborationEditTimerRef.current = setTimeout(() => {
+      collaborationEditTimerRef.current = null;
+      const pendingContent = collaborationPendingContentRef.current;
+      const activeCollaboration = collaborationRef.current;
+      if (
+        appId === null ||
+        pendingContent === null ||
+        !activeCollaboration ||
+        activeCollaboration.role === "viewer" ||
+        pendingContent === collaborationSyncedContentRef.current
+      ) {
+        return;
+      }
+      collaborationPendingContentRef.current = null;
+      collaborationQueueRef.current = collaborationQueueRef.current
+        .then(async () => {
+          const baseContent = collaborationSyncedContentRef.current;
+          const result = await ipc.collaboration.sendTextEdit({
+            appId,
+            path: filePath,
+            baseRevision: collaborationRevisionRef.current,
+            changes: [
+              {
+                rangeOffset: 0,
+                rangeLength: baseContent.length,
+                text: pendingContent,
+              },
+            ],
+          });
+          collaborationRevisionRef.current = result.revision;
+          collaborationSyncedContentRef.current = result.content;
+        })
+        .catch((error) => {
+          showError(error);
+        })
+        .finally(() => {
+          if (
+            collaborationPendingContentRef.current !== null &&
+            collaborationPendingContentRef.current !==
+              collaborationSyncedContentRef.current
+          ) {
+            scheduleCollaborationFlush();
+          }
+        });
+    }, 100);
+  }
+
   // Handle editor mount
   const handleEditorDidMount: OnMount = (editor) => {
     editorRef.current = editor;
     const model = editor.getModel();
     if (model) {
       releaseModelRef.current = retainMonacoModel(modelPath, model);
-      const contentDisposable = model.onDidChangeContent((event) => {
+      const contentDisposable = model.onDidChangeContent(() => {
         const activeCollaboration = collaborationRef.current;
         if (
           appId === null ||
@@ -336,24 +408,8 @@ export const FileEditor = ({
           applyingRemoteRef.current
         )
           return;
-        const changes = event.changes.map((change) => ({
-          rangeOffset: change.rangeOffset,
-          rangeLength: change.rangeLength,
-          text: change.text,
-        }));
-        collaborationQueueRef.current = collaborationQueueRef.current
-          .then(async () => {
-            const result = await ipc.collaboration.sendTextEdit({
-              appId,
-              path: filePath,
-              baseRevision: collaborationRevisionRef.current,
-              changes,
-            });
-            collaborationRevisionRef.current = result.revision;
-          })
-          .catch((error) => {
-            showError(error);
-          });
+        collaborationPendingContentRef.current = model.getValue();
+        scheduleCollaborationFlush();
       });
       collaborationDisposablesRef.current.push(contentDisposable);
     }

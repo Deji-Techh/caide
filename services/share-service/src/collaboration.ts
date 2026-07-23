@@ -140,7 +140,7 @@ async function authenticate(req: Request): Promise<Participant | null> {
   const result = await pool.query(
     `SELECT id, session_id, display_name, role, color
        FROM collaboration_participants
-      WHERE token_hash=$1`,
+      WHERE token_hash=$1 AND left_at IS NULL`,
     [hashToken(token)],
   );
   const row = result.rows[0];
@@ -587,7 +587,14 @@ export function registerCollaborationRoutes(app: Express): void {
       await assertSessionActive(participant.sessionId);
       const [session, participants, files, checkpoints, sequence] = await Promise.all([
         pool.query(`SELECT id,project_name,status,created_at,expires_at FROM collaboration_sessions WHERE id=$1`, [participant.sessionId]),
-        pool.query(`SELECT id,display_name,role,color,last_seen_at FROM collaboration_participants WHERE session_id=$1 ORDER BY created_at`, [participant.sessionId]),
+        pool.query(
+          `SELECT id,display_name,role,color,last_seen_at
+             FROM collaboration_participants
+            WHERE session_id=$1 AND left_at IS NULL
+              AND (id=$2 OR last_seen_at > now() - interval '45 seconds')
+            ORDER BY created_at`,
+          [participant.sessionId, participant.id],
+        ),
         pool.query(`SELECT path,content,revision,updated_at FROM collaboration_files WHERE session_id=$1 ORDER BY path`, [participant.sessionId]),
         pool.query(`SELECT id,name,created_by,created_at FROM collaboration_checkpoints WHERE session_id=$1 ORDER BY created_at DESC LIMIT 100`, [participant.sessionId]),
         pool.query(`SELECT coalesce(max(sequence),0)::bigint AS sequence FROM collaboration_events WHERE session_id=$1`, [participant.sessionId]),
@@ -646,7 +653,15 @@ export function registerCollaborationRoutes(app: Express): void {
       };
       await flush();
       const poll = setInterval(() => void flush().catch(() => undefined), 750);
-      const heartbeat = setInterval(() => res.write(`: keepalive ${Date.now()}\n\n`), 15_000);
+      const heartbeat = setInterval(() => {
+        void pool
+          .query(
+            `UPDATE collaboration_participants SET last_seen_at=now() WHERE id=$1 AND left_at IS NULL`,
+            [participant.id],
+          )
+          .catch(() => undefined);
+        res.write(`: keepalive ${Date.now()}\n\n`);
+      }, 15_000);
       req.on("close", () => {
         clearInterval(poll);
         clearInterval(heartbeat);
@@ -766,6 +781,50 @@ export function registerCollaborationRoutes(app: Express): void {
       client.release();
     }
   });
+
+  app.delete(
+    "/v1/collaboration/sessions/:id/participants/me",
+    async (req, res, next) => {
+      const client = await pool.connect();
+      try {
+        const participant = await authenticate(req);
+        if (!participant || participant.sessionId !== req.params.id) {
+          res.status(401).json({ error: "Collaboration access token required" });
+          return;
+        }
+        if (participant.role === "owner") {
+          res.status(409).json({
+            error: "The owner must end the collaboration session instead of leaving it",
+          });
+          return;
+        }
+        await client.query("BEGIN");
+        const sequence = await appendEvent(
+          client,
+          participant.sessionId,
+          "participant_left",
+          participant.id,
+          {
+            participantId: participant.id,
+            displayName: participant.displayName,
+          },
+        );
+        await client.query(
+          `UPDATE collaboration_participants
+              SET left_at=now(), last_seen_at=now()
+            WHERE id=$1 AND left_at IS NULL`,
+          [participant.id],
+        );
+        await client.query("COMMIT");
+        res.status(200).json({ sequence });
+      } catch (error) {
+        await client.query("ROLLBACK").catch(() => undefined);
+        sendApiError(error, res, next);
+      } finally {
+        client.release();
+      }
+    },
+  );
 
   app.delete("/v1/collaboration/sessions/:id", async (req, res, next) => {
     try {

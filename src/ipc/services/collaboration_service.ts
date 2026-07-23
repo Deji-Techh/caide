@@ -13,12 +13,15 @@ import type {
   CollaborationSession,
   CollaborationTextChange,
 } from "@/ipc/types/collaboration";
+import {
+  watchProjectTree,
+  type ProjectChangeWatcher,
+} from "./project_change_watcher";
 
 const DEFAULT_API = "https://caide.onrender.com";
 const MAX_TEXT_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_PROJECT_BYTES = 20 * 1024 * 1024;
 const MAX_FILES = 2_000;
-const WATCH_INTERVAL_MS = 1_500;
 const EXCLUDED_DIRS = new Set([
   ".git",
   "node_modules",
@@ -48,7 +51,11 @@ interface ActiveSession {
   files: Map<string, { content: string; revision: number }>;
   sender: WebContents;
   abortController: AbortController;
-  watchTimer?: ReturnType<typeof setInterval>;
+  watcher?: ProjectChangeWatcher;
+  scanTimer?: ReturnType<typeof setTimeout>;
+  scanInFlight: boolean;
+  scanRequested: boolean;
+  watcherSuspended: number;
   connection: CollaborationSession["connection"];
   localHashes: Map<string, string>;
   applyingRemote: Set<string>;
@@ -206,12 +213,41 @@ async function resolveApp(appId: number) {
   return { appRecord, appPath: getDyadAppPath(appRecord.path) };
 }
 
+function resolveProjectFile(active: ActiveSession, filePath: string): string {
+  const normalized = safePath(filePath);
+  const destination = path.resolve(active.appPath, normalized);
+  const root = path.resolve(active.appPath) + path.sep;
+  if (!destination.startsWith(root)) {
+    throw new Error("Collaboration file operation escaped the project root");
+  }
+  return destination;
+}
+
+async function withWorkspaceMutation<T>(
+  active: ActiveSession,
+  task: () => Promise<T>,
+): Promise<T> {
+  active.watcherSuspended += 1;
+  try {
+    return await task();
+  } finally {
+    setTimeout(() => {
+      active.watcherSuspended = Math.max(0, active.watcherSuspended - 1);
+      if (
+        !active.abortController.signal.aborted &&
+        active.watcherSuspended === 0 &&
+        active.scanRequested
+      ) {
+        scheduleWorkspaceScan(active);
+      }
+    }, 450);
+  }
+}
+
 async function writeRemoteFile(active: ActiveSession, filePath: string, content: string) {
   const normalized = safePath(filePath);
   if (!isShareablePath(normalized)) throw new Error("Remote update targeted a protected file");
-  const destination = path.resolve(active.appPath, normalized);
-  const root = path.resolve(active.appPath) + path.sep;
-  if (!destination.startsWith(root)) throw new Error("Remote update escaped the project root");
+  const destination = resolveProjectFile(active, normalized);
   active.applyingRemote.add(normalized);
   try {
     await fs.mkdir(path.dirname(destination), { recursive: true });
@@ -224,9 +260,7 @@ async function writeRemoteFile(active: ActiveSession, filePath: string, content:
 
 async function deleteRemoteFile(active: ActiveSession, filePath: string) {
   const normalized = safePath(filePath);
-  const destination = path.resolve(active.appPath, normalized);
-  const root = path.resolve(active.appPath) + path.sep;
-  if (!destination.startsWith(root)) throw new Error("Remote delete escaped the project root");
+  const destination = resolveProjectFile(active, normalized);
   active.applyingRemote.add(normalized);
   try {
     await fs.rm(destination, { recursive: true, force: true });
@@ -248,10 +282,39 @@ async function refreshAuthoritativeState(active: ActiveSession): Promise<void> {
     const content = String(file.content ?? "");
     const revision = Number(file.revision ?? 0);
     nextFiles.set(filePath, { content, revision });
-    await writeRemoteFile(active, filePath, content);
   }
-  for (const existing of active.files.keys()) {
-    if (!nextFiles.has(existing)) await deleteRemoteFile(active, existing);
+
+  const affectedPaths = new Set([...active.files.keys(), ...nextFiles.keys()]);
+  const backups = new Map<string, string | null>();
+  for (const filePath of affectedPaths) {
+    const destination = resolveProjectFile(active, filePath);
+    const content = await fs.readFile(destination, "utf8").catch((error) => {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw error;
+    });
+    backups.set(filePath, content);
+  }
+
+  try {
+    await withWorkspaceMutation(active, async () => {
+      for (const [filePath, file] of nextFiles) {
+        await writeRemoteFile(active, filePath, file.content);
+      }
+      for (const existing of active.files.keys()) {
+        if (!nextFiles.has(existing)) await deleteRemoteFile(active, existing);
+      }
+    });
+  } catch (error) {
+    await withWorkspaceMutation(active, async () => {
+      for (const [filePath, content] of backups) {
+        if (content === null) {
+          await deleteRemoteFile(active, filePath);
+        } else {
+          await writeRemoteFile(active, filePath, content);
+        }
+      }
+    }).catch(() => undefined);
+    throw error;
   }
   active.files = nextFiles;
   active.participants = (state.participants ?? []).map((participant: any) => ({
@@ -288,28 +351,43 @@ async function applyServerEvent(active: ActiveSession, raw: any): Promise<void> 
     const filePath = safePath(String(payload.path));
     const content = String(payload.content ?? "");
     const revision = Number(payload.revision ?? 0);
+    await withWorkspaceMutation(active, () =>
+      writeRemoteFile(active, filePath, content),
+    );
     active.files.set(filePath, { content, revision });
-    await writeRemoteFile(active, filePath, content);
   } else if (raw.type === "file_create") {
     const filePath = safePath(String(payload.path));
     const content = String(payload.content ?? "");
+    await withWorkspaceMutation(active, () =>
+      writeRemoteFile(active, filePath, content),
+    );
     active.files.set(filePath, { content, revision: 0 });
-    await writeRemoteFile(active, filePath, content);
   } else if (raw.type === "file_delete") {
     const filePath = safePath(String(payload.path));
+    await withWorkspaceMutation(active, () => deleteRemoteFile(active, filePath));
     active.files.delete(filePath);
-    await deleteRemoteFile(active, filePath);
   } else if (raw.type === "file_rename") {
     const from = safePath(String(payload.from));
     const to = safePath(String(payload.to));
     const file = active.files.get(from);
-    active.files.delete(from);
-    if (file) active.files.set(to, file);
-    const fromPath = path.join(active.appPath, from);
-    const toPath = path.join(active.appPath, to);
-    await fs.mkdir(path.dirname(toPath), { recursive: true });
-    await fs.rename(fromPath, toPath).catch(async (error) => {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    await withWorkspaceMutation(active, async () => {
+      const fromPath = resolveProjectFile(active, from);
+      const toPath = resolveProjectFile(active, to);
+      active.applyingRemote.add(from);
+      active.applyingRemote.add(to);
+      await fs.mkdir(path.dirname(toPath), { recursive: true });
+      await fs.rename(fromPath, toPath).catch(async (error) => {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      });
+      const previousHash = active.localHashes.get(from);
+      active.localHashes.delete(from);
+      if (previousHash) active.localHashes.set(to, previousHash);
+      active.files.delete(from);
+      if (file) active.files.set(to, file);
+      setTimeout(() => {
+        active.applyingRemote.delete(from);
+        active.applyingRemote.delete(to);
+      }, 250);
     });
   } else if (raw.type === "participant_joined") {
     const participant = {
@@ -321,6 +399,11 @@ async function applyServerEvent(active: ActiveSession, raw: any): Promise<void> 
     if (!active.participants.some((item) => item.id === participant.id)) {
       active.participants = [...active.participants, participant];
     }
+  } else if (raw.type === "participant_left") {
+    const participantId = String(payload.participantId ?? raw.actor_id ?? "");
+    active.participants = active.participants.filter(
+      (participant) => participant.id !== participantId,
+    );
   } else if (raw.type === "active_file" && actor) {
     active.participants = active.participants.map((participant) =>
       participant.id === actor.id
@@ -448,15 +531,52 @@ async function scanWorkspace(active: ActiveSession): Promise<void> {
   }
 }
 
-function startWorkspaceWatcher(active: ActiveSession): void {
-  active.watchTimer = setInterval(() => {
-    void scanWorkspace(active).catch((error) => {
-      emit(active, {
-        type: "sync_error",
-        payload: { message: error instanceof Error ? error.message : String(error) },
-      });
+async function runWorkspaceScan(active: ActiveSession): Promise<void> {
+  if (active.abortController.signal.aborted) return;
+  if (active.watcherSuspended > 0 || active.scanInFlight) {
+    active.scanRequested = true;
+    return;
+  }
+  active.scanInFlight = true;
+  try {
+    do {
+      active.scanRequested = false;
+      await scanWorkspace(active);
+    } while (
+      active.scanRequested &&
+      active.watcherSuspended === 0 &&
+      !active.abortController.signal.aborted
+    );
+  } catch (error) {
+    emit(active, {
+      type: "sync_error",
+      payload: { message: error instanceof Error ? error.message : String(error) },
     });
-  }, WATCH_INTERVAL_MS);
+  } finally {
+    active.scanInFlight = false;
+  }
+}
+
+function scheduleWorkspaceScan(active: ActiveSession): void {
+  active.scanRequested = true;
+  if (active.watcherSuspended > 0 || active.scanInFlight) return;
+  if (active.scanTimer) clearTimeout(active.scanTimer);
+  active.scanTimer = setTimeout(() => {
+    active.scanTimer = undefined;
+    void runWorkspaceScan(active);
+  }, 280);
+}
+
+async function startWorkspaceWatcher(active: ActiveSession): Promise<void> {
+  active.watcher?.close();
+  active.watcher = await watchProjectTree(active.appPath, {
+    excludedDirectories: EXCLUDED_DIRS,
+    debounceMs: 280,
+    reconcileMs: 30_000,
+    onChange: () => {
+      scheduleWorkspaceScan(active);
+    },
+  });
 }
 
 async function sendEventRequest<T>(active: ActiveSession, body: unknown): Promise<T> {
@@ -477,7 +597,7 @@ async function activate(input: {
   role: ActiveSession["role"];
   expiresAt?: string;
 }): Promise<CollaborationSession> {
-  await leaveCollaboration(input.appId);
+  await deactivateCollaboration(input.appId, false);
   const state = await request<any>(
     `/v1/collaboration/sessions/${encodeURIComponent(input.sessionId)}`,
     {},
@@ -520,15 +640,20 @@ async function activate(input: {
     connection: "connecting",
     localHashes,
     applyingRemote: new Set(),
+    scanInFlight: false,
+    scanRequested: false,
+    watcherSuspended: 0,
   };
   activeByAppId.set(input.appId, active);
   if (input.role !== "owner") {
-    for (const [filePath, file] of files) {
-      await writeRemoteFile(active, filePath, file.content);
-    }
+    await withWorkspaceMutation(active, async () => {
+      for (const [filePath, file] of files) {
+        await writeRemoteFile(active, filePath, file.content);
+      }
+    });
   }
   await persistActiveSessions();
-  startWorkspaceWatcher(active);
+  await startWorkspaceWatcher(active);
   void consumeEventStream(active);
   return serializeSession(active);
 }
@@ -637,14 +762,35 @@ export async function sendCollaborationTextEdit(input: {
   const active = activeByAppId.get(input.appId);
   if (!active) throw new Error("Collaboration session is not active");
   if (active.role === "viewer") throw new Error("Viewers cannot edit files");
-  const result = await sendEventRequest<any>(active, {
-    type: "text_edit",
-    payload: {
-      path: safePath(input.path),
-      baseRevision: input.baseRevision,
-      changes: input.changes,
-    },
-  });
+  const normalizedPath = safePath(input.path);
+  let result: any;
+  try {
+    result = await sendEventRequest<any>(active, {
+      type: "text_edit",
+      payload: {
+        path: normalizedPath,
+        baseRevision: input.baseRevision,
+        changes: input.changes,
+      },
+    });
+  } catch (error) {
+    if ((error as Error & { status?: number }).status === 409) {
+      await refreshAuthoritativeState(active);
+      const latest = active.files.get(normalizedPath);
+      if (latest) {
+        emit(active, {
+          type: "file_snapshot",
+          payload: {
+            path: normalizedPath,
+            content: latest.content,
+            revision: latest.revision,
+            origin: "conflict-resync",
+          },
+        });
+      }
+    }
+    throw error;
+  }
   active.files.set(result.path, { content: result.content, revision: result.revision });
   active.localHashes.set(result.path, contentHash(result.content));
   return result;
@@ -705,13 +851,28 @@ export async function restoreCollaborationCheckpoint(appId: number, checkpointId
   );
 }
 
-export async function leaveCollaboration(appId: number): Promise<void> {
+async function deactivateCollaboration(
+  appId: number,
+  notifyServer: boolean,
+): Promise<void> {
   const active = activeByAppId.get(appId);
   if (!active) return;
+  if (notifyServer && active.role !== "owner") {
+    await request(
+      `/v1/collaboration/sessions/${encodeURIComponent(active.sessionId)}/participants/me`,
+      { method: "DELETE" },
+      active.accessToken,
+    ).catch(() => undefined);
+  }
   active.abortController.abort();
-  if (active.watchTimer) clearInterval(active.watchTimer);
+  active.watcher?.close();
+  if (active.scanTimer) clearTimeout(active.scanTimer);
   activeByAppId.delete(appId);
   await persistActiveSessions();
+}
+
+export async function leaveCollaboration(appId: number): Promise<void> {
+  await deactivateCollaboration(appId, true);
 }
 
 export async function closeCollaboration(appId: number): Promise<void> {
@@ -722,24 +883,46 @@ export async function closeCollaboration(appId: number): Promise<void> {
     { method: "DELETE" },
     active.accessToken,
   );
-  await leaveCollaboration(appId);
+  await deactivateCollaboration(appId, false);
 }
 
-
 const SAFE_COMMANDS = [
-  /^git\s+(?:status|diff|log|branch)(?:\s+[^;&|`$<>]*)?$/,
-  /^(?:npm|pnpm|yarn)\s+(?:test|run\s+[A-Za-z0-9:_-]+)(?:\s+--\s+[^;&|`$<>]*)?$/,
+  /^git status(?: --short| --porcelain(?:=v1|=v2)?)?$/,
+  /^git diff(?: --stat| --name-only| --name-status)?$/,
+  /^git log(?: --oneline)?(?: -n [1-9][0-9]{0,2})?$/,
+  /^git branch --show-current$/,
 ] as const;
+
+export function isApprovedCollaborationCommand(command: string): boolean {
+  const normalized = command.trim().replace(/\s+/g, " ");
+  return SAFE_COMMANDS.some((pattern) => pattern.test(normalized));
+}
 
 function parseApprovedCommand(command: string): { executable: string; args: string[] } {
   const normalized = command.trim().replace(/\s+/g, " ");
-  if (!SAFE_COMMANDS.some((pattern) => pattern.test(normalized))) {
+  if (!isApprovedCollaborationCommand(normalized)) {
     throw new Error(
-      "Only read-only Git commands and declared package scripts can be approved from collaboration chat.",
+      "Only explicitly allowlisted read-only Git inspection commands can be approved from collaboration chat.",
     );
   }
   const [executable, ...args] = normalized.split(" ");
   return { executable, args };
+}
+
+function approvedCommandEnvironment(): NodeJS.ProcessEnv {
+  const environment: NodeJS.ProcessEnv = {};
+  for (const key of [
+    "PATH",
+    "HOME",
+    "USERPROFILE",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+  ]) {
+    const value = process.env[key];
+    if (value) environment[key] = value;
+  }
+  return environment;
 }
 
 export async function executeApprovedCollaborationCommand(input: {
@@ -759,7 +942,11 @@ export async function executeApprovedCollaborationCommand(input: {
     const child = spawn(executable, args, {
       cwd: active.appPath,
       shell: false,
-      env: process.env,
+      env: {
+        ...approvedCommandEnvironment(),
+        GIT_TERMINAL_PROMPT: "0",
+        GIT_CONFIG_NOSYSTEM: "1",
+      },
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stdout = "";

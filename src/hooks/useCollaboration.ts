@@ -17,9 +17,16 @@ export function useCollaboration(appId: number | null) {
       setEvents([]);
       return;
     }
-    void ipc.collaboration.getSession({ appId }).then((current) => {
-      setSession(current);
-    });
+    setEvents([]);
+    void ipc.collaboration
+      .getSession({ appId })
+      .then((current) => {
+        setSession(current);
+      })
+      .catch((error) => {
+        console.warn("Failed to restore collaboration session", error);
+        setSession(null);
+      });
   }, [appId, setEvents, setSession]);
 
   useEffect(() => {
@@ -43,6 +50,19 @@ export function useCollaboration(appId: number | null) {
             ? current
             : { ...current, participants: [...current.participants, participant] };
         });
+      }
+      if (event.type === "participant_left") {
+        const participantId = String(event.payload.participantId ?? "");
+        setSession((current) =>
+          current
+            ? {
+                ...current,
+                participants: current.participants.filter(
+                  (participant) => participant.id !== participantId,
+                ),
+              }
+            : current,
+        );
       }
       if (event.type === "active_file" && event.actor) {
         setSession((current) =>
