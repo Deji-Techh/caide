@@ -116,48 +116,30 @@ export function ChatPanel({
     const isChatSwitch = prevChatIdRef.current !== chatId;
     prevChatIdRef.current = chatId;
 
-    isAtBottomRef.current = true;
-    setShowScrollButton(false);
+    if (isChatSwitch) {
+      isAtBottomRef.current = true;
+      setShowScrollButton(false);
 
-    if (isChatSwitch && messages.length > 0) {
-      // When switching chats with existing messages, wait for Virtuoso to render
-      // then scroll to ensure we're at the bottom
-      requestAnimationFrame(() => {
+      if (messages.length > 0) {
+        // A newly selected conversation opens at its latest message. After that,
+        // the user's reading position belongs to them and must not be reset by
+        // message-count changes or builder layout changes.
         requestAnimationFrame(() => {
-          scrollToBottom("instant");
+          requestAnimationFrame(() => {
+            scrollToBottom("instant");
+          });
         });
-      });
-    } else if (!isChatSwitch) {
-      // For stream count changes (new message sent), wait for Virtuoso to render
-      // the placeholder message before scrolling
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          scrollToBottom();
-        });
-      });
+      }
+      return;
     }
-    // Note: if isChatSwitch && messages.length === 0, we don't scroll yet.
-    // The messages will be fetched and this effect will re-run with messages.length > 0.
-  }, [chatId, streamCount, messages.length, scrollToBottom]);
 
-  // The builder switches between a narrow inspector and a full-width agent
-  // workspace. Keep the same non-virtualized renderer in both modes and restore
-  // the bottom position after the width reflow, so file cards, approvals and
-  // footer actions do not appear to disappear when the panel is expanded.
-  useEffect(() => {
-    if (!disableMessageVirtualization || !isAtBottomRef.current) return;
-    let firstFrame: number | undefined;
-    let secondFrame: number | undefined;
-    firstFrame = requestAnimationFrame(() => {
-      secondFrame = requestAnimationFrame(() => {
-        scrollToBottom("instant");
-      });
+    // Follow a new message only while the user is already following the bottom.
+    // Scrolling upward immediately opts out, including while a response streams.
+    if (!isAtBottomRef.current) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => scrollToBottom("instant"));
     });
-    return () => {
-      if (firstFrame !== undefined) cancelAnimationFrame(firstFrame);
-      if (secondFrame !== undefined) cancelAnimationFrame(secondFrame);
-    };
-  }, [compact, disableMessageVirtualization, scrollToBottom]);
+  }, [chatId, streamCount, messages.length, scrollToBottom]);
 
   const fetchChatMessages = useCallback(async () => {
     if (!chatId) {

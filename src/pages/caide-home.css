@@ -1736,6 +1736,9 @@
 
 /* Builder */
 .caide-workspace {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   display: grid;
   grid-template-rows: 58px minmax(0, 1fr);
   overflow: hidden;
@@ -1847,6 +1850,7 @@
 
 .caide-workspace-body {
   position: relative;
+  height: 100%;
   min-height: 0;
   display: grid;
   grid-template-columns: 47px 228px minmax(480px, 1fr) 322px;
@@ -1888,8 +1892,10 @@
 
 .caide-screen-map {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   border-right: 1px solid var(--caide-line);
   background: #0d0e11;
 }
@@ -1945,12 +1951,22 @@
   font-size: 10px;
 }
 .caide-screen-map-list {
+  flex: 1 1 auto;
   min-height: 0;
   display: grid;
   align-content: start;
   gap: 3px;
   padding: 8px 7px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.caide-map-heading,
+.caide-map-search,
+.caide-map-section,
+.caide-runtime-state {
+  flex: 0 0 auto;
 }
 .caide-screen-map-list button {
   min-width: 0;
@@ -3248,8 +3264,8 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   border: 1px solid #2b2e34;
-  background: rgba(12, 13, 16, 0.96);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+  background: #111216;
+  box-shadow: none;
   overflow: hidden;
   animation: caide-panel-enter 180ms ease-out;
 }
@@ -3282,10 +3298,20 @@
 
 .caide-flow-track {
   min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+  background: #111216;
+}
+
+.caide-flow-canvas {
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
   padding: 28px;
   display: flex;
   align-items: center;
-  overflow: auto;
+  box-sizing: border-box;
 }
 
 .caide-flow-step {
@@ -5538,62 +5564,6 @@
   box-shadow: 0 10px 30px rgb(0 0 0 / 12%);
 }
 
-.caide-properties.is-agent-expanded {
-  background: #0b0c0f;
-}
-
-.caide-properties.is-agent-expanded .caide-inspector-tabs {
-  position: relative;
-  z-index: 2;
-  min-height: 48px;
-  background: rgb(13 14 17 / 96%);
-  backdrop-filter: blur(14px);
-}
-
-.caide-properties.is-agent-expanded .caide-agent-panel {
-  min-height: 0;
-  padding-inline: clamp(16px, 4vw, 64px);
-  background:
-    radial-gradient(circle at 50% -20%, rgb(255 255 255 / 5%), transparent 42%),
-    #0b0c0f;
-}
-
-.caide-properties.is-agent-expanded .caide-agent-panel > .caide-chat-panel {
-  width: min(1220px, 100%);
-  margin-inline: auto;
-  border-inline: 1px solid #25272d;
-  background: #0f1013;
-  box-shadow: 0 26px 80px rgb(0 0 0 / 28%);
-}
-
-.caide-properties.is-agent-expanded
-  .caide-agent-panel
-  [data-testid="messages-list"] {
-  width: min(1040px, 100%);
-  padding: 24px 20px 12px !important;
-  scroll-padding-bottom: 28px;
-}
-
-.caide-properties.is-agent-expanded .caide-chat-message {
-  max-width: 920px;
-}
-
-.caide-properties.is-agent-expanded
-  [data-message-role="user"]
-  .caide-chat-message {
-  max-width: 780px;
-  margin-right: 0;
-}
-
-.caide-properties.is-agent-expanded
-  .caide-agent-panel
-  [data-testid="chat-input-container"] {
-  width: min(1040px, 100%);
-  padding: 12px 20px 16px !important;
-  border-top-color: #25272d;
-  background: linear-gradient(180deg, rgb(15 16 19 / 84%), #0f1013 24%);
-}
-
 /* The workspace defines dark semantic tokens on its own scope. Override those
    tokens in light mode so Tailwind-based chat cards and the composer do not
    inherit dark surfaces even when the surrounding shell is light. */
@@ -5737,5 +5707,161 @@
     [data-testid="chat-input-container"] {
     width: 100%;
     padding-inline: 10px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Builder overflow, flow centering and unified Agent workspace
+   -------------------------------------------------------------------------- */
+
+.caide-screen-map-list {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--caide-text) 24%, transparent)
+    transparent;
+}
+
+.caide-screen-map-list::-webkit-scrollbar,
+.caide-flow-track::-webkit-scrollbar,
+.caide-agent-panel [data-testid="messages-list"]::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.caide-screen-map-list::-webkit-scrollbar-thumb,
+.caide-flow-track::-webkit-scrollbar-thumb,
+.caide-agent-panel
+  [data-testid="messages-list"]::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--caide-text) 22%, transparent);
+  background-clip: padding-box;
+}
+
+.caide-agent-panel [data-testid="messages-list"] {
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+
+.caide-properties.is-agent-expanded,
+.caide-properties.is-agent-expanded .caide-inspector-tabs,
+.caide-properties.is-agent-expanded .caide-agent-panel,
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  > .caide-chat-panel,
+.caide-properties.is-agent-expanded .caide-agent-panel .caide-chat-header,
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="messages-list"],
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="chat-input-container"] {
+  background: #0b0c0f !important;
+}
+
+.caide-properties.is-agent-expanded .caide-agent-panel {
+  padding-inline: clamp(16px, 4vw, 64px);
+}
+
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  > .caide-chat-panel {
+  border-inline: 0;
+  box-shadow: none;
+}
+
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="messages-list"] {
+  scroll-padding-block: 24px 32px;
+}
+
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="chat-input-container"] {
+  border-top-color: #25272d;
+}
+
+.light .caide-flow-editor,
+.light .caide-flow-track,
+.light .caide-flow-editor-heading {
+  color: #202328;
+  border-color: #d8dade;
+  background: #eef0f2;
+}
+
+.light .caide-flow-editor-heading span {
+  color: #202328;
+}
+
+.light .caide-flow-editor-heading strong {
+  color: #69707a;
+}
+
+.light .caide-flow-step > button {
+  color: #4f555f;
+  border-color: #d8dade;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(31 35 41 / 4%);
+}
+
+.light .caide-flow-step > button strong {
+  color: #202328;
+}
+
+.light .caide-flow-step > button:hover,
+.light .caide-flow-step > button.active {
+  border-color: #9da3ac;
+  background: #f8f9fa;
+}
+
+.light .caide-flow-add {
+  color: #69707a;
+  border-color: #b7bcc4;
+  background: transparent;
+}
+
+.light .caide-flow-add:hover {
+  color: #202328;
+  border-color: #69707a;
+  background: #f8f9fa;
+}
+
+.light .caide-properties.is-agent-expanded,
+.light .caide-properties.is-agent-expanded .caide-inspector-tabs,
+.light .caide-properties.is-agent-expanded .caide-agent-panel,
+.light
+  .caide-properties.is-agent-expanded
+  .caide-agent-panel
+  > .caide-chat-panel,
+.light
+  .caide-properties.is-agent-expanded
+  .caide-agent-panel
+  .caide-chat-header,
+.light
+  .caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="messages-list"],
+.light
+  .caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="chat-input-container"] {
+  background: #eef0f2 !important;
+}
+
+.light
+  .caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="chat-input-container"] {
+  border-top-color: #d8dade;
+}
+
+@media (max-width: 760px) {
+  .caide-flow-editor {
+    inset: 46px 10px 12px;
+  }
+
+  .caide-flow-canvas {
+    padding: 18px;
   }
 }

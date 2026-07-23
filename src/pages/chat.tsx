@@ -159,6 +159,7 @@ export default function ChatPage() {
     offsetY: number;
   } | null>(null);
   const canvasSurfaceRef = useRef<HTMLDivElement>(null);
+  const flowTrackRef = useRef<HTMLDivElement>(null);
   const selectedAppIdRef = useRef(selectedAppId);
   const [devicePresetId, setDevicePresetId] =
     useState<DevicePresetId>("iphone-16-pro");
@@ -308,6 +309,46 @@ export default function ChatPage() {
         route.path.toLowerCase().includes(query),
     );
   }, [screenFilter, screenRoutes]);
+
+  useEffect(() => {
+    if (previewMode !== "preview" || tool !== "flow") return;
+
+    const track = flowTrackRef.current;
+    if (!track) return;
+
+    let firstFrame: number | undefined;
+    let secondFrame: number | undefined;
+    firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        const selectedScreen = Array.from(
+          track.querySelectorAll<HTMLElement>("[data-route-path]"),
+        ).find((element) => element.dataset.routePath === selectedRoute);
+
+        if (!selectedScreen) {
+          track.scrollTo({ left: 0, top: 0 });
+          return;
+        }
+
+        const trackRect = track.getBoundingClientRect();
+        const screenRect = selectedScreen.getBoundingClientRect();
+        const centeredLeft =
+          track.scrollLeft +
+          screenRect.left -
+          trackRect.left -
+          (track.clientWidth - screenRect.width) / 2;
+
+        track.scrollTo({
+          left: Math.max(0, centeredLeft),
+          behavior: "smooth",
+        });
+      });
+    });
+
+    return () => {
+      if (firstFrame !== undefined) cancelAnimationFrame(firstFrame);
+      if (secondFrame !== undefined) cancelAnimationFrame(secondFrame);
+    };
+  }, [previewMode, selectedRoute, screenRoutes.length, tool]);
 
   const recentRuntimeEntries = consoleEntries.slice(-6);
   const latestRuntimeMessage =
@@ -837,44 +878,50 @@ export default function ChatPage() {
                   </span>
                   <strong>{screenRoutes.length} screens</strong>
                 </div>
-                <div className="caide-flow-track">
-                  {screenRoutes.map((route, index) => (
-                    <div className="caide-flow-step" key={route.path}>
+                <div className="caide-flow-track" ref={flowTrackRef}>
+                    <div className="caide-flow-canvas">
+                      {screenRoutes.map((route, index) => (
+                        <div className="caide-flow-step" key={route.path}>
+                          <button
+                            type="button"
+                            data-route-path={route.path}
+                            aria-current={
+                              selectedRoute === route.path ? "page" : undefined
+                            }
+                            className={
+                              selectedRoute === route.path ? "active" : undefined
+                            }
+                            onClick={() => {
+                              navigatePreview(route.path);
+                              selectTool("inspect");
+                            }}
+                          >
+                            <span>{String(index + 1).padStart(2, "0")}</span>
+                            <Smartphone size={17} />
+                            <strong>{route.label}</strong>
+                            <small>{route.path}</small>
+                          </button>
+                          {index < screenRoutes.length - 1 && (
+                            <div className="caide-flow-connector">
+                              <i />
+                              <ChevronDown size={13} />
+                            </div>
+                          )}
+                        </div>
+                      ))}
                       <button
                         type="button"
-                        className={
-                          selectedRoute === route.path ? "active" : undefined
+                        className="caide-flow-add"
+                        onClick={() =>
+                          focusAgentWithPrompt(
+                            "Add a new screen to this mobile app and connect it to the current navigation flow. Ask for the screen name and purpose first.",
+                          )
                         }
-                        onClick={() => {
-                          navigatePreview(route.path);
-                          selectTool("inspect");
-                        }}
                       >
-                        <span>{String(index + 1).padStart(2, "0")}</span>
-                        <Smartphone size={17} />
-                        <strong>{route.label}</strong>
-                        <small>{route.path}</small>
+                        <Plus size={15} /> Add screen
                       </button>
-                      {index < screenRoutes.length - 1 && (
-                        <div className="caide-flow-connector">
-                          <i />
-                          <ChevronDown size={13} />
-                        </div>
-                      )}
                     </div>
-                  ))}
-                  <button
-                    type="button"
-                    className="caide-flow-add"
-                    onClick={() =>
-                      focusAgentWithPrompt(
-                        "Add a new screen to this mobile app and connect it to the current navigation flow. Ask for the screen name and purpose first.",
-                      )
-                    }
-                  >
-                    <Plus size={15} /> Add screen
-                  </button>
-                </div>
+                  </div>
               </div>
             ) : previewMode === "preview" ? (
               <div
