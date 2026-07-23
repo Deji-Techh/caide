@@ -36,6 +36,7 @@ import {
   Undo2,
   Redo2,
   RotateCw,
+  Users,
   X,
 } from "lucide-react";
 
