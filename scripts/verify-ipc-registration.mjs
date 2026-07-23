@@ -475,6 +475,37 @@ function collectRegisterTypedHandlerGroups(code) {
   return groups;
 }
 
+export function collectContractMemberReferences(
+  source,
+  groupNames,
+  filePath = "source.ts",
+) {
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    scriptKindFor(filePath),
+  );
+  const references = new Set();
+
+  const visit = (node) => {
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      groupNames.has(node.expression.text)
+    ) {
+      references.add(
+        `${node.expression.text}.${node.name.text}`,
+      );
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return references;
+}
+
 export function collectRegisteredContractReferences(
   sources,
   definitionsByGroup,
@@ -494,20 +525,20 @@ export function collectRegisteredContractReferences(
     const code = maskCommentsAndStrings(source);
     const wholeGroups = collectRegisterTypedHandlerGroups(code);
     const literalChannels = collectLiteralHandlerChannels(source, filePath);
+    const memberReferences = collectContractMemberReferences(
+      source,
+      new Set(definitionsByGroup.keys()),
+      filePath,
+    );
+    for (const reference of memberReferences) {
+      references.add(reference);
+    }
     for (const channel of literalChannels) {
       for (const definition of definitionsByChannel.get(channel) ?? []) {
         references.add(`${definition.group}.${definition.member}`);
       }
     }
     for (const [groupName, definitions] of definitionsByGroup) {
-      const memberPattern = new RegExp(
-        `\\b${groupName}\\s*\\.\\s*([A-Za-z_$][A-Za-z0-9_$]*)`,
-        "g",
-      );
-      for (const match of code.matchAll(memberPattern)) {
-        references.add(`${groupName}.${match[1]}`);
-      }
-
       if (wholeGroups.has(groupName)) {
         for (const definition of definitions) {
           references.add(`${groupName}.${definition.member}`);

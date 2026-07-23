@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   auditDefinitions,
   collectContractDefinitions,
+  collectContractMemberReferences,
   collectLiteralHandlerChannels,
   collectRegisteredContractReferences,
   collectRegistryGroupNames,
@@ -112,6 +113,29 @@ test("allows the intentional check-app-name compatibility alias", () => {
     new Set(["appContracts.checkAppName", "importContracts.checkAppName"]),
   );
   assert.deepEqual(audit.duplicateChannels, []);
+});
+
+test("finds typed contract references after complex source syntax", () => {
+  const references = collectContractMemberReferences(
+    String.raw`
+      const pattern = /<dyad-write[^>]*>/g;
+      const template = \`value \${condition ? "yes" : "no"}\`;
+
+      createTypedHandler(
+        chatContracts.cancelStream,
+        async (_event, chatId) => Boolean(chatId),
+      );
+
+      // chatContracts.fakeComment
+      const text = "chatContracts.fakeString";
+    `,
+    new Set(["chatContracts"]),
+    "chat_stream_handlers.ts",
+  );
+
+  assert.deepEqual([...references], [
+    "chatContracts.cancelStream",
+  ]);
 });
 
 test("reports missing contracts and duplicate channels", () => {
