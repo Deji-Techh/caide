@@ -4,7 +4,6 @@ import {
   Copy,
   Download,
   ExternalLink,
-  LoaderCircle,
   Mail,
   MessageCircle,
   QrCode,
@@ -16,6 +15,7 @@ import QRCode from "qrcode";
 import { ipc, type CreateRemoteShareResult } from "@/ipc/types";
 import { showError, showSuccess } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +48,8 @@ export function ShareProjectDialog({
   const [share, setShare] = useState<CreateRemoteShareResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrPending, setQrPending] = useState(false);
+  const [linkBusy, setLinkBusy] = useState<string | null>(null);
 
   useEffect(() => {
     setShare(null);
@@ -58,17 +60,23 @@ export function ShareProjectDialog({
   useEffect(() => {
     if (!share?.shareUrl) {
       setQrCode(null);
+      setQrPending(false);
       return;
     }
     let cancelled = false;
+    setQrPending(true);
     void QRCode.toDataURL(share.shareUrl, { width: 280, margin: 2 })
       .then((data) => {
-        if (!cancelled) setQrCode(data);
+        if (!cancelled) {
+          setQrCode(data);
+          setQrPending(false);
+        }
       })
       .catch((error) => {
         if (!cancelled) {
           console.error("Failed to create project-share QR code", error);
           setQrCode(null);
+          setQrPending(false);
         }
       });
     return () => {
@@ -152,17 +160,21 @@ export function ShareProjectDialog({
 
   const copyLink = async () => {
     if (!share) return;
+    setLinkBusy("copying");
     try {
       await navigator.clipboard.writeText(share.shareUrl);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch (error) {
       showError(error);
+    } finally {
+      setLinkBusy(null);
     }
   };
 
   const nativeShare = async () => {
     if (!share) return;
+    setLinkBusy("sharing");
     try {
       if (navigator.share) {
         await navigator.share({
@@ -172,18 +184,25 @@ export function ShareProjectDialog({
         });
         return;
       }
-      await copyLink();
+      await navigator.clipboard.writeText(share.shareUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       showError(error);
+    } finally {
+      setLinkBusy(null);
     }
   };
 
-  const openDestination = async (url: string) => {
+  const openDestination = async (label: string, url: string) => {
+    setLinkBusy(`destination-${label}`);
     try {
       await ipc.system.openExternalUrl(url);
     } catch (error) {
       showError(error);
+    } finally {
+      setLinkBusy(null);
     }
   };
 
@@ -281,12 +300,13 @@ export function ShareProjectDialog({
                 size="icon"
                 variant="outline"
                 aria-label="Copy link"
+                disabled={linkBusy !== null}
                 onClick={() => void copyLink()}
               >
-                {copied ? <Check /> : <Copy />}
+                {linkBusy === "copying" ? <LoadingSpinner /> : copied ? <Check /> : <Copy />}
               </Button>
-              <Button onClick={() => void nativeShare()}>
-                <Share2 /> Share
+              <Button disabled={linkBusy !== null} onClick={() => void nativeShare()}>
+                {linkBusy === "sharing" ? <LoadingSpinner /> : <Share2 />} Share
               </Button>
             </div>
             <div className="caide-share-destinations">
@@ -294,9 +314,14 @@ export function ShareProjectDialog({
                 <button
                   type="button"
                   key={label}
-                  onClick={() => void openDestination(url)}
+                  disabled={linkBusy !== null}
+                  onClick={() => void openDestination(label, url)}
                 >
-                  <Icon size={17} />
+                  {linkBusy === `destination-${label}` ? (
+                    <LoadingSpinner size={17} />
+                  ) : (
+                    <Icon size={17} />
+                  )}
                   <span>{label}</span>
                 </button>
               ))}
@@ -304,6 +329,10 @@ export function ShareProjectDialog({
             <div className="caide-share-qr">
               {qrCode ? (
                 <img src={qrCode} alt="QR code for CAIDE project link" />
+              ) : qrPending ? (
+                <div className="flex size-24 items-center justify-center rounded-xl border bg-muted/30">
+                  <LoadingSpinner size={32} label="Generating share QR code" />
+                </div>
               ) : (
                 <QrCode size={56} />
               )}
@@ -330,7 +359,7 @@ export function ShareProjectDialog({
               onClick={() => void revoke()}
             >
               {busy === "revoking" ? (
-                <LoaderCircle className="animate-spin" />
+                <LoadingSpinner />
               ) : (
                 <Trash2 />
               )}
@@ -343,7 +372,7 @@ export function ShareProjectDialog({
               onClick={() => void exportPackage()}
             >
               {busy === "exporting" ? (
-                <LoaderCircle className="animate-spin" />
+                <LoadingSpinner />
               ) : (
                 <Download />
               )}
@@ -360,7 +389,7 @@ export function ShareProjectDialog({
           {!share ? (
             <Button disabled={busy !== null} onClick={() => void createShare()}>
               {busy === "creating" ? (
-                <LoaderCircle className="animate-spin" />
+                <LoadingSpinner />
               ) : (
                 <Share2 />
               )}

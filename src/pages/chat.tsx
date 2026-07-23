@@ -73,6 +73,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { PreviewPanel } from "@/components/preview_panel/PreviewPanel";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { useChats } from "@/hooks/useChats";
 import { useLoadApp } from "@/hooks/useLoadApp";
 import { useParseRouter } from "@/hooks/useParseRouter";
@@ -585,7 +586,10 @@ export default function ChatPage() {
           </label>
           <div className="caide-screen-map-list">
             {routesLoading ? (
-              <div className="caide-map-empty">Scanning routes...</div>
+              <div className="caide-map-empty flex items-center justify-center gap-2" role="status">
+                <LoadingSpinner size={14} />
+                Scanning routes...
+              </div>
             ) : (
               visibleRoutes.map((route, index) => (
                 <button
@@ -765,7 +769,11 @@ export default function ChatPage() {
                       />
                     }
                   >
-                    <ScanQrCode size={14} />
+                    {isMobilePreviewPending ? (
+                      <LoadingSpinner size={14} />
+                    ) : (
+                      <ScanQrCode size={14} />
+                    )}
                   </TooltipTrigger>
                   <TooltipContent>
                     {isMobilePreviewEnabled
@@ -797,14 +805,21 @@ export default function ChatPage() {
                       <div className="grid w-full grid-cols-2 gap-2">
                         <button type="button" onClick={copyPublicPreviewUrl} className="rounded-md border px-2 py-1.5 text-xs">Copy link</button>
                         <button type="button" onClick={openPublicPreview} className="rounded-md border px-2 py-1.5 text-xs">Open</button>
-                        <button type="button" onClick={refreshPublicPreview} disabled={isMobilePreviewPending} className="rounded-md border px-2 py-1.5 text-xs">Sync now</button>
-                        <button type="button" onClick={toggleMobilePreview} disabled={isMobilePreviewPending} className="rounded-md border border-red-300 px-2 py-1.5 text-xs text-red-600">Stop</button>
+                        <button type="button" onClick={refreshPublicPreview} disabled={isMobilePreviewPending} className="inline-flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-xs disabled:opacity-50">
+                          {isMobilePreviewPending && publicPreviewState === "syncing" ? <LoadingSpinner size={12} /> : null}
+                          Sync now
+                        </button>
+                        <button type="button" onClick={toggleMobilePreview} disabled={isMobilePreviewPending} className="inline-flex items-center justify-center gap-1.5 rounded-md border border-red-300 px-2 py-1.5 text-xs text-red-600 disabled:opacity-50">
+                          {isMobilePreviewPending && publicPreviewState !== "syncing" ? <LoadingSpinner size={12} /> : null}
+                          Stop
+                        </button>
                       </div>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2 py-4">
+                      <LoadingSpinner size={24} label="Preparing public preview" />
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Enabling mobile preview...
+                        Preparing worldwide preview...
                       </p>
                     </div>
                   )}

@@ -15,6 +15,7 @@ import {
 import { useCollaboration } from "@/hooks/useCollaboration";
 import { ipc } from "@/ipc/types";
 import { showError, showSuccess } from "@/lib/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
 
 export function CollaborationPanel({
   appId,
@@ -41,6 +42,22 @@ export function CollaborationPanel({
   const [message, setMessage] = useState("");
   const [checkpointName, setCheckpointName] = useState("");
   const [command, setCommand] = useState("");
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+
+  const runAction = async (
+    action: string,
+    task: () => Promise<unknown>,
+  ) => {
+    if (busyAction) return;
+    setBusyAction(action);
+    try {
+      await task();
+    } catch (error) {
+      showError(error);
+    } finally {
+      setBusyAction(null);
+    }
+  };
 
   const chat = useMemo(
     () => events.filter((event) => event.type === "chat_message"),
@@ -121,7 +138,10 @@ export function CollaborationPanel({
               <h3 className="mt-3 font-semibold">Start a session</h3>
               <p className="mt-1 text-sm text-muted-foreground">This project becomes the initial authoritative workspace. Secret files are excluded.</p>
               <input className="mt-4 w-full rounded-md border bg-background px-3 py-2 text-sm" placeholder="Your display name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
-              <button type="button" className="mt-3 w-full rounded-md bg-foreground px-3 py-2 text-sm text-background" disabled={!displayName.trim()} onClick={() => void createSession(displayName.trim())}>Start collaboration</button>
+              <button type="button" className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-foreground px-3 py-2 text-sm text-background disabled:opacity-50" disabled={!displayName.trim() || busyAction !== null} onClick={() => void runAction("start-session", () => createSession(displayName.trim()))}>
+                {busyAction === "start-session" ? <LoadingSpinner size={14} /> : null}
+                {busyAction === "start-session" ? "Starting..." : "Start collaboration"}
+              </button>
             </div>
             <div className="rounded-xl border p-5">
               <UserPlus size={20} />
@@ -129,7 +149,10 @@ export function CollaborationPanel({
               <p className="mt-1 text-sm text-muted-foreground">Paste the invite token sent by the project owner.</p>
               <input className="mt-4 w-full rounded-md border bg-background px-3 py-2 text-sm" placeholder="Your display name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
               <input className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm" placeholder="Invite token" value={inviteToken} onChange={(event) => setInviteToken(event.target.value)} />
-              <button type="button" className="mt-3 w-full rounded-md border px-3 py-2 text-sm" disabled={!displayName.trim() || !inviteToken.trim()} onClick={() => void joinSession(inviteToken.trim(), displayName.trim())}>Join project</button>
+              <button type="button" className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm disabled:opacity-50" disabled={!displayName.trim() || !inviteToken.trim() || busyAction !== null} onClick={() => void runAction("join-session", () => joinSession(inviteToken.trim(), displayName.trim()))}>
+                {busyAction === "join-session" ? <LoadingSpinner size={14} /> : null}
+                {busyAction === "join-session" ? "Joining..." : "Join project"}
+              </button>
             </div>
           </div>
         ) : (
@@ -150,7 +173,9 @@ export function CollaborationPanel({
                   <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Invite</h4>
                   <div className="mt-2 flex gap-2">
                     <select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as "editor" | "viewer")} className="min-w-0 flex-1 rounded-md border bg-background px-2 py-2 text-xs"><option value="editor">Editor</option><option value="viewer">Viewer</option></select>
-                    <button type="button" className="rounded-md border p-2" onClick={() => void createInvite()}><Copy size={14} /></button>
+                    <button type="button" className="rounded-md border p-2 disabled:opacity-50" disabled={busyAction !== null} aria-label="Create collaboration invite" onClick={() => void runAction("create-invite", createInvite)}>
+                      {busyAction === "create-invite" ? <LoadingSpinner size={14} /> : <Copy size={14} />}
+                    </button>
                   </div>
                   {inviteUrl && <p className="mt-2 break-all text-[10px] text-muted-foreground">{inviteUrl}</p>}
                 </div>
@@ -164,9 +189,17 @@ export function CollaborationPanel({
                   <div key={`${event.sequence ?? index}`} className="rounded-xl border p-3"><div className="flex items-center gap-2 text-xs"><span className="size-2 rounded-full" style={{ background: event.actor?.color }} /><strong>{event.actor?.displayName ?? "Collaborator"}</strong><span className="text-muted-foreground">{event.createdAt ? new Date(event.createdAt).toLocaleTimeString() : ""}</span></div><p className="mt-2 whitespace-pre-wrap text-sm">{String(event.payload.message ?? "")}</p></div>
                 ))}
               </div>
-              <form className="flex gap-2 border-t p-3" onSubmit={(event) => { event.preventDefault(); if (!message.trim()) return; void sendEvent("chat_message", { message: message.trim() }); setMessage(""); }}>
+              <form className="flex gap-2 border-t p-3" onSubmit={(event) => {
+                event.preventDefault();
+                const value = message.trim();
+                if (!value || busyAction) return;
+                void runAction("send-message", async () => {
+                  await sendEvent("chat_message", { message: value });
+                  setMessage("");
+                });
+              }}>
                 <input className="min-w-0 flex-1 rounded-md border bg-background px-3 py-2 text-sm" placeholder="Message collaborators" value={message} onChange={(event) => setMessage(event.target.value)} />
-                <button type="submit" className="rounded-md bg-foreground p-2 text-background"><Send size={15} /></button>
+                <button type="submit" className="rounded-md bg-foreground p-2 text-background disabled:opacity-50" disabled={!message.trim() || busyAction !== null} aria-label="Send collaboration message">{busyAction === "send-message" ? <LoadingSpinner size={15} /> : <Send size={15} />}</button>
               </form>
             </main>
 
@@ -180,10 +213,10 @@ export function CollaborationPanel({
                       {String(event.payload.message ?? event.payload.name ?? event.payload.path ?? "Project activity")}
                     </p>
                     {event.type === "checkpoint_created" && session.role === "owner" && event.payload.checkpointId ? (
-                      <button type="button" className="mt-2 rounded border px-2 py-1" onClick={() => void ipc.collaboration.restoreCheckpoint({ appId, checkpointId: String(event.payload.checkpointId) })}>Restore</button>
+                      <button type="button" className="mt-2 inline-flex items-center gap-1.5 rounded border px-2 py-1 disabled:opacity-50" disabled={busyAction !== null} onClick={() => void runAction(`restore-${String(event.payload.checkpointId)}`, () => ipc.collaboration.restoreCheckpoint({ appId, checkpointId: String(event.payload.checkpointId) }))}>{busyAction === `restore-${String(event.payload.checkpointId)}` ? <LoadingSpinner size={12} /> : null}Restore</button>
                     ) : null}
                     {event.type === "command_request" && session.role === "owner" && event.payload.command && event.payload.requestId ? (
-                      <button type="button" className="mt-2 rounded border px-2 py-1" onClick={() => void ipc.collaboration.executeApprovedCommand({ appId, requestId: String(event.payload.requestId), command: String(event.payload.command) }).catch(showError)}>Approve command</button>
+                      <button type="button" className="mt-2 inline-flex items-center gap-1.5 rounded border px-2 py-1 disabled:opacity-50" disabled={busyAction !== null} onClick={() => void runAction(`approve-${String(event.payload.requestId)}`, () => ipc.collaboration.executeApprovedCommand({ appId, requestId: String(event.payload.requestId), command: String(event.payload.command) }))}>{busyAction === `approve-${String(event.payload.requestId)}` ? <LoadingSpinner size={12} /> : null}Approve command</button>
                     ) : null}
                   </div>
                 ))}
@@ -197,7 +230,7 @@ export function CollaborationPanel({
                         <strong>{checkpoint.name}</strong>
                         <p className="text-[10px] text-muted-foreground">{new Date(checkpoint.createdAt).toLocaleString()}</p>
                         {session.role === "owner" && (
-                          <button type="button" className="mt-1 rounded border px-2 py-1" onClick={() => void ipc.collaboration.restoreCheckpoint({ appId, checkpointId: checkpoint.id }).catch(showError)}>Restore</button>
+                          <button type="button" className="mt-1 inline-flex items-center gap-1.5 rounded border px-2 py-1 disabled:opacity-50" disabled={busyAction !== null} onClick={() => void runAction(`restore-${checkpoint.id}`, () => ipc.collaboration.restoreCheckpoint({ appId, checkpointId: checkpoint.id }))}>{busyAction === `restore-${checkpoint.id}` ? <LoadingSpinner size={12} /> : null}Restore</button>
                         )}
                       </div>
                     ))}
@@ -209,18 +242,29 @@ export function CollaborationPanel({
                   <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Command request</h4>
                   <p className="mt-1 text-[10px] text-muted-foreground">Only safe Git reads and package scripts are executable, and the owner must approve.</p>
                   <input className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-xs" placeholder="git status or npm test" value={command} onChange={(event) => setCommand(event.target.value)} />
-                  <button type="button" className="mt-2 w-full rounded-md border px-3 py-2 text-xs" onClick={() => { const value = command.trim(); if (!value) return; void sendEvent("command_request", { requestId: crypto.randomUUID(), command: value, message: value }); setCommand(""); }}>Request command</button>
+                  <button type="button" className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs disabled:opacity-50" disabled={!command.trim() || busyAction !== null} onClick={() => {
+                    const value = command.trim();
+                    if (!value) return;
+                    void runAction("request-command", async () => {
+                      await sendEvent("command_request", { requestId: crypto.randomUUID(), command: value, message: value });
+                      setCommand("");
+                    });
+                  }}>{busyAction === "request-command" ? <LoadingSpinner size={12} /> : null}Request command</button>
                 </div>
               )}
               {session.role !== "viewer" && (
                 <div className="mt-5 border-t pt-4">
                   <h4 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Save size={13} /> Checkpoint</h4>
                   <input className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-xs" placeholder="Checkpoint name" value={checkpointName} onChange={(event) => setCheckpointName(event.target.value)} />
-                  <button type="button" className="mt-2 w-full rounded-md border px-3 py-2 text-xs" onClick={() => void createCheckpoint()}>Create checkpoint</button>
+                  <button type="button" className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs disabled:opacity-50" disabled={!checkpointName.trim() || busyAction !== null} onClick={() => void runAction("create-checkpoint", createCheckpoint)}>{busyAction === "create-checkpoint" ? <LoadingSpinner size={12} /> : null}Create checkpoint</button>
                 </div>
               )}
               <div className="mt-5 border-t pt-4">
-                {session.role === "owner" ? <button type="button" className="w-full rounded-md border border-red-300 px-3 py-2 text-xs text-red-600" onClick={() => void closeSession()}>End session</button> : <button type="button" className="w-full rounded-md border px-3 py-2 text-xs" onClick={() => void leaveSession()}>Leave session</button>}
+                {session.role === "owner" ? (
+                  <button type="button" className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-red-300 px-3 py-2 text-xs text-red-600 disabled:opacity-50" disabled={busyAction !== null} onClick={() => void runAction("close-session", closeSession)}>{busyAction === "close-session" ? <LoadingSpinner size={12} /> : null}End session</button>
+                ) : (
+                  <button type="button" className="inline-flex w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs disabled:opacity-50" disabled={busyAction !== null} onClick={() => void runAction("leave-session", leaveSession)}>{busyAction === "leave-session" ? <LoadingSpinner size={12} /> : null}Leave session</button>
+                )}
               </div>
             </aside>
           </div>

@@ -24,6 +24,7 @@ import {
   shouldFilterPostHogExceptionEvent,
 } from "./lib/posthogTelemetry";
 import { registerRendererIpcListeners } from "./app_wiring/registerRendererIpcListeners";
+import { GlobalActivityIndicator } from "./components/ui/loading";
 
 // @ts-ignore
 console.log("Running in mode:", import.meta.env.MODE);
@@ -151,7 +152,12 @@ function App() {
     });
   }, [queryClient, store]);
 
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <GlobalActivityIndicator />
+      <RouterProvider router={router} />
+    </>
+  );
 }
 
 createRoot(document.getElementById("root")!).render(

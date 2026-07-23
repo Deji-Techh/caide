@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DyadError, DyadErrorKind, isDyadError } from "../../errors/dyad_error";
+import { beginAsyncActivity } from "../../lib/async_activity";
 
 // =============================================================================
 // Contract Type Definitions
@@ -258,20 +259,25 @@ export function createClient<
   const client = {} as ClientFromContracts<T>;
   for (const [methodName, contract] of Object.entries(contracts)) {
     (client as any)[methodName] = async (input: unknown) => {
-      const ipcRenderer = getIpcRenderer();
-      if (!ipcRenderer) {
-        throw new Error(
-          `[${contract.channel}] IPC renderer not available. Make sure this is called from the renderer process.`,
-        );
+      const finishActivity = beginAsyncActivity(contract.channel);
+      try {
+        const ipcRenderer = getIpcRenderer();
+        if (!ipcRenderer) {
+          throw new Error(
+            `[${contract.channel}] IPC renderer not available. Make sure this is called from the renderer process.`,
+          );
+        }
+        const invoke =
+          typeof ipcRenderer.invokeEnvelope === "function"
+            ? ipcRenderer.invokeEnvelope
+            : ipcRenderer.invoke;
+        const response = await invoke(contract.channel, input);
+        return isIpcInvokeEnvelope(response)
+          ? unwrapIpcEnvelope(response)
+          : response;
+      } finally {
+        finishActivity();
       }
-      const invoke =
-        typeof ipcRenderer.invokeEnvelope === "function"
-          ? ipcRenderer.invokeEnvelope
-          : ipcRenderer.invoke;
-      const response = await invoke(contract.channel, input);
-      return isIpcInvokeEnvelope(response)
-        ? unwrapIpcEnvelope(response)
-        : response;
     };
   }
   return client;
