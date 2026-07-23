@@ -116,19 +116,21 @@ test("allows the intentional check-app-name compatibility alias", () => {
 });
 
 test("finds typed contract references after complex source syntax", () => {
+  const source = [
+    'const pattern = /<dyad-write[^>]*>/g;',
+    'const template = `value ${condition ? "yes" : "no"}`;',
+    "",
+    "createTypedHandler(",
+    "  chatContracts.cancelStream,",
+    "  async (_event, chatId) => Boolean(chatId),",
+    ");",
+    "",
+    "// chatContracts.fakeComment",
+    'const text = "chatContracts.fakeString";',
+  ].join("\n");
+
   const references = collectContractMemberReferences(
-    String.raw`
-      const pattern = /<dyad-write[^>]*>/g;
-      const template = \`value \${condition ? "yes" : "no"}\`;
-
-      createTypedHandler(
-        chatContracts.cancelStream,
-        async (_event, chatId) => Boolean(chatId),
-      );
-
-      // chatContracts.fakeComment
-      const text = "chatContracts.fakeString";
-    `,
+    source,
     new Set(["chatContracts"]),
     "chat_stream_handlers.ts",
   );
