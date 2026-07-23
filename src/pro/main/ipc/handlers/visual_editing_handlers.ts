@@ -1,4 +1,3 @@
-import { ipcMain } from "electron";
 import fs from "node:fs";
 import { promises as fsPromises } from "node:fs";
 import path from "path";
@@ -20,9 +19,10 @@ import {
   AnalyseComponentParams,
   ApplyVisualEditingChangesParams,
 } from "@/ipc/types";
-import { VALID_IMAGE_MIME_TYPES } from "@/ipc/types/visual-editing";
+import { visualEditingContracts, VALID_IMAGE_MIME_TYPES } from "@/ipc/types/visual-editing";
 import { DYAD_MEDIA_DIR_NAME } from "@/ipc/utils/media_path_utils";
 import { ensureDyadGitignored } from "@/ipc/handlers/gitignoreUtils";
+import { createTypedHandler } from "@/ipc/handlers/base";
 import {
   transformContent,
   analyzeComponent,
@@ -35,8 +35,8 @@ import { queueCloudSandboxSnapshotSync } from "@/ipc/utils/cloud_sandbox_provide
 const MAX_IMAGE_SIZE = Math.ceil((7.5 * 1024 * 1024) / 3) * 4 + 100; // ~10,485,860
 
 export function registerVisualEditingHandlers() {
-  ipcMain.handle(
-    "apply-visual-editing-changes",
+  createTypedHandler(
+    visualEditingContracts.applyChanges,
     async (_event, params: ApplyVisualEditingChangesParams) => {
       const { appId, changes } = params;
       // Track written image files and staged git paths for cleanup on failure
@@ -225,8 +225,8 @@ export function registerVisualEditingHandlers() {
     },
   );
 
-  ipcMain.handle(
-    "analyze-component",
+  createTypedHandler(
+    visualEditingContracts.analyzeComponent,
     async (_event, analyseComponentParams: AnalyseComponentParams) => {
       const { appId, componentId } = analyseComponentParams;
       try {

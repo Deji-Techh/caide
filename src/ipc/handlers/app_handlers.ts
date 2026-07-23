@@ -2,7 +2,7 @@ import { ipcMain, app, dialog } from "electron";
 import { closeDatabase, db, getDatabaseFilePaths } from "../../db";
 import { apps, chats, messages, versions } from "../../db/schema";
 import { desc, eq, inArray, like } from "drizzle-orm";
-import { createTypedHandler } from "./base";
+import { createTypedHandler, registerLegacyIpcHandler } from "./base";
 import { appContracts } from "../types/app";
 import type { AppFileSearchResult } from "../types/app";
 import { miscContracts } from "../types/misc";
@@ -657,7 +657,7 @@ export function registerAppHandlers() {
   });
 
   // Do NOT use typed handler for this, it contains sensitive information.
-  ipcMain.handle("get-env-vars", async () => {
+  const getEnvVarsHandler = async () => {
     const envVars: Record<string, string | undefined> = {};
     const providers = await getLanguageModelProviders();
     for (const provider of providers) {
@@ -668,7 +668,9 @@ export function registerAppHandlers() {
     // Azure setup detection needs the resource name in addition to its API key.
     envVars["AZURE_RESOURCE_NAME"] = getEnvVar("AZURE_RESOURCE_NAME");
     return envVars;
-  });
+  };
+  registerLegacyIpcHandler("get-env-vars", getEnvVarsHandler);
+  ipcMain.handle("get-env-vars", getEnvVarsHandler);
 
   createTypedHandler(appContracts.runApp, async (event, params) => {
     const { appId } = params;

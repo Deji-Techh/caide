@@ -46,8 +46,9 @@ export function createLoggedHandler(logger: log.LogFunctions) {
 
 export function createTestOnlyLoggedHandler(logger: log.LogFunctions) {
   if (!IS_TEST_BUILD) {
-    // Returns a no-op function for non-e2e test builds.
-    return () => {};
+    return (channel: string, fn: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<any>) => {
+      registerLegacyIpcHandler(channel, fn);
+    };
   }
   return createLoggedHandler(logger);
 }
