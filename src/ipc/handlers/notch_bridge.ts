@@ -6,7 +6,6 @@ import {
   setActiveChatId,
 } from "@/ipc/services/notch_service";
 import { on } from "@/ipc/utils/event_bus";
-import type { WebContents } from "electron";
 
 const NOTCH_EVENT_CHANNELS = [
   "chat:response:chunk",

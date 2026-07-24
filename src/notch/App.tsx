@@ -68,8 +68,7 @@ export function App() {
   const notificationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const interactionCounter = useRef(0);
 
-  const shouldExpand =
-    isHovered || notchState === "expanded" || notchState === "streaming";
+  
 
   const isExpanded =
     notchState === "hovered" ||
@@ -157,7 +156,7 @@ export function App() {
 
     unsubs.push(
       window.notch.ipcRenderer.on("notch:chat-complete", (data: unknown) => {
-        const payload = data as NotchChatComplete;
+        
         setRecentInteractions((prev) => {
           const updated = [...prev];
           if (updated.length > 0) {

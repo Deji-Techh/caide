@@ -41,6 +41,7 @@ import { AutoApproveMcpSwitch } from "@/components/AutoApproveMcpSwitch";
 import { useSetAtom } from "jotai";
 import { activeSettingsSectionAtom } from "@/atoms/viewAtoms";
 import { SECTION_IDS, SETTING_IDS } from "@/lib/settingsSearchIndex";
+import { UI_THEMES } from "@/lib/uiThemes";
 import {
   devicePresets,
   isDevicePresetId,
@@ -585,27 +586,30 @@ export function GeneralSettings({ appVersion }: { appVersion: string | null }) {
       </h2>
 
       <div className="space-y-4 mb-4">
-        <div id={SETTING_IDS.theme} className="flex items-center gap-4">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Theme
-          </span>
-
-          <div className="relative bg-gray-100 dark:bg-gray-700 rounded-lg p-1 flex">
-            {(["dark", "light"] as const).map((option) => (
+        <div id={SETTING_IDS.theme} className="caide-theme-setting">
+          <div className="caide-theme-setting-copy">
+            <strong>Interface theme</strong>
+            <p>Changes every CAIDE surface, including Agent and preview tools.</p>
+          </div>
+          <div className="caide-theme-grid" role="radiogroup" aria-label="Interface theme">
+            {UI_THEMES.map((option) => (
               <button
-                key={option}
-                onClick={() => setTheme(option)}
-                className={`
-                px-4 py-1.5 text-sm font-medium rounded-md
-                transition-all duration-200
-                ${
-                  theme === option
-                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }
-              `}
+                type="button"
+                key={option.id}
+                role="radio"
+                aria-checked={theme === option.id}
+                className={theme === option.id ? "active" : undefined}
+                onClick={() => setTheme(option.id)}
               >
-                {option === "dark" ? "Grey" : "Light"}
+                <span className="caide-theme-swatches" aria-hidden="true">
+                  {option.swatches.map((swatch) => (
+                    <i key={swatch} style={{ background: swatch }} />
+                  ))}
+                </span>
+                <span className="caide-theme-label">
+                  <strong>{option.name}</strong>
+                  <small>{option.description}</small>
+                </span>
               </button>
             ))}
           </div>

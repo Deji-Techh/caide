@@ -94,6 +94,7 @@ type PreviewBundle = {
 const activePreviews = new Map<number, ActivePreview>();
 let persistedStateLoaded = false;
 let deviceIdentityPromise: Promise<DeviceIdentity> | null = null;
+let sessionPersistenceQueue: Promise<void> = Promise.resolve();
 
 function controlPlaneBaseUrl(): string {
   return (
@@ -121,14 +122,57 @@ async function atomicPrivateJsonWrite(
   destination: string,
   value: unknown,
 ): Promise<void> {
-  const temporary = `${destination}.tmp`;
+  const temporary = `${destination}.${process.pid}.${randomUUID()}.tmp`;
   await fs.mkdir(path.dirname(destination), { recursive: true });
-  await fs.writeFile(temporary, JSON.stringify(value), {
-    mode: 0o600,
-  });
-  await fs.chmod(temporary, 0o600).catch(() => undefined);
-  await fs.rename(temporary, destination);
-  await fs.chmod(destination, 0o600).catch(() => undefined);
+  try {
+    await fs.writeFile(temporary, JSON.stringify(value), {
+      mode: 0o600,
+    });
+    await fs.chmod(temporary, 0o600).catch(() => undefined);
+    await fs.rename(temporary, destination);
+    await fs.chmod(destination, 0o600).catch(() => undefined);
+  } finally {
+    await fs.rm(temporary, { force: true }).catch(() => undefined);
+  }
+}
+
+type PreviewPackageManifest = {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+};
+
+function packageMajor(specifier: string | undefined): number | null {
+  const match = specifier?.match(/(?:^|[^0-9])(\d+)(?:\.|$)/);
+  return match ? Number(match[1]) : null;
+}
+
+function normalizePreviewPackageManifest(content: string): {
+  content: string;
+  changed: boolean;
+} {
+  try {
+    const manifest = JSON.parse(content) as PreviewPackageManifest;
+    const reactSpecifier =
+      manifest.dependencies?.react ?? manifest.devDependencies?.react;
+    if ((packageMajor(reactSpecifier) ?? 0) < 19) {
+      return { content, changed: false };
+    }
+
+    let changed = false;
+    for (const group of [manifest.dependencies, manifest.devDependencies]) {
+      if (!group?.["next-themes"]) continue;
+      if ((packageMajor(group["next-themes"]) ?? 0) < 1) {
+        group["next-themes"] = "^0.4.6";
+        changed = true;
+      }
+    }
+
+    return changed
+      ? { content: `${JSON.stringify(manifest, null, 2)}\n`, changed: true }
+      : { content, changed: false };
+  } catch {
+    return { content, changed: false };
+  }
 }
 
 async function request<T>(
@@ -314,12 +358,26 @@ function mapState(
 
 async function buildBundle(appPath: string): Promise<PreviewBundle> {
   const allFiles = await buildCloudSandboxFileMap(appPath);
+  const normalizedManifest = allFiles["package.json"]
+    ? normalizePreviewPackageManifest(allFiles["package.json"])
+    : null;
   const files = Object.entries(allFiles)
     .filter(([filePath]) => isSafePublicPreviewPath(filePath))
+    .filter(([filePath]) => {
+      if (!normalizedManifest?.changed) return true;
+      return ![
+        "package-lock.json",
+        "npm-shrinkwrap.json",
+      ].includes(filePath);
+    })
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([filePath, content]) => ({
       path: filePath,
-      content: Buffer.from(content).toString("base64"),
+      content: Buffer.from(
+        filePath === "package.json" && normalizedManifest
+          ? normalizedManifest.content
+          : content,
+      ).toString("base64"),
     }));
   const uncompressed = Buffer.from(
     JSON.stringify({ version: 1, files }),
@@ -340,10 +398,12 @@ async function buildBundle(appPath: string): Promise<PreviewBundle> {
 }
 
 async function persistSessions(): Promise<void> {
-  await atomicPrivateJsonWrite(
-    sessionFilePath(),
-    [...activePreviews.values()].map(publicStatus),
-  );
+  const snapshot = [...activePreviews.values()].map(publicStatus);
+  const write = async () => {
+    await atomicPrivateJsonWrite(sessionFilePath(), snapshot);
+  };
+  sessionPersistenceQueue = sessionPersistenceQueue.then(write, write);
+  await sessionPersistenceQueue;
 }
 
 async function ensurePersistedSessionsLoaded(): Promise<void> {
@@ -548,10 +608,21 @@ export async function startPublicPreview(input: {
       pendingSync: false,
     };
     activePreviews.set(input.appId, session);
-    await scheduleSession(session);
-    await persistSessions();
+    try {
+      await scheduleSession(session);
+      await persistSessions();
+    } catch (localError) {
+      session.errorMessage =
+        "Preview is live, but CAIDE could not persist its local session cache. " +
+        (localError instanceof Error ? localError.message : String(localError));
+      console.warn("Public preview local state warning", localError);
+      void persistSessions().catch((retryError) => {
+        console.warn("Public preview state retry failed", retryError);
+      });
+    }
     return publicStatus(session);
   } catch (error) {
+    activePreviews.delete(input.appId);
     await authenticatedRequest(
       `/v1/preview/sessions/${encodeURIComponent(
         created.sessionId,

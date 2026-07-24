@@ -77,5 +77,5 @@ export function inferArtifactKind(filePath: string): NativeArtifactKind | null {
 }
 
 export function escapeDistinguishedNameValue(value: string): string {
-  return value.replace(/([\\,+=<>#;\"])/g, "\\$1").trim();
+  return value.replace(/([\\,+=<>#;"])/g, "\\$1").trim();
 }

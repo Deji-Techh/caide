@@ -151,7 +151,7 @@ function generateNodeComponent(
   depth: number,
 ): { component: string; styles: string } {
   const indent = "  ".repeat(depth + 1);
-  const styleIndent = "  ".repeat(depth + 1);
+  
   const baseName = `${parentStyleName}_${node.name.replace(/[^a-zA-Z0-9]/g, "_")}`;
   const viewStyleName = `${baseName}_view`;
 

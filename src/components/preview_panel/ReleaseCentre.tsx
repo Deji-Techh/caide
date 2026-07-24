@@ -8,14 +8,12 @@ import {
   Shield,
   Store,
   FileSearch,
-  ExternalLink,
   Ship,
   Terminal,
   ArrowRight,
   ChevronDown,
   ChevronRight,
   Package,
-  Download,
   Image,
   FileImage,
   Link,
@@ -31,13 +29,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -75,7 +66,7 @@ const buildTargets: { id: BuildTarget; label: string }[] = [
 ];
 
 export function ReleaseCentre({ appId }: ReleaseCentreProps) {
-  const queryClient = useQueryClient();
+  
   const [activeStep, setActiveStep] = useState<StepId>("build");
   const [showBuildLogs, setShowBuildLogs] = useState(false);
   const [buildLogs, setBuildLogs] = useState<BuildLog[]>([]);
@@ -103,15 +94,9 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
     playStoreDescription: storeDescription || undefined,
   };
 
-  const depsQuery = useQuery({
-    queryKey: queryKeys.release.deps({ appId }),
-    queryFn: () => releaseClient.checkDependencies({ appId }),
-  });
+  
 
-  const storeConfigQuery = useQuery({
-    queryKey: queryKeys.release.storeConfig({ appId }),
-    queryFn: () => releaseClient.getStoreConfig({ appId }),
-  });
+  
 
   const buildMutation = useMutation({
     mutationFn: (target: BuildTarget) =>
@@ -161,14 +146,7 @@ export function ReleaseCentre({ appId }: ReleaseCentreProps) {
     onError: () => showError("Quality gate failed"),
   });
 
-  const statusIcon = (success: boolean | undefined) => {
-    if (success === undefined) return null;
-    return success ? (
-      <CheckCircle2 size={14} className="text-green-500" />
-    ) : (
-      <AlertTriangle size={14} className="text-red-500" />
-    );
-  };
+  
 
   return (
     <section className="caide-release-centre space-y-4">

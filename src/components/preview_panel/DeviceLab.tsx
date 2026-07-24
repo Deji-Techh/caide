@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { useAtom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import {
   Smartphone,
@@ -32,7 +31,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { deviceFamilies } from "@/lib/devicePresets";
 import { devicePresets as presetsMap } from "@/lib/devicePresets";
 
 const deviceLabStateAtom = atomWithStorage<DeviceLabState>(
@@ -232,7 +230,7 @@ export function DeviceLab({
     const cats = new Map<string, DevicePreset[]>();
     const catOrder = ["phone", "foldable", "tablet", "desktop", "custom"];
     for (const cat of catOrder) cats.set(cat, []);
-    for (const [id, entry] of Object.entries(presetsMap)) {
+    for (const [id, _entry] of Object.entries(presetsMap)) {
       const p = getDevicePreset(id);
       if (!p) continue;
       const list = cats.get(p.category) ?? [];

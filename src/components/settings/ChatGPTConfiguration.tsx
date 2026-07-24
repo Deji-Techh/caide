@@ -69,7 +69,7 @@ export function ChatGPTConfiguration({
           setPending(undefined);
           setError(next.message);
         }
-      } catch (cause) {
+      } catch  {
         if (!stopped) {
           setError(
             "CAIDE could not reach OpenAI. It will keep checking while this code is valid.",

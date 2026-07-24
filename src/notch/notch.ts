@@ -1,10 +1,9 @@
-import { app, BrowserWindow, screen, ipcMain } from "electron";
+import { BrowserWindow, screen, ipcMain } from "electron";
 import * as path from "node:path";
 import log from "electron-log";
 import {
   NOTCH_COLLAPSED_WIDTH,
   NOTCH_COLLAPSED_HEIGHT,
-  NOTCH_EXPANDED_WIDTH,
   NOTCH_EXPANDED_HEIGHT,
 } from "./shared";
 import { setNotchWindow } from "../ipc/services/notch_service";
@@ -13,7 +12,7 @@ const logger = log.scope("notch");
 
 let notchWindow: BrowserWindow | null = null;
 let mainWindowRef: BrowserWindow | null = null;
-let currentWidth = NOTCH_COLLAPSED_WIDTH;
+let _currentWidth = NOTCH_COLLAPSED_WIDTH;
 let currentHeight = NOTCH_COLLAPSED_HEIGHT;
 
 export function setMainWindow(mainWindow: BrowserWindow): void {
@@ -99,7 +98,7 @@ export function resizeNotch(
 ): void {
   if (!notchWindow || notchWindow.isDestroyed()) return;
 
-  currentWidth = width;
+  _currentWidth = width;
   currentHeight = height;
   const pos = getNotchPosition(width, height);
 

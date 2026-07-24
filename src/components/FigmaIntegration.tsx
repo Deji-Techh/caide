@@ -8,7 +8,7 @@ import { ipc } from "@/ipc/types";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export function FigmaIntegration() {
-  const { t } = useTranslation(["home", "common"]);
+  
   const { settings, updateSettings } = useSettings();
   const [token, setToken] = useState("");
   const [showToken, setShowToken] = useState(false);

@@ -1167,27 +1167,29 @@ export default function ChatPage() {
             <div
               className={`caide-agent-panel${isAgentExpanded ? " is-expanded" : ""}`}
             >
-              {isAgentExpanded ? (
-                <div className="caide-agent-focus-header">
-                  <div className="caide-agent-focus-title">
-                    <Bot size={17} />
-                    <div>
-                      <span>Agent workspace</span>
-                      <strong>{app?.name ?? "CAIDE project"}</strong>
-                    </div>
+              {isAgentExpanded && (
+                <div className="caide-agent-sessionbar">
+                  <div className="caide-agent-session-title">
+                    <Bot size={15} />
+                    <strong>{app?.name ?? "CAIDE project"}</strong>
+                    <span>{routeLabel(selectedRoute)}</span>
                   </div>
-                  <div className="caide-agent-focus-meta">
+                  <div className="caide-agent-session-meta">
                     <span>
-                      <Smartphone size={13} />
-                      {routeLabel(selectedRoute)}
+                      <Activity size={13} /> Agent
                     </span>
                     <span>
-                      <Layers3 size={13} />
-                      {screenRoutes.length} screens
+                      <Smartphone size={13} /> {selectedDevice.label}
+                    </span>
+                    <span>
+                      <Layers3 size={13} /> {screenRoutes.length} screens
+                    </span>
+                    <span className="caide-agent-session-path">
+                      <FileCode2 size={13} /> {selectedRoute}
                     </span>
                   </div>
                 </div>
-              ) : null}
+              )}
               <div className="caide-agent-focus-layout">
                 <section className="caide-agent-conversation">
                   <ChatPanel
@@ -1199,45 +1201,6 @@ export default function ChatPage() {
                     disableMessageVirtualization
                   />
                 </section>
-                {isAgentExpanded ? (
-                  <aside
-                    className="caide-agent-context-rail"
-                    aria-label="Current project context"
-                  >
-                    <div className="caide-agent-context-heading">
-                      <Activity size={14} />
-                      Current context
-                    </div>
-                    <div className="caide-agent-context-grid">
-                      <div className="caide-agent-context-card">
-                        <span>Project</span>
-                        <div>
-                          <FileCode2 size={14} />
-                          <strong>{app?.name ?? "CAIDE project"}</strong>
-                        </div>
-                        <small>{screenRoutes.length} detected application screens</small>
-                      </div>
-                      <div className="caide-agent-context-card">
-                        <span>Active canvas</span>
-                        <div>
-                          <Smartphone size={14} />
-                          <strong>{routeLabel(selectedRoute)}</strong>
-                        </div>
-                        <small>{selectedRoute}</small>
-                      </div>
-                      <div className="caide-agent-context-card">
-                        <span>Preview target</span>
-                        <div>
-                          <Layers3 size={14} />
-                          <strong>{selectedDevice.label}</strong>
-                        </div>
-                        <small>
-                          {deviceWidth} × {deviceHeight} · {orientation}
-                        </small>
-                      </div>
-                    </div>
-                  </aside>
-                ) : null}
               </div>
             </div>
           ) : (

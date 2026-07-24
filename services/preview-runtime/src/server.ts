@@ -305,8 +305,8 @@ async function startArguments(
 
   const manager = await packageManager(session.root);
   const allDependencies = {
-    ...(packageJson.dependencies ?? {}),
-    ...(packageJson.devDependencies ?? {}),
+    ...packageJson.dependencies,
+    ...packageJson.devDependencies,
   };
   const forwarded: string[] = [];
   if (script === "dev" && allDependencies.vite) {

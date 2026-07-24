@@ -430,8 +430,8 @@ async function startCommand(
     throw new Error("Project must define a dev or start script");
   }
   const dependencies = {
-    ...(packageJson.dependencies ?? {}),
-    ...(packageJson.devDependencies ?? {}),
+    ...packageJson.dependencies,
+    ...packageJson.devDependencies,
   };
   const forwarded: string[] = [];
   if (script === "dev" && dependencies.vite) {

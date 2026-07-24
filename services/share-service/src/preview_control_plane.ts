@@ -5,9 +5,7 @@ import {
 } from "node:crypto";
 import type {
   Express,
-  NextFunction,
   Request,
-  Response,
 } from "express";
 import { z } from "zod";
 import { config } from "./config.js";

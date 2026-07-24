@@ -66,7 +66,7 @@ export function FigmaToCodeDialog({
   const [frames, setFrames] = useState<FrameOption[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  const [fileData, setFileData] = useState<FigmaJsonNode | null>(null);
+  const [,setFileData] = useState<FigmaJsonNode | null>(null);
 
   const hasToken = !!settings?.figmaAccessToken?.value;
   const token = settings?.figmaAccessToken?.value ?? "";
@@ -270,7 +270,7 @@ Please:
     setFileData(null);
   };
 
-  const isConverting = step === "converting";
+  
 
   return (
     <Dialog

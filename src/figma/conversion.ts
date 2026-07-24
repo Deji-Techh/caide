@@ -4,7 +4,6 @@ import {
   calculateRectFromBoundingBox,
   justifyContentMap,
   alignItemsMap,
-  layoutModeToFlexDirection,
 } from "./position";
 
 function collectTextSegments(node: FigmaJsonNode): TextSegment[] | undefined {
@@ -181,9 +180,7 @@ export function processFigmaNode(
   const bbox = node.absoluteBoundingBox;
   if (!bbox) return null;
 
-  const parentBbox = parent
-    ? { x: 0, y: 0, width: parent.width, height: parent.height }
-    : bbox;
+  
 
   const rect = calculateRectFromBoundingBox(
     {

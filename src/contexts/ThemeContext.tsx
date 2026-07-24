@@ -1,25 +1,29 @@
 import { createContext, useContext, useEffect, useState } from "react";
-
-type Theme = "system" | "light" | "dark";
+import {
+  isUiThemeId,
+  type UiThemeId,
+} from "@/lib/uiThemes";
 
 interface ThemeContextType {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
+  theme: UiThemeId;
+  setTheme: (theme: UiThemeId) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-function readSavedTheme(): Theme | null {
+function readSavedTheme(): UiThemeId | null {
   try {
     const storage = window.localStorage;
     if (typeof storage?.getItem !== "function") return null;
-    return storage.getItem("theme") as Theme | null;
+    const stored = storage.getItem("theme");
+    if (stored === "dark") return "graphite";
+    return isUiThemeId(stored) ? stored : null;
   } catch {
     return null;
   }
 }
 
-function saveTheme(theme: Theme): void {
+function saveTheme(theme: UiThemeId): void {
   try {
     const storage = window.localStorage;
     if (typeof storage?.setItem === "function") {
@@ -31,32 +35,37 @@ function saveTheme(theme: Theme): void {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [theme, setTheme] = useState<UiThemeId>(() => {
     const savedTheme = readSavedTheme();
-    // CAIDE exposes two deliberate visual modes. Older "system" preferences
-    // migrate to the neutral grey workspace instead of changing unexpectedly.
-    return savedTheme === "light" ? "light" : "dark";
+    return savedTheme ?? "graphite";
   });
 
   useEffect(() => {
-    // Save theme preference to localStorage
     saveTheme(theme);
 
-    // Handle system theme changes
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const applyTheme = () => {
       const root = window.document.documentElement;
       const isDark =
-        theme === "dark" || (theme === "system" && mediaQuery.matches);
+        theme === "system"
+          ? mediaQuery.matches
+          : theme !== "light";
+      const resolvedTheme =
+        theme === "system"
+          ? mediaQuery.matches
+            ? "graphite"
+            : "light"
+          : theme;
 
       root.classList.remove("light", "dark");
       root.classList.add(isDark ? "dark" : "light");
+      root.dataset.theme = resolvedTheme;
+      root.style.colorScheme = isDark ? "dark" : "light";
     };
 
     applyTheme();
 
-    // Listen for system theme changes
     const listener = () => applyTheme();
     mediaQuery.addEventListener("change", listener);
 
@@ -78,12 +87,13 @@ export function useTheme() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const { theme, setTheme } = context;
 
-  // Determine if dark mode is active when component mounts or theme changes
   useEffect(() => {
     const darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const updateTheme = () => {
       setIsDarkMode(
-        theme === "dark" || (theme === "system" && darkModeQuery.matches),
+        theme === "system"
+          ? darkModeQuery.matches
+          : theme !== "light",
       );
     };
 

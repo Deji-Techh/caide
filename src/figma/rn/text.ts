@@ -48,7 +48,7 @@ export function generateTextComponent(
   parentStyleName: string,
 ): { component: string; styles: string } {
   const baseName = `${parentStyleName}_${node.name.replace(/[^a-zA-Z0-9]/g, "_")}`;
-  const styleName = `${baseName}_text`;
+  
   const textStyleName = `${baseName}_txt`;
 
   const textStyles: string[] = [];

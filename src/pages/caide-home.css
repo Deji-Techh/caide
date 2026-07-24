@@ -6020,3 +6020,287 @@
     padding-inline: 12px !important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Responsive Agent surfaces. These rules intentionally use the global theme
+   contract instead of palette-specific literals.
+   -------------------------------------------------------------------------- */
+
+.caide-properties,
+.caide-properties .caide-agent-panel,
+.caide-agent-focus-layout,
+.caide-agent-conversation,
+.caide-agent-conversation > .caide-chat-panel {
+  min-width: 0;
+  min-height: 0;
+}
+
+.caide-properties {
+  overflow: hidden;
+  background: var(--background-secondary);
+}
+
+.caide-inspector-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex: 0 0 auto;
+  border-color: var(--border-subtle);
+  background: color-mix(in srgb, var(--background-secondary) 94%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.caide-agent-panel {
+  container-type: inline-size;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--text-primary);
+  background: var(--background-secondary);
+}
+
+.caide-agent-focus-layout,
+.caide-agent-conversation {
+  display: flex;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.caide-agent-conversation > .caide-chat-panel {
+  flex: 1 1 auto;
+  overflow: hidden;
+  border: 0;
+  background: var(--background);
+}
+
+.caide-agent-panel .caide-chat-header {
+  flex: 0 0 auto;
+  border-color: var(--border-subtle);
+  background: var(--background);
+}
+
+.caide-agent-panel [data-testid="messages-list"] {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.caide-agent-panel [data-testid="messages-list"] > div,
+.caide-agent-panel [data-message-role],
+.caide-agent-panel .caide-chat-message,
+.caide-agent-panel .caide-chat-message-body,
+.caide-agent-panel [class~="group/card"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.caide-agent-panel :where(pre, code, kbd, samp) {
+  max-width: 100%;
+}
+
+.caide-agent-panel :where(pre) {
+  overflow-x: auto;
+}
+
+.caide-agent-panel :where(p, li, small, strong, span) {
+  overflow-wrap: anywhere;
+}
+
+.caide-agent-panel [class~="group/card"] {
+  overflow: hidden;
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+.caide-agent-panel [class~="group/card"]:hover {
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--border));
+  background: var(--surface-hover);
+}
+
+.caide-agent-panel [data-message-role="assistant"] .caide-chat-message-body {
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.caide-agent-panel [data-message-role="user"] .caide-chat-message-body {
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+}
+
+.caide-agent-panel [data-testid="chat-input-container"] {
+  flex: 0 0 auto;
+  border-color: var(--border-subtle);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--background) 82%, transparent),
+    var(--background) 26%
+  );
+}
+
+.caide-agent-panel [data-testid="chat-input-container"] > div:last-child {
+  color: var(--text-primary);
+  border-color: var(--border);
+  background: var(--input);
+  box-shadow: 0 12px 34px color-mix(in srgb, #000 18%, transparent);
+}
+
+/* Narrow inspector mode. */
+.caide-agent-panel:not(.is-expanded) [data-testid="messages-list"] {
+  width: 100%;
+  padding: 10px 9px 16px !important;
+}
+
+.caide-agent-panel:not(.is-expanded) .caide-chat-header {
+  min-height: 44px;
+  padding-inline: 8px;
+}
+
+.caide-agent-panel:not(.is-expanded) .caide-chat-message-body {
+  padding: 8px 9px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.caide-agent-panel:not(.is-expanded)
+  [data-message-role="user"]
+  .caide-chat-message-body {
+  margin-left: 12px !important;
+}
+
+.caide-agent-panel:not(.is-expanded) [class~="group/card"] button {
+  min-width: 0;
+  max-width: 100%;
+  padding-inline: 6px;
+  white-space: normal;
+}
+
+/* Expanded OpenCode-style session surface. */
+.caide-properties.is-agent-expanded {
+  --caide-agent-focus-bg: var(--background);
+  --caide-agent-focus-border: var(--border-subtle);
+  background: var(--background) !important;
+}
+
+.caide-properties.is-agent-expanded .caide-inspector-tabs {
+  min-height: 44px;
+  padding-inline: clamp(12px, 2.5vw, 38px);
+  border-bottom-color: var(--border-subtle);
+  background: var(--background-secondary) !important;
+}
+
+.caide-properties.is-agent-expanded .caide-agent-panel,
+.caide-properties.is-agent-expanded .caide-agent-panel > .caide-chat-panel,
+.caide-properties.is-agent-expanded .caide-agent-panel .caide-chat-header,
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="messages-list"] {
+  background: var(--background) !important;
+}
+
+.caide-properties.is-agent-expanded .caide-agent-panel {
+  padding: 0 clamp(16px, 4vw, 64px);
+}
+
+.caide-agent-sessionbar {
+  width: min(1080px, 100%);
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-inline: auto;
+  padding: 0 18px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--background);
+}
+
+.caide-agent-session-title,
+.caide-agent-session-meta,
+.caide-agent-session-meta > span {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.caide-agent-session-title {
+  gap: 8px;
+}
+
+.caide-agent-session-title strong {
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.caide-agent-session-title > span {
+  max-width: 260px;
+  overflow: hidden;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caide-agent-session-meta {
+  justify-content: flex-end;
+  gap: 14px;
+  font-size: 11px;
+}
+
+.caide-agent-session-meta > span {
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.caide-agent-session-path {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.caide-properties.is-agent-expanded .caide-agent-panel > .caide-chat-panel {
+  width: min(1080px, 100%);
+  margin-inline: auto;
+  box-shadow: none;
+}
+
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="messages-list"] {
+  width: min(960px, 100%);
+  margin-inline: auto !important;
+  padding: 28px 20px 24px !important;
+  scroll-padding-block: 28px 44px;
+}
+
+.caide-properties.is-agent-expanded
+  .caide-agent-panel
+  [data-testid="chat-input-container"] {
+  width: min(960px, 100%);
+  margin-inline: auto;
+  padding: 12px 20px 18px !important;
+}
+
+@media (max-width: 760px) {
+  .caide-properties.is-agent-expanded .caide-agent-panel {
+    padding-inline: 0;
+  }
+
+  .caide-agent-sessionbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+    padding-block: 8px;
+  }
+
+  .caide-agent-session-meta {
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+}
