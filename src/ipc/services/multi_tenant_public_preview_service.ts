@@ -358,8 +358,11 @@ function mapState(
 
 async function buildBundle(appPath: string): Promise<PreviewBundle> {
   const allFiles = await buildCloudSandboxFileMap(appPath);
-  const normalizedManifest = allFiles["package.json"]
-    ? normalizePreviewPackageManifest(allFiles["package.json"])
+  const packageManifestBytes = allFiles["package.json"];
+  const normalizedManifest = packageManifestBytes
+    ? normalizePreviewPackageManifest(
+        Buffer.from(packageManifestBytes).toString("utf8"),
+      )
     : null;
   const files = Object.entries(allFiles)
     .filter(([filePath]) => isSafePublicPreviewPath(filePath))
@@ -371,14 +374,16 @@ async function buildBundle(appPath: string): Promise<PreviewBundle> {
       ].includes(filePath);
     })
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([filePath, content]) => ({
-      path: filePath,
-      content: Buffer.from(
+    .map(([filePath, content]) => {
+      const bytes =
         filePath === "package.json" && normalizedManifest
-          ? normalizedManifest.content
-          : content,
-      ).toString("base64"),
-    }));
+          ? Buffer.from(normalizedManifest.content, "utf8")
+          : Buffer.from(content);
+      return {
+        path: filePath,
+        content: bytes.toString("base64"),
+      };
+    });
   const uncompressed = Buffer.from(
     JSON.stringify({ version: 1, files }),
   );

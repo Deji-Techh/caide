@@ -143,7 +143,7 @@ export const FileEditor = ({
 }: FileEditorProps) => {
   const { t } = useTranslation("home");
   const { content, loading, error } = useLoadAppFile(appId, filePath);
-  const { theme } = useTheme();
+  const { isDarkMode } = useTheme();
   const [value, setValue] = useState<string | undefined>(undefined);
   const [displayUnsavedChanges, setDisplayUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -222,11 +222,6 @@ export const FileEditor = ({
     }
   }, [content, filePath]);
 
-  // Determine if dark mode based on theme
-  const isDarkMode =
-    theme === "dark" ||
-    (theme === "system" &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches);
   const editorTheme = isDarkMode ? "dyad-dark" : "dyad-light";
   const modelPath = React.useMemo(() => {
     const normalizedPath = filePath.replace(/^\/+/, "");
